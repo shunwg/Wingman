@@ -51,8 +51,14 @@ const RULES: Rule[] = [
   },
 ];
 
-/** Screens may use the engines, but only through their public index. */
-const SCREEN_DEEP_IMPORT = /^@(matching|privacy|stamps)\/.+/;
+/**
+ * Screens may use the engines, but only through their public index.
+ *
+ * `@privacy` and `@privacy/index` are both the front door — the alias points at
+ * the directory, so the explicit `/index` is the same file. Only paths that go
+ * *past* it are violations.
+ */
+const SCREEN_DEEP_IMPORT = /^@(matching|privacy|stamps)\/(?!index$).+/;
 
 const IMPORT_RE = /(?:^|\n)\s*import\s+(?:type\s+)?[\s\S]*?from\s+['"]([^'"]+)['"]/g;
 const EXPORT_FROM_RE = /(?:^|\n)\s*export\s+(?:type\s+)?[\s\S]*?from\s+['"]([^'"]+)['"]/g;

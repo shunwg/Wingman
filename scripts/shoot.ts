@@ -17,13 +17,24 @@ const BASE = process.argv[2] ?? 'http://localhost:5173';
 const OUT =
   process.argv[3] ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'shots');
 
-const VIEWPORTS = [
-  { name: 'mobile', width: 390, height: 844 },
-  { name: 'tablet', width: 768, height: 1024 },
-  { name: 'desktop', width: 1440, height: 900 },
-];
+const VIEWPORTS = process.env.SHOOT_ALL
+  ? [
+      { name: 'mobile', width: 390, height: 844 },
+      { name: 'tablet', width: 768, height: 1024 },
+      { name: 'desktop', width: 1440, height: 900 },
+    ]
+  : [{ name: 'mobile', width: 390, height: 844 }];
 
-const ROUTES = [{ name: 'design', hash: '#/_design' }];
+const THEMES = (process.env.SHOOT_ALL ? ['light', 'dark'] : ['light']) as ('light' | 'dark')[];
+
+const ROUTES = [
+  { name: 'board', hash: '#/board' },
+  { name: 'person', hash: '#/person/jonas' },
+  { name: 'requests', hash: '#/requests' },
+  { name: 'trips', hash: '#/trips' },
+  { name: 'you', hash: '#/you' },
+  { name: 'design', hash: '#/_design' },
+];
 
 async function setTheme(page: Page, theme: 'light' | 'dark') {
   await page.evaluate((t) => {
@@ -55,7 +66,7 @@ async function main() {
       await page.evaluate(() => document.fonts.ready);
       await page.waitForTimeout(200);
 
-      for (const theme of ['light', 'dark'] as const) {
+      for (const theme of THEMES) {
         await setTheme(page, theme);
         const file = join(OUT, `${route.name}-${vp.name}-${theme}.png`);
         await page.screenshot({ path: file, fullPage: true });

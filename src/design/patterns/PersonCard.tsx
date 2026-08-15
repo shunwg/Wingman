@@ -64,8 +64,8 @@ export function PersonCard({ person, context, footer, onClick, layout = 'feed' }
             <div className="pcard__scrim" aria-hidden="true" />
             {person.stamps.length > 0 && (
               <div className="pcard__stamps">
-                {person.stamps.slice(0, 3).map((s) => (
-                  <StampBadge key={s.kind} stamp={s} compact />
+                {person.stamps.slice(0, 3).map((s, i) => (
+                  <StampBadge key={`${s.kind}-${s.handle ?? i}`} stamp={s} compact />
                 ))}
               </div>
             )}
@@ -88,8 +88,8 @@ export function PersonCard({ person, context, footer, onClick, layout = 'feed' }
             {context && <p className="pcard__context pcard__context--row mono">{context}</p>}
             {person.stamps.length > 0 && (
               <div className="pcard__rowstamps">
-                {person.stamps.slice(0, 3).map((s) => (
-                  <StampBadge key={s.kind} stamp={s} compact />
+                {person.stamps.slice(0, 3).map((s, i) => (
+                  <StampBadge key={`${s.kind}-${s.handle ?? i}`} stamp={s} compact />
                 ))}
               </div>
             )}
