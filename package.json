@@ -1,0 +1,15 @@
+{
+  "name": "wingman-prototype",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Wingman — airport ride matching. Single-file HTML prototype + source modules, assembled by build/assemble.js.",
+  "scripts": {
+    "test": "node build/test-matching.js",
+    "build": "node build/assemble.js",
+    "shoot": "node build/shoot.js",
+    "dev": "node build/assemble.js && node -e \"require('http').createServer((req,res)=>{const fs=require('fs');res.writeHead(200,{'Content-Type':'text/html'});res.end(fs.readFileSync('wingman.html'))}).listen(4173,()=>console.log('http://localhost:4173'))\""
+  },
+  "devDependencies": {
+    "playwright": "^1.47.0"
+  }
+}
