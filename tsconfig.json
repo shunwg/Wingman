@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    "allowImportingTsExtensions": false,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@domain/*": ["src/domain/*"],
+      "@design/*": ["src/design/*"],
+      "@screens/*": ["src/screens/*"],
+      "@matching/*": ["src/matching/*"],
+      "@privacy/*": ["src/privacy/*"],
+      "@stamps/*": ["src/stamps/*"],
+      "@providers/*": ["src/providers/*"],
+      "@state/*": ["src/state/*"],
+      "@data/*": ["src/data/*"],
+      "@lib/*": ["src/lib/*"]
+    }
+  },
+  "include": ["src"]
+}

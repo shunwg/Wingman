@@ -1,15 +1,50 @@
 {
-  "name": "wingman-prototype",
-  "version": "0.2.0",
+  "name": "wingman",
+  "version": "3.0.0",
   "private": true,
-  "description": "Wingman — airport ride matching. Single-file HTML prototype + source modules, assembled by build/assemble.js.",
+  "type": "module",
+  "description": "Wingman — meet people worth meeting, around the way you already travel.",
   "scripts": {
-    "test": "node build/test-matching.js",
-    "build": "node build/assemble.js",
-    "shoot": "node build/shoot.js",
-    "dev": "node build/assemble.js && node -e \"require('http').createServer((req,res)=>{const fs=require('fs');res.writeHead(200,{'Content-Type':'text/html'});res.end(fs.readFileSync('wingman.html'))}).listen(4173,()=>console.log('http://localhost:4173'))\""
+    "dev": "vite",
+    "build": "npm run build:data && tsc -p tsconfig.json --noEmit && vite build",
+    "preview": "vite preview",
+    "build:data": "tsx scripts/build-airports.ts && tsx scripts/build-city-index.ts && tsx scripts/verify-dataset.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:pure": "tsc -p tsconfig.pure.json --noEmit",
+    "check:boundaries": "tsx scripts/check-boundaries.ts",
+    "test": "vitest run",
+    "test:pure": "vitest run --project pure",
+    "test:ui": "vitest run --project ui",
+    "test:watch": "vitest",
+    "e2e": "playwright test",
+    "lint": "eslint .",
+    "verify": "npm run typecheck && npm run typecheck:pure && npm run check:boundaries && npm run test"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.62.0",
+    "@tanstack/react-router": "^1.95.0",
+    "idb-keyval": "^6.2.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zustand": "^5.0.2"
   },
   "devDependencies": {
-    "playwright": "^1.47.0"
+    "@eslint/js": "^9.17.0",
+    "@playwright/test": "^1.49.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.17.0",
+    "fast-check": "^3.23.0",
+    "jsdom": "^25.0.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0",
+    "tz-lookup": "^6.1.25",
+    "vite": "^6.0.3",
+    "vitest": "^2.1.8"
   }
 }

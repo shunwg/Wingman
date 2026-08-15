@@ -1,0 +1,52 @@
+{
+  // The purity gate.
+  //
+  // This config covers the engines that must stay runnable under plain Node:
+  // domain, matching, privacy, stamps, lib. It deliberately omits the "DOM"
+  // lib, so `window`, `document`, `localStorage`, `fetch` and friends are all
+  // type errors here. It also omits "vite/client", so `import.meta.env` fails.
+  //
+  // If someone reaches for a browser API inside an engine, this fails to
+  // typecheck before it ever reaches a test. Run it with:
+  //     npm run typecheck:pure
+  //
+  // Note: `Date.now()` is legal ES2022 and cannot be caught by tsconfig — it is
+  // caught by the ESLint boundary rules in eslint.config.js instead.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": [],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@domain/*": ["src/domain/*"],
+      "@matching/*": ["src/matching/*"],
+      "@privacy/*": ["src/privacy/*"],
+      "@stamps/*": ["src/stamps/*"],
+      "@lib/*": ["src/lib/*"]
+    }
+  },
+  "include": [
+    "src/domain/**/*.ts",
+    "src/matching/**/*.ts",
+    "src/privacy/**/*.ts",
+    "src/stamps/**/*.ts",
+    "src/lib/**/*.ts"
+  ],
+  "exclude": ["**/__tests__/**", "**/*.test.ts"]
+}
