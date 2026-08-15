@@ -45,6 +45,14 @@ export interface AirportIndex {
   get(iata: IataCode): Airport | undefined;
   city(iata: IataCode): City | undefined;
   zone(iata: IataCode): IanaZone | undefined;
+  /**
+   * The local zone of a city.
+   *
+   * Needed because "the same night" is a local-calendar claim about a city, not
+   * about an airport — two people can land at different airports in the same
+   * metro and still share Thursday evening.
+   */
+  cityZone(city: CityKey): IanaZone | undefined;
   /** Prefix/fuzzy search for the trip form's combobox. */
   search(query: string, limit?: number): Airport[];
   nearest(lat: number, lon: number, limit?: number): Airport[];

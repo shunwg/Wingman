@@ -32,10 +32,9 @@ export function makeVerification(
   };
 }
 
-export function makePerson(overrides: Partial<Person> & { id: string }): Person {
+export function makePerson(overrides: Partial<Omit<Person, 'id'>> & { id: string }): Person {
   const id = asPersonId(overrides.id);
   return {
-    id,
     displayName: 'Ada Lovelace',
     firstName: 'Ada',
     gender: 'woman',
@@ -94,8 +93,7 @@ export function makePerson(overrides: Partial<Person> & { id: string }): Person 
     blocked: [],
     createdAt: asUtc('2026-01-01T00:00:00Z'),
     ...overrides,
-    // `id` must survive the spread as a branded value.
-    ...{ id },
+    id,
   };
 }
 

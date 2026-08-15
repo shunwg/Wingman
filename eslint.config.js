@@ -25,7 +25,22 @@ const IMPURE_GLOBALS = [
 ];
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'src/data/airports/*.json', 'build', 'wingman.html'] },
+  {
+    ignores: [
+      'dist',
+      'node_modules',
+      'src/data/airports/*.json',
+      'build',
+      'wingman.html',
+      // The v2 prototype: six concatenated classic scripts sharing one global
+      // scope. Kept only until its seed fixtures are ported in phase 4a, then
+      // deleted along with build/ and wingman.html. Linting it under the new
+      // config produces 489 no-undef errors and zero useful signal.
+      'src/*.js',
+      'src/styles.css',
+      'src/shell.html',
+    ],
+  },
 
   js.configs.recommended,
   ...tseslint.configs.recommended,

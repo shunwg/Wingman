@@ -1,6 +1,7 @@
 import type { Airport, AirportIndex, City } from '@domain/airport';
 import type { CityKey, IataCode } from '@domain/ids';
 import type { IanaZone } from '@domain/time';
+import { haversineM } from '@lib/geo';
 import largeData from './airports.large.json';
 import citiesData from './cities.json';
 
@@ -137,18 +138,7 @@ function score(a: Airport, q: string): number {
   return s + (a.size === 'large' ? 40 : 0);
 }
 
-const EARTH_M = 6_371_000;
-const rad = Math.PI / 180;
-
-/** Great-circle distance in metres. */
-export function haversineM(aLat: number, aLon: number, bLat: number, bLon: number): number {
-  const dLat = (bLat - aLat) * rad;
-  const dLon = (bLon - aLon) * rad;
-  const s =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(aLat * rad) * Math.cos(bLat * rad) * Math.sin(dLon / 2) ** 2;
-  return Math.round(2 * EARTH_M * Math.asin(Math.sqrt(s)));
-}
+export { haversineM };
 
 export const airportIndex: AirportIndex = {
   get: (iata) => byIata.get(iata),
@@ -160,6 +150,10 @@ export const airportIndex: AirportIndex = {
 
   zone(iata) {
     return byIata.get(iata)?.zone;
+  },
+
+  cityZone(city) {
+    return byCityKey.get(city)?.zone;
   },
 
   search(query, limit = 8) {
