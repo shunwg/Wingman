@@ -1,0 +1,506 @@
+/**
+ * Component styles.
+ *
+ * Tokens only — no literal colours below this line. Motion follows the rules in
+ * tokens.css: custom easing curves, never `ease-in`, nothing over 300ms except
+ * the one signature moment, and `transition` always names the properties it
+ * animates rather than saying `all`.
+ */
+
+/* ── Avatar ──────────────────────────────────────────────────────────────── */
+
+.avatar {
+  flex: none;
+  overflow: hidden;
+  background: var(--surface-sunk);
+}
+
+.avatar--circle {
+  border-radius: var(--r-pill);
+}
+
+.avatar--photo {
+  border-radius: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.avatar svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ── Button ──────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  /* Named properties only. `all` animates things you never meant to. */
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    background-color var(--dur-press) ease,
+    border-color var(--dur-press) ease,
+    color var(--dur-press) ease;
+  /* 44px minimum target, everywhere. */
+  min-height: 44px;
+}
+
+.btn:active:not(:disabled) {
+  /* The whole reason interfaces feel responsive. Subtle and instant. */
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn--sm {
+  padding: 0 var(--sp-4);
+  font-size: var(--text-sm);
+  min-height: 44px;
+}
+.btn--md {
+  padding: 0 var(--sp-5);
+  font-size: var(--text-base);
+  min-height: 48px;
+}
+.btn--lg {
+  padding: 0 var(--sp-6);
+  font-size: var(--text-lg);
+  min-height: 56px;
+}
+
+.btn--full {
+  width: 100%;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn--secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--hairline-strong);
+}
+
+.btn--quiet {
+  background: transparent;
+  color: var(--muted);
+}
+
+.btn--danger {
+  background: transparent;
+  color: var(--accent);
+  border-color: var(--hairline-strong);
+}
+
+/* Hover is gated: touch devices fire it on tap, which produces a stuck
+   hover state that looks like a bug. */
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary:hover:not(:disabled) {
+    background: var(--accent-press);
+  }
+  .btn--secondary:hover:not(:disabled),
+  .btn--danger:hover:not(:disabled) {
+    background: var(--surface-sunk);
+  }
+  .btn--quiet:hover:not(:disabled) {
+    color: var(--ink);
+  }
+}
+
+.btn__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--r-pill);
+  animation: spin 620ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Chip ────────────────────────────────────────────────────────────────── */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 6px var(--sp-3);
+  border-radius: var(--r-pill);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.3;
+  background: var(--surface-sunk);
+  color: var(--muted);
+  border: 1px solid transparent;
+}
+
+.chip--accent {
+  background: var(--accent-wash);
+  color: var(--accent);
+}
+.chip--trust {
+  background: var(--trust-wash);
+  color: var(--trust);
+}
+.chip--guard {
+  background: var(--guard-wash);
+  color: var(--guard);
+}
+.chip--warn {
+  background: var(--warn-wash);
+  color: var(--warn);
+}
+
+.chip--toggle {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  background: var(--surface);
+  border-color: var(--hairline-strong);
+  color: var(--ink);
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    background-color var(--dur-press) ease,
+    border-color var(--dur-press) ease,
+    color var(--dur-press) ease;
+}
+
+.chip--toggle:active {
+  transform: scale(0.97);
+}
+
+.chip--toggle.is-selected {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--canvas);
+}
+
+/* ── Stamp ───────────────────────────────────────────────────────────────── */
+
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px var(--sp-2);
+  border-radius: var(--r-pill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--hairline);
+}
+
+.stamp--trust {
+  color: var(--trust);
+  background: var(--trust-wash);
+  border-color: transparent;
+}
+
+.stamp--compact {
+  padding: 5px;
+  border-radius: var(--r-pill);
+  /* Sits on a photo, so it needs its own ground rather than the page's. */
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.stamp__handle {
+  color: var(--faint);
+  font-weight: 400;
+}
+
+/* ── Person card ─────────────────────────────────────────────────────────── */
+
+.pcard {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  overflow: hidden;
+  text-align: left;
+  padding: 0;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  box-shadow: var(--shadow-card);
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    box-shadow var(--dur-press) ease,
+    border-color var(--dur-press) ease;
+}
+
+button.pcard {
+  cursor: pointer;
+}
+
+button.pcard:active {
+  transform: scale(0.985);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button.pcard:hover {
+    border-color: var(--hairline-strong);
+    box-shadow: var(--shadow-lift);
+  }
+}
+
+.pcard__photo {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+}
+
+.pcard--row {
+  flex-direction: row;
+  align-items: stretch;
+}
+
+/* Fixed square. `aspect-ratio` alone loses to the flex `stretch` on the row,
+   which leaves the photo letterboxed inside a taller box. */
+.pcard--row .pcard__photo {
+  aspect-ratio: auto;
+  width: 112px;
+  height: 112px;
+  flex: none;
+  align-self: center;
+  margin: var(--sp-3) 0 var(--sp-3) var(--sp-3);
+  border-radius: var(--r-photo);
+}
+
+.pcard--row .pcard__body {
+  min-width: 0;
+  justify-content: center;
+  gap: var(--sp-1);
+}
+
+.pcard__rowhead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+
+.pcard__context--row {
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  letter-spacing: 0.02em;
+}
+
+.pcard__rowstamps {
+  display: flex;
+  gap: var(--sp-1);
+  flex-basis: 100%;
+  margin-top: var(--sp-1);
+}
+
+/* A scrim, so the caption stays legible over any generated portrait. Without
+   it, a light palette and white text is a coin flip. */
+.pcard__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgb(0 0 0 / 72%) 0%,
+    rgb(0 0 0 / 38%) 22%,
+    rgb(0 0 0 / 0%) 48%
+  );
+  pointer-events: none;
+}
+
+.pcard__stamps {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
+  display: flex;
+  gap: var(--sp-1);
+}
+
+.pcard__caption {
+  position: absolute;
+  left: var(--sp-4);
+  right: var(--sp-4);
+  bottom: var(--sp-4);
+  color: #fff;
+}
+
+.pcard__name {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+/* The base .pcard__name is white because it sits on the photo. On a row it sits
+   on the card, so it has to be re-coloured — and by a more specific selector,
+   since the base rule is declared later in this file. */
+.pcard--row .pcard__name {
+  font-size: var(--text-lg);
+  color: var(--ink);
+}
+
+.pcard--row .pcard__name--withheld {
+  color: var(--muted);
+  opacity: 1;
+}
+
+/* A withheld name is stated, not left as a gap. */
+.pcard__name--withheld {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  opacity: 0.86;
+  letter-spacing: 0;
+}
+
+.pcard__context {
+  font-size: var(--text-xs);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.92;
+  margin-top: 2px;
+}
+
+.pcard__body {
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.pcard__headline {
+  font-size: var(--text-base);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+}
+
+.pcard__work {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.pcard__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+
+/* ── Gallery (dev only) ──────────────────────────────────────────────────── */
+
+.gallery {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--sp-7) var(--sp-5) var(--sp-8);
+}
+
+.gallery__title {
+  font-size: var(--text-4xl);
+  margin-bottom: var(--sp-2);
+}
+
+.gallery__lede {
+  color: var(--muted);
+  max-width: 62ch;
+  margin-bottom: var(--sp-7);
+}
+
+.gallery__section {
+  margin-bottom: var(--sp-8);
+}
+
+.gallery__h2 {
+  font-size: var(--text-xl);
+  margin-bottom: var(--sp-2);
+}
+
+.gallery__note {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  max-width: 62ch;
+  margin-bottom: var(--sp-5);
+}
+
+.gallery__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  align-items: center;
+}
+
+.gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--sp-5);
+}
+
+/* Row cards need width, not columns — squeezed into a 240px grid cell they
+   wrap every second word and stop being a fair test of the layout. */
+.gallery__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  max-width: 560px;
+}
+
+.gallery__swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--sp-3);
+}
+
+.swatch {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  font-size: var(--text-xs);
+}
+
+.swatch__chip {
+  height: 56px;
+}
+
+.swatch__label {
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface);
+}
+
+.swatch__label b {
+  display: block;
+  color: var(--ink);
+}
+
+.swatch__label span {
+  color: var(--faint);
+}
+
+.faces {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: var(--sp-3);
+}
+
+.theme-toggle {
+  position: fixed;
+  top: var(--sp-4);
+  right: var(--sp-4);
+  z-index: var(--z-toast);
+}

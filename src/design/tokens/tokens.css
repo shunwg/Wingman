@@ -1,0 +1,265 @@
+/**
+ * Design tokens.
+ *
+ * The single place a colour, radius, duration or easing curve is defined.
+ * Nothing outside src/design may write a literal colour — restyling the whole
+ * product should mean editing this file and nothing else.
+ *
+ * Four hues total: ink, an ember accent, a trust green, a guardian indigo.
+ * Restraint is the point. Colour is never the only indicator either — every
+ * stamp and state carries an icon and a label, so the design survives both
+ * colour blindness and a monochrome screenshot.
+ */
+
+:root {
+  /* ── Surface ─────────────────────────────────────────────────────────── */
+  --canvas: #fbf9f7;
+  --surface: #ffffff;
+  --surface-sunk: #f4f0ec;
+  --hairline: #e8e2dc;
+  --hairline-strong: #d8cfc6;
+
+  /* ── Text. Both clear 4.5:1 on canvas and surface. ───────────────────── */
+  --ink: #141110;
+  --muted: #736a64;
+  --faint: #a2988f;
+  --on-accent: #ffffff;
+
+  /* ── The four hues ───────────────────────────────────────────────────── */
+  --accent: #e2563a;
+  --accent-press: #c8462c;
+  --accent-wash: #fdefeb;
+  --trust: #10715c;
+  --trust-wash: #e6f2ee;
+  --guard: #3d4edb;
+  --guard-wash: #ecedfd;
+  --warn: #9a5b00;
+  --warn-wash: #fdf1e0;
+
+  /* ── Type ────────────────────────────────────────────────────────────── */
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 3rem;
+
+  --leading-tight: 1.15;
+  --leading-snug: 1.35;
+  --leading-body: 1.6;
+
+  /* ── Space, on an 8pt grid ───────────────────────────────────────────── */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  /* ── Form ────────────────────────────────────────────────────────────── */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-photo: 20px;
+  --r-card: 24px;
+  --r-sheet: 28px;
+  --r-pill: 999px;
+
+  /* Shadows are used sparingly — a hairline does most of the separating. */
+  --shadow-card: 0 1px 2px rgb(20 17 16 / 4%), 0 8px 24px -16px rgb(20 17 16 / 18%);
+  --shadow-lift: 0 2px 4px rgb(20 17 16 / 6%), 0 16px 40px -20px rgb(20 17 16 / 28%);
+  --shadow-sheet: 0 -8px 40px -12px rgb(20 17 16 / 22%);
+
+  /* ── Motion ──────────────────────────────────────────────────────────── */
+  /* The built-in CSS easings are too weak to read as intentional. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Never ease-in on UI: it delays the first moment, which is the moment the
+     user is watching most closely, and makes the whole interface feel slow. */
+  --dur-press: 130ms;
+  --dur-tooltip: 160ms;
+  --dur-sheet: 220ms;
+  --dur-dialog: 260ms;
+  /* The one place we spend real time — accepting a request. Rare by design. */
+  --dur-signature: 1400ms;
+
+  --z-sheet: 30;
+  --z-dialog: 40;
+  --z-toast: 50;
+
+  color-scheme: light;
+}
+
+/* System preference, unless the user has explicitly chosen light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --canvas: #141110;
+    --surface: #1e1a18;
+    --surface-sunk: #100d0c;
+    --hairline: #2e2825;
+    --hairline-strong: #423a35;
+
+    --ink: #f6f2ef;
+    --muted: #a79c95;
+    --faint: #7a6f68;
+
+    --accent: #ff7355;
+    --accent-press: #e65c40;
+    --accent-wash: #2c1a15;
+    --trust: #3fbf9c;
+    --trust-wash: #10241f;
+    --guard: #8a95ff;
+    --guard-wash: #1a1c32;
+    --warn: #e0a458;
+    --warn-wash: #2a1f0f;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px -16px rgb(0 0 0 / 70%);
+    --shadow-lift: 0 2px 4px rgb(0 0 0 / 45%), 0 16px 40px -20px rgb(0 0 0 / 80%);
+    --shadow-sheet: 0 -8px 40px -12px rgb(0 0 0 / 70%);
+
+    color-scheme: dark;
+  }
+}
+
+/* An explicit choice always wins over the system preference, in both
+   directions — otherwise a user who picks light on a dark-mode device gets
+   their choice silently ignored. */
+:root[data-theme='dark'] {
+  --canvas: #141110;
+  --surface: #1e1a18;
+  --surface-sunk: #100d0c;
+  --hairline: #2e2825;
+  --hairline-strong: #423a35;
+
+  --ink: #f6f2ef;
+  --muted: #a79c95;
+  --faint: #7a6f68;
+
+  --accent: #ff7355;
+  --accent-press: #e65c40;
+  --accent-wash: #2c1a15;
+  --trust: #3fbf9c;
+  --trust-wash: #10241f;
+  --guard: #8a95ff;
+  --guard-wash: #1a1c32;
+  --warn: #e0a458;
+  --warn-wash: #2a1f0f;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px -16px rgb(0 0 0 / 70%);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 45%), 0 16px 40px -20px rgb(0 0 0 / 80%);
+  --shadow-sheet: 0 -8px 40px -12px rgb(0 0 0 / 70%);
+
+  color-scheme: dark;
+}
+
+/* ── Reset and base ──────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-body);
+  /* 16px minimum, so mobile Safari never zooms on focus. */
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100dvh;
+}
+
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Visible focus, always. Removing the ring without a replacement is the single
+   most common way an otherwise good interface becomes unusable by keyboard. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+::selection {
+  background: var(--accent-wash);
+  color: var(--ink);
+}
+
+/* Numerals that line up in tables and time displays. */
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  line-height: var(--leading-tight);
+  letter-spacing: -0.02em;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Motion preferences ──────────────────────────────────────────────────── */
+/* Reduced motion means fewer and gentler animations, not none: opacity and
+   colour transitions aid comprehension and stay. Movement goes. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 120ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  [data-motion='transform'] {
+    transform: none !important;
+  }
+}

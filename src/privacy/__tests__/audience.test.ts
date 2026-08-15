@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { ProximityClass } from '@domain/index';
 import { isRedacted } from '@domain/person';
 import { compilePolicy } from '../compile';
 import { whoCanSeeMe } from '../audience/report';
@@ -10,10 +11,8 @@ const baseInput = (person: ReturnType<typeof woman>) => ({
   me: person,
   policy: compilePolicy(person.privacy),
   now: NOW,
-  liveProximities: ['same_flight', 'same_city'] as const,
-  liveContexts: [
-    { kind: 'flight' as const, label: 'On SK4489 to Singapore', until: NOW },
-  ],
+  liveProximities: ['same_flight', 'same_city'] as ProximityClass[],
+  liveContexts: [{ kind: 'flight' as const, label: 'On SK4489 to Singapore', until: NOW }],
   ownCircleIds: [],
   hasActiveGuardian: false,
   hasCircleAdmins: false,
