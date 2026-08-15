@@ -46,6 +46,14 @@ export type TravelOverlap =
       airport: IataCode;
       window: TimeWindow;
       usableMin: Minutes;
+      /**
+       * Carried here for the same reason as on a layover: two people at one
+       * airport in different terminals are not two people who can have a
+       * coffee. An earlier version omitted this and cheerfully proposed a meet
+       * across Heathrow T5 and T2 with 85 minutes to spare.
+       */
+      sameTerminal: boolean;
+      bothAirside: boolean;
     }
   | {
       kind: 'same_city_night';

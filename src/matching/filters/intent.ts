@@ -42,9 +42,17 @@ export function feasibleMeetKinds(overlap: TravelOverlap, config: MatchConfig): 
     }
 
     case 'same_airport_window': {
-      // Landside — arriving, departing, or waiting. This is the shared-transfer
-      // case: two people landing within half an hour heading the same way.
+      // Arriving, departing, or waiting. This is the shared-transfer case: two
+      // people landing within half an hour and heading the same way.
       if (overlap.usableMin < config.minUsableMin) return [];
+
+      // Being at one airport is not being in one place. Different terminals
+      // means a transit, a re-screening, and a real chance of missing
+      // something — the same bar as a layover.
+      if (!overlap.sameTerminal) {
+        return overlap.usableMin >= 120 ? ['gate_coffee', 'business_intro'] : [];
+      }
+
       const kinds: MeetKind[] = ['ride_share', 'gate_coffee'];
       if (overlap.usableMin >= 60) kinds.push('business_intro');
       return kinds;

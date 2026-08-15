@@ -93,8 +93,23 @@ export interface AirportPresence {
   usableWindow: TimeWindow | null;
   kind: 'layover' | 'arrival' | 'departure';
   usableMin: Minutes;
+  /** True when this person's own connection stays in one terminal. */
   sameTerminal: boolean;
   bothAirside: boolean;
+  /**
+   * Which terminal this person is actually in.
+   *
+   * Needed to compare two *different* people. Their own `sameTerminal` says
+   * whether they change terminals; it says nothing about whether they are in
+   * the same one as you.
+   */
+  terminal?: string;
+}
+
+/** Two people share a terminal only when both terminals are known and equal. */
+export function inSameTerminal(a: AirportPresence, b: AirportPresence): boolean {
+  if (!a.terminal || !b.terminal) return false;
+  return a.terminal === b.terminal;
 }
 
 /** How long before departure someone is plausibly at the airport. */
@@ -121,6 +136,7 @@ export function airportPresences(trip: Trip, config: MatchConfig): AirportPresen
   const segs = orderedSegments(trip);
   if (segs.length === 0) return [];
 
+  const byId = new Map(segs.map((s) => [s.id, s]));
   const layovers = layoversFor(trip, config);
   const out: AirportPresence[] = layovers.map((l) => {
     const back =
@@ -128,6 +144,9 @@ export function airportPresences(trip: Trip, config: MatchConfig): AirportPresen
       (l.sameTerminal ? 0 : config.terminalChangeMin) +
       (l.bothAirside ? 0 : config.landsideReentryMin);
     const usableWindow = shrink(l.window, config.disembarkMin, back);
+    // Where they land is where they spend the connection; if the terminal
+    // changes they will be moving, which is what the buffers already charge for.
+    const terminal = byId.get(l.arrivingSegmentId)?.terminalTo;
     return {
       airport: l.airport,
       window: l.window,
@@ -136,6 +155,7 @@ export function airportPresences(trip: Trip, config: MatchConfig): AirportPresen
       usableMin: l.usableMin,
       sameTerminal: l.sameTerminal,
       bothAirside: l.bothAirside,
+      ...(terminal ? { terminal } : {}),
     };
   });
 
@@ -153,6 +173,7 @@ export function airportPresences(trip: Trip, config: MatchConfig): AirportPresen
     usableMin: Math.max(0, PRE_DEPARTURE_MIN - config.boardingBufferMin),
     sameTerminal: true,
     bothAirside: true,
+    ...(first.terminalFrom ? { terminal: first.terminalFrom } : {}),
   });
 
   if (!layoverAirports.has(last.to)) {
@@ -166,6 +187,7 @@ export function airportPresences(trip: Trip, config: MatchConfig): AirportPresen
       usableMin: Math.max(0, POST_ARRIVAL_MIN - config.disembarkMin),
       sameTerminal: true,
       bothAirside: true,
+      ...(last.terminalTo ? { terminal: last.terminalTo } : {}),
     });
   }
 

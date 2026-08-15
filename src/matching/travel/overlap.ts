@@ -1,7 +1,7 @@
 import type { AirportIndex, ISODate, Trip } from '@domain/index';
 import { intersectDates, intersectWindows, localDate, minutesBetween, windowLengthMin } from '@domain/time';
 import type { MatchConfig, TravelOverlap } from '../types';
-import { airportPresences, orderedSegments } from './layover';
+import { airportPresences, inSameTerminal, orderedSegments } from './layover';
 
 /**
  * Classify how two itineraries touch.
@@ -74,7 +74,10 @@ export function classifyOverlap(
       const usableMin = windowLengthMin(window);
       if (usableMin < config.minUsableMin) continue;
 
-      const sameTerminal = x.sameTerminal && y.sameTerminal;
+      // Two questions, not one: are they each staying put, and are they in the
+      // same place as each other. Only the second decides whether a meet is
+      // physically possible between *them*.
+      const sameTerminal = x.sameTerminal && y.sameTerminal && inSameTerminal(x, y);
       const bothAirside = x.bothAirside && y.bothAirside;
 
       if (x.kind === 'layover' && y.kind === 'layover') {
@@ -87,7 +90,14 @@ export function classifyOverlap(
           usableMin,
         });
       } else {
-        out.push({ kind: 'same_airport_window', airport: x.airport, window, usableMin });
+        out.push({
+          kind: 'same_airport_window',
+          airport: x.airport,
+          window,
+          usableMin,
+          sameTerminal,
+          bothAirside,
+        });
       }
     }
   }
