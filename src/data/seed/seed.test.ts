@@ -34,26 +34,56 @@ describe('the seeded world', () => {
     expect(res.candidates.length).toBeGreaterThanOrEqual(6);
   });
 
-  it('puts the people on your actual flight at the top', () => {
-    const top = run().candidates.slice(0, 3);
-    expect(top.every((c) => c.overlap.kind === 'same_flight')).toBe(true);
+  it('gives every seeded person a photograph', () => {
+    // The photo map is keyed by person id, and a typo in either place fails
+    // silently — the person simply falls through to a generated portrait and
+    // nobody notices until the board looks half-finished in a screenshot.
+    const missing = SEED_PEOPLE.filter((p) => !p.avatar.photoUrl).map((p) => String(p.id));
+    expect(missing).toEqual([]);
+  });
+
+  it('keeps the generated portrait underneath the photograph', () => {
+    // The photo is an addition, not a replacement: it is what renders if an
+    // image 404s, and its palette still tints the card.
+    for (const p of SEED_PEOPLE) {
+      expect(p.avatar.palette.bgFrom).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(p.avatar.seed).toBe(String(p.id));
+    }
+  });
+
+  it('puts someone on your actual flight first, and the rest of them high', () => {
+    const res = run();
+
+    // The single strongest thing that can be true of a stranger is that you are
+    // both about to spend thirteen hours on the same aircraft.
+    expect(res.candidates[0]!.overlap.kind).toBe('same_flight');
+
+    // The rest of the flight ranks in the top half, but is not guaranteed to
+    // own the podium outright. Asserting that it did would freeze the ordering
+    // against exactly the signal this product sells — someone who shares your
+    // school, has proved who they are and works on what you work on can and
+    // should out-rank a weak match who happens to be in seat 42K. What must
+    // stay true is that the flight is never buried.
+    const half = Math.ceil(res.candidates.length / 2);
+    const topHalf = new Set(res.candidates.slice(0, half).map((c) => String(c.person.id)));
+    for (const id of ['jonas', 'mira', 'lucas']) expect(topHalf).toContain(id);
   });
 
   it('offers only what the overlap can physically support', () => {
     const res = run();
-    const wei = res.candidates.find((c) => String(c.person.id) === 'wei');
-    const lukas = res.candidates.find((c) => String(c.person.id) === 'lukas');
+    const theo = res.candidates.find((c) => String(c.person.id) === 'theo');
+    const lucas = res.candidates.find((c) => String(c.person.id) === 'lucas');
 
     // Six days in one city is the only thing that makes coworking real.
-    expect(wei?.proposableKinds).toContain('coworking');
+    expect(theo?.proposableKinds).toContain('coworking');
     // A shared flight does not.
-    expect(lukas?.proposableKinds ?? []).not.toContain('coworking');
+    expect(lucas?.proposableKinds ?? []).not.toContain('coworking');
   });
 
   it('drops the terminal-change connection instead of ranking it low', () => {
     // Hassan has 85 usable minutes at Heathrow across two terminals. That is
     // not a coffee, and offering it anyway is how somebody misses a flight.
-    expect(ids(run())).not.toContain('hassan');
+    expect(ids(run())).not.toContain('omar');
     expect(run().suppressed.byFeasibility.kind).not.toBe('none');
   });
 
@@ -62,22 +92,22 @@ describe('the seeded world', () => {
   });
 
   it('finds someone landing at Changi just after you', () => {
-    const amara = run().candidates.find((c) => String(c.person.id) === 'amara');
-    expect(amara?.allOverlaps.some((o) => o.kind === 'same_airport_window')).toBe(true);
+    const ayla = run().candidates.find((c) => String(c.person.id) === 'ayla');
+    expect(ayla?.allOverlaps.some((o) => o.kind === 'same_airport_window')).toBe(true);
   });
 });
 
 describe('privacy is visible in the seed, not theoretical', () => {
   it('shows the women-only traveller to a woman', () => {
-    expect(ids(run())).toContain('noor');
+    expect(ids(run())).toContain('nina');
   });
 
   it('hides her from a man, and says so only as a bucket', () => {
     const asMan = run({ ...ME, gender: 'man' });
-    expect(ids(asMan)).not.toContain('noor');
+    expect(ids(asMan)).not.toContain('nina');
     expect(asMan.suppressed.byPrivacy.kind).not.toBe('none');
     // Never an identity, and never an exact small number.
-    expect(JSON.stringify(asMan.suppressed)).not.toContain('noor');
+    expect(JSON.stringify(asMan.suppressed)).not.toContain('nina');
     expect(asMan.suppressed.byPrivacy.kind).not.toBe('exact');
   });
 

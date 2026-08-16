@@ -34,7 +34,8 @@
       "@providers/*": ["src/providers/*"],
       "@state/*": ["src/state/*"],
       "@data/*": ["src/data/*"],
-      "@lib/*": ["src/lib/*"]
+      "@lib/*": ["src/lib/*"],
+      "@assets/*": ["src/assets/*"]
     }
   },
   "include": ["src"]

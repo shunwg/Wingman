@@ -16,6 +16,7 @@ const resolve = {
     '@state': alias('./src/state'),
     '@data': alias('./src/data'),
     '@lib': alias('./src/lib'),
+    '@assets': alias('./src/assets'),
   },
 };
 

@@ -186,14 +186,22 @@ describe('ranking', () => {
    * The load-bearing test. If someone adds an appearance-shaped signal later,
    * this fails — which is the whole reason it exists.
    */
-  it('ignores avatar, gender and name entirely', () => {
+  it('ignores avatar, photo, gender and name entirely', () => {
     const plain = openPerson('a');
     const restyled: Person = {
       ...plain,
       gender: 'man',
       displayName: 'Someone Else Entirely',
       firstName: 'Someone',
-      avatar: { ...plain.avatar, seed: 'totally-different', palette: { ...plain.avatar.palette, skin: '#000000' } },
+      avatar: {
+        ...plain.avatar,
+        seed: 'totally-different',
+        palette: { ...plain.avatar.palette, skin: '#000000' },
+        // Having a photograph must not be worth a single point. Otherwise the
+        // seeded cast would quietly out-rank every real user who has not
+        // uploaded one, and the board would be sorted by who looks the part.
+        photoUrl: '/assets/some-photograph.jpg',
+      },
     };
 
     const base = findCandidates(world([plain])).candidates[0]!;

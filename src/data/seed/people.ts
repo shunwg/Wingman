@@ -13,6 +13,7 @@ import { asCircleId, asPersonId, asVerificationId } from '@domain/ids';
 import { asUtc } from '@domain/time';
 import { generateAvatar } from '@design/avatar/generate';
 import { defaultPolicy } from '@privacy/index';
+import { photoFor } from './photos';
 
 /**
  * The seeded population.
@@ -58,9 +59,9 @@ interface Seed {
 
 const SEEDS: Seed[] = [
   {
-    id: 'maya',
-    name: 'Maya Lindqvist',
-    first: 'Maya',
+    id: 'mira',
+    name: 'Mira Lindqvist',
+    first: 'Mira',
     gender: 'woman',
     pronouns: 'she/her',
     headline: 'Back from a design sprint. Quiet flight, good coffee after.',
@@ -76,7 +77,7 @@ const SEEDS: Seed[] = [
     professional: 0.8,
     openTo: ['gate_coffee', 'meal', 'business_intro', 'lounge'],
     stamps: ['bankid', 'linkedin'],
-    handles: { linkedin: 'mayalindqvist' },
+    handles: { linkedin: 'miralindqvist' },
     circles: [{ id: 'gridweek', display: 'show_badge' }],
     meets: 14,
     reliability: 'reliable',
@@ -111,9 +112,9 @@ const SEEDS: Seed[] = [
     reliability: 'reliable',
   },
   {
-    id: 'amara',
-    name: 'Amara Sesay',
-    first: 'Amara',
+    id: 'ayla',
+    name: 'Ayla Demir',
+    first: 'Ayla',
     gender: 'woman',
     pronouns: 'she/her',
     headline: 'First time through Changi. Open to a coffee before the red-eye.',
@@ -121,10 +122,10 @@ const SEEDS: Seed[] = [
     title: 'Associate',
     company: 'Ola Studio',
     industry: 'Architecture',
-    workingOn: 'A social housing scheme in Freetown',
+    workingOn: 'A social housing scheme in İzmir',
     lookingFor: ['structural engineers who like timber'],
     topics: ['architecture', 'photography', 'cities'],
-    languages: ['en', 'fr'],
+    languages: ['tr', 'en'],
     social: 0.8,
     professional: 0.5,
     openTo: ['gate_coffee', 'meal', 'drinks', 'terminal_walk'],
@@ -133,9 +134,9 @@ const SEEDS: Seed[] = [
     reliability: 'unproven',
   },
   {
-    id: 'noor',
-    name: 'Noor Haddad',
-    first: 'Noor',
+    id: 'nina',
+    name: 'Nina Halvorsen',
+    first: 'Nina',
     gender: 'woman',
     pronouns: 'she/her',
     headline: 'Travelling alone a lot this year. Women only, and I mean it.',
@@ -146,12 +147,12 @@ const SEEDS: Seed[] = [
     workingOn: 'Outbreak modelling across South-East Asia',
     lookingFor: ['data people who care about field logistics'],
     topics: ['public health', 'books', 'running'],
-    languages: ['ar', 'en'],
+    languages: ['no', 'en'],
     social: 0.75,
     professional: 0.6,
     openTo: ['meal', 'drinks', 'gate_coffee'],
     stamps: ['bankid', 'linkedin'],
-    handles: { linkedin: 'noorhaddad' },
+    handles: { linkedin: 'ninahalvorsen' },
     // Both halves of the rule, atomically — the whole point of a preset.
     presets: ['women_only'],
     meets: 9,
@@ -206,9 +207,9 @@ const SEEDS: Seed[] = [
     reliability: 'mixed',
   },
   {
-    id: 'lukas',
-    name: 'Lukas Brandt',
-    first: 'Lukas',
+    id: 'lucas',
+    name: 'Lucas Brandt',
+    first: 'Lucas',
     gender: 'man',
     pronouns: 'he/him',
     headline: 'Same flight, apparently. I have the aisle and no strong opinions.',
@@ -224,14 +225,14 @@ const SEEDS: Seed[] = [
     professional: 0.3,
     openTo: ['gate_coffee', 'drinks', 'meal', 'ride_share', 'terminal_walk'],
     stamps: ['instagram', 'facebook'],
-    handles: { instagram: 'lukas.on.tour', facebook: 'lukasbrandt' },
+    handles: { instagram: 'lucas.on.tour', facebook: 'lucasbrandt' },
     meets: 4,
     reliability: 'unproven',
   },
   {
-    id: 'wei',
-    name: 'Wei Chen',
-    first: 'Wei',
+    id: 'theo',
+    name: 'Theo Lindholm',
+    first: 'Theo',
     gender: 'nonbinary',
     pronouns: 'they/them',
     headline: 'In town for three days. Would rather cowork than sightsee.',
@@ -242,12 +243,12 @@ const SEEDS: Seed[] = [
     workingOn: 'Settlement infrastructure that nobody notices',
     lookingFor: ['someone who has scaled a ledger'],
     topics: ['software', 'payments', 'coffee'],
-    languages: ['zh', 'en'],
+    languages: ['sv', 'en'],
     social: 0.4,
     professional: 0.85,
     openTo: ['coworking', 'business_intro', 'meal', 'gate_coffee'],
     stamps: ['linkedin', 'work_email'],
-    handles: { linkedin: 'weichen' },
+    handles: { linkedin: 'theolindholm' },
     meets: 11,
     reliability: 'reliable',
   },
@@ -276,25 +277,25 @@ const SEEDS: Seed[] = [
     reliability: 'reliable',
   },
   {
-    id: 'hassan',
-    name: 'Hassan Yılmaz',
-    first: 'Hassan',
+    id: 'omar',
+    name: 'Omar Nasser',
+    first: 'Omar',
     gender: 'man',
     pronouns: 'he/him',
     headline: 'Connecting through, two hours, different terminal. Realistic about it.',
     bio: 'Logistics. I know which airports lie about walking times.',
     title: 'Operations lead',
-    company: 'Bosphorus Freight',
+    company: 'Levant Freight',
     industry: 'Logistics',
     workingOn: 'Cold chain into the Gulf',
     lookingFor: ['a customs broker who answers the phone'],
     topics: ['logistics', 'football', 'maps'],
-    languages: ['tr', 'en'],
+    languages: ['ar', 'en'],
     social: 0.65,
     professional: 0.7,
     openTo: ['gate_coffee', 'business_intro', 'lounge'],
     stamps: ['linkedin'],
-    handles: { linkedin: 'hassanyilmaz' },
+    handles: { linkedin: 'omarnasser' },
     meets: 8,
     reliability: 'mixed',
   },
@@ -343,6 +344,107 @@ const SEEDS: Seed[] = [
     handles: { instagram: 'danielcooks' },
     meets: 2,
     reliability: 'unproven',
+  },
+  {
+    id: 'amelie',
+    name: 'Amélie Rousseau',
+    first: 'Amélie',
+    gender: 'woman',
+    pronouns: 'she/her',
+    headline: 'INSEAD reunion week. I would rather meet one new person than ten old ones.',
+    bio: 'Strategy, mostly energy clients. Reliably the last one to leave a dinner.',
+    title: 'Partner',
+    company: 'Rousseau & Aubert',
+    industry: 'Strategy consulting',
+    workingOn: 'Grid investment cases for utilities that move slowly',
+    lookingFor: ['operators who will tell me what actually went wrong'],
+    topics: ['energy', 'strategy', 'wine'],
+    languages: ['fr', 'en'],
+    social: 0.6,
+    professional: 0.9,
+    openTo: ['business_intro', 'meal', 'lounge', 'gate_coffee'],
+    stamps: ['bankid', 'linkedin', 'work_email'],
+    handles: { linkedin: 'amelierousseau' },
+    circles: [{ id: 'insead', display: 'show_badge' }],
+    meets: 19,
+    reliability: 'reliable',
+  },
+  {
+    id: 'elin',
+    name: 'Elin Dahl',
+    first: 'Elin',
+    gender: 'woman',
+    pronouns: 'she/her',
+    headline: 'At Grid Week and I know nobody. Someone please have a coffee with me.',
+    bio: 'Two years into power trading, still the youngest person in every room.',
+    title: 'Analyst',
+    company: 'Nordkraft',
+    industry: 'Energy trading',
+    workingOn: 'Intraday strategies nobody will let me deploy yet',
+    lookingFor: ['anyone who has been doing this longer than me'],
+    topics: ['energy', 'markets', 'climbing'],
+    languages: ['no', 'en'],
+    social: 0.85,
+    professional: 0.8,
+    openTo: ['gate_coffee', 'meal', 'business_intro', 'terminal_walk'],
+    // Only a social stamp: she is exactly who an assurance floor excludes, and
+    // the board should feel that trade-off rather than hide it.
+    stamps: ['linkedin'],
+    handles: { linkedin: 'elindahl' },
+    circles: [{ id: 'gridweek', display: 'show_badge' }],
+    meets: 1,
+    reliability: 'unproven',
+  },
+  {
+    id: 'hugo',
+    name: 'Hugo Ferreira',
+    first: 'Hugo',
+    gender: 'man',
+    pronouns: 'he/him',
+    headline: 'Nine hours in transit. I have read everything I brought.',
+    bio: 'Photographer. Currently between an assignment and a very long bus ride.',
+    title: 'Photographer',
+    company: 'Freelance',
+    industry: 'Media',
+    workingOn: 'A series on night shifts',
+    lookingFor: ['someone who works while everyone else sleeps'],
+    topics: ['photography', 'music', 'food'],
+    languages: ['pt', 'es', 'en'],
+    social: 0.9,
+    professional: 0.25,
+    openTo: ['gate_coffee', 'terminal_walk', 'meal', 'drinks'],
+    // Nothing government-issued. Sofia's id_verified_only filter must remove
+    // him, and the suppression count must say so without naming him.
+    stamps: ['instagram', 'facebook'],
+    handles: { instagram: 'hugo.after.dark', facebook: 'hugoferreira' },
+    meets: 3,
+    reliability: 'mixed',
+  },
+  {
+    id: 'marek',
+    name: 'Marek Nowak',
+    first: 'Marek',
+    gender: 'man',
+    pronouns: 'he/him',
+    headline: 'Here for a week. Looking for a desk and someone to complain about it with.',
+    bio: 'Reliability engineering. I am the reason your dashboard went quiet at 3am.',
+    title: 'Staff SRE',
+    company: 'Northwind Grid',
+    industry: 'Software',
+    workingOn: 'Making an alerting system that people do not mute',
+    lookingFor: ['anyone who has run an on-call rota that did not burn people out'],
+    topics: ['software', 'reliability', 'cycling'],
+    languages: ['pl', 'en'],
+    social: 0.35,
+    professional: 0.8,
+    openTo: ['coworking', 'gate_coffee', 'business_intro', 'meal'],
+    stamps: ['bankid', 'linkedin', 'work_email'],
+    handles: { linkedin: 'mareknowak' },
+    // Second person using an employer circle for matching with the badge off,
+    // so the match_only path is exercised by more than one row.
+    circles: [{ id: 'northwind', display: 'match_only' }],
+    meets: 13,
+    reliability: 'reliable',
   },
 ];
 
@@ -422,6 +524,19 @@ function intent(s: Seed): IntentProfile {
   };
 }
 
+/**
+ * The generated portrait is built for everyone, photograph or not.
+ *
+ * It costs nothing, it keeps the palette available for the card's background
+ * tint, and it is what renders if the image ever fails to load. A photograph
+ * is an addition to the spec, never a replacement for it.
+ */
+function portrait(id: string) {
+  const generated = generateAvatar(id);
+  const photo = photoFor(id);
+  return photo ? { ...generated, photoUrl: photo } : generated;
+}
+
 function expand(s: Seed): Person {
   const id = asPersonId(s.id);
   const privacy = defaultPolicy();
@@ -435,7 +550,7 @@ function expand(s: Seed): Person {
     ...(s.pronouns ? { pronouns: s.pronouns } : {}),
     headline: s.headline,
     bio: s.bio,
-    avatar: generateAvatar(s.id),
+    avatar: portrait(s.id),
     professional: {
       title: s.title,
       company: s.company,
@@ -471,16 +586,23 @@ export const circleIdsFor = (id: string): string[] =>
 
 /** Response rates — conduct, and the only historical signal that ranks. */
 export const RESPONSE_RATES: Record<string, number> = {
-  maya: 0.82,
+  mira: 0.82,
   jonas: 0.91,
-  amara: 0.5,
-  noor: 0.74,
+  ayla: 0.5,
+  nina: 0.74,
   tobias: 0.88,
   priya: 0.61,
-  lukas: 0.45,
-  wei: 0.79,
+  lucas: 0.45,
+  theo: 0.79,
   sofia: 0.86,
-  hassan: 0.58,
+  omar: 0.58,
   ingrid: 0.77,
   daniel: 0.4,
+  amelie: 0.84,
+  // New, and keen. A high rate here is not a reward for being new — it is what
+  // "answers her messages" actually looks like, and it is the only conduct
+  // signal the ranker is allowed to read.
+  elin: 0.93,
+  hugo: 0.55,
+  marek: 0.8,
 };

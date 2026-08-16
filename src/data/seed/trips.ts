@@ -171,9 +171,9 @@ export const MY_TRIP: Trip = trip('you', [SQ317()], [
 
 const TRIPS: Record<string, Trip> = {
   // On the flight itself — the strongest overlap there is.
-  maya: trip('maya', [SQ317()], [SIN_STAY('2026-09-03', '2026-09-05', '2026-09-05T12:00:00Z')]),
+  mira: trip('mira', [SQ317()], [SIN_STAY('2026-09-03', '2026-09-05', '2026-09-05T12:00:00Z')]),
   jonas: trip('jonas', [SQ317()], [SIN_STAY('2026-09-03', '2026-09-07', '2026-09-07T08:00:00Z')]),
-  lukas: trip('lukas', [SQ317()], [SIN_STAY('2026-09-03', '2026-09-04', '2026-09-04T22:00:00Z')]),
+  lucas: trip('lucas', [SQ317()], [SIN_STAY('2026-09-03', '2026-09-04', '2026-09-04T22:00:00Z')]),
 
   // Connecting at Heathrow, same terminal, while you are waiting to board.
   priya: trip(
@@ -187,8 +187,8 @@ const TRIPS: Record<string, Trip> = {
 
   // Also connecting — but a terminal change with 85 usable minutes. Should be
   // dropped on feasibility rather than shown as a bad option.
-  hassan: trip(
-    'hassan',
+  omar: trip(
+    'omar',
     [
       seg('TK1979', 'TK', 'IST', 'LHR', '2026-09-02T15:00:00Z', '2026-09-02T17:00:00Z', { to: 'T5' }),
       seg('BA43', 'BA', 'LHR', 'DXB', '2026-09-02T22:00:00Z', '2026-09-03T06:00:00Z', { from: 'T2' }),
@@ -197,8 +197,8 @@ const TRIPS: Record<string, Trip> = {
   ),
 
   // Lands at Changi shortly after you, on a different aircraft.
-  amara: trip(
-    'amara',
+  ayla: trip(
+    'ayla',
     [seg('EK354', 'EK', 'DXB', 'SIN', '2026-09-03T01:00:00Z', '2026-09-03T09:15:00Z', { to: 'T3' })],
     [stay('singapore-sg', '2026-09-03', '2026-09-04', '2026-09-03T09:15:00Z', '2026-09-04T20:00:00Z')],
   ),
@@ -210,13 +210,40 @@ const TRIPS: Record<string, Trip> = {
   ),
 
   // In the city, no shared flight. Visibility depends entirely on who is asking.
-  noor: trip('noor', [], [stay('singapore-sg', '2026-09-03', '2026-09-06', '2026-09-02T22:00:00Z', '2026-09-06T09:00:00Z')]),
+  nina: trip('nina', [], [stay('singapore-sg', '2026-09-03', '2026-09-06', '2026-09-02T22:00:00Z', '2026-09-06T09:00:00Z')]),
   sofia: trip('sofia', [], [stay('singapore-sg', '2026-09-03', '2026-09-05', '2026-09-03T04:00:00Z', '2026-09-05T14:00:00Z')]),
   tobias: trip('tobias', [], [stay('singapore-sg', '2026-09-04', '2026-09-06', '2026-09-04T06:00:00Z', '2026-09-06T18:00:00Z')]),
   daniel: trip('daniel', [], [stay('singapore-sg', '2026-09-03', '2026-09-07', '2026-09-02T18:00:00Z', '2026-09-07T11:00:00Z')]),
 
   // Six days — the only overlap long enough to make coworking proposable.
-  wei: trip('wei', [], [stay('singapore-sg', '2026-09-02', '2026-09-08', '2026-09-02T02:00:00Z', '2026-09-08T20:00:00Z')]),
+  theo: trip('theo', [], [stay('singapore-sg', '2026-09-02', '2026-09-08', '2026-09-02T02:00:00Z', '2026-09-08T20:00:00Z')]),
+  marek: trip('marek', [], [stay('singapore-sg', '2026-09-02', '2026-09-09', '2026-09-02T05:00:00Z', '2026-09-09T06:00:00Z')]),
+
+  // A ten-hour layover in your own terminal, leaving after you do. This is the
+  // one that should rank hardest right now: you are both sitting in T2 with
+  // nothing to do, and his window closes before yours.
+  hugo: trip(
+    'hugo',
+    [
+      seg('TP1356', 'TP', 'LIS', 'LHR', '2026-09-02T09:30:00Z', '2026-09-02T11:20:00Z', { to: 'T2' }),
+      seg('BA55', 'BA', 'LHR', 'JNB', '2026-09-02T21:15:00Z', '2026-09-03T08:30:00Z', { from: 'T2' }),
+    ],
+    [],
+  ),
+
+  // Both in Singapore for the week the circles are built around — the INSEAD
+  // reunion and Grid Week run at the same time, which is the whole reason a
+  // closed loop is worth selling to either of them.
+  amelie: trip(
+    'amelie',
+    [seg('AF254', 'AF', 'CDG', 'SIN', '2026-09-02T22:30:00Z', '2026-09-03T10:40:00Z', { to: 'T1' })],
+    [stay('singapore-sg', '2026-09-03', '2026-09-06', '2026-09-03T10:40:00Z', '2026-09-06T13:00:00Z')],
+  ),
+  elin: trip(
+    'elin',
+    [seg('SK973', 'SK', 'OSL', 'SIN', '2026-09-03T10:00:00Z', '2026-09-03T22:10:00Z', { to: 'T3' })],
+    [stay('singapore-sg', '2026-09-03', '2026-09-07', '2026-09-03T22:10:00Z', '2026-09-07T09:00:00Z')],
+  ),
 };
 
 export const SEED_TRIPS: Trip[] = Object.values(TRIPS);
