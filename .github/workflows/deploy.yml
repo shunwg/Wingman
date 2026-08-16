@@ -1,0 +1,59 @@
+name: Deploy to GitHub Pages
+
+# Every push to main rebuilds and republishes the same URL. There is no
+# manual "deploy" step to remember or forget — the live link always reflects
+# whatever is on main, which is the whole point of wiring this up rather than
+# hand-running `npm run build` and uploading a folder.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  # Required by actions/deploy-pages for its OIDC handshake with Pages —
+  # without it the deploy job is refused even with pages: write above.
+  id-token: write
+
+# Only one deploy in flight at a time; a second push while the first is still
+# building cancels the stale one rather than racing it.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # build:data pulls the OurAirports CSVs over the network and fails the
+      # whole workflow if a timezone is missing — the same gate that runs
+      # locally, so a bad dataset can't reach the deployed app silently.
+      - run: npm run build
+        env:
+          GITHUB_PAGES: 'true'
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

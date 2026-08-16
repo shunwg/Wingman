@@ -5,6 +5,13 @@ import { fileURLToPath, URL } from 'node:url';
 const alias = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
 export default defineConfig({
+  // GitHub Pages serves a project site from /<repo-name>/, not from the
+  // domain root — so every asset URL needs that prefix or the deployed page
+  // loads an empty white screen while every script and stylesheet 404s. Local
+  // dev and `vite preview` stay at root; only the GitHub Actions build sets
+  // this env var. Hash routing (see routes.tsx) is what makes the rest of the
+  // app agnostic to which path segment it's served under.
+  base: process.env.GITHUB_PAGES ? '/Wingman/' : '/',
   plugins: [react()],
   resolve: {
     alias: {
