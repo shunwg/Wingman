@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@design/primitives/Button';
 import { Chip } from '@design/primitives/Chip';
 import { Avatar } from '@design/primitives/Avatar';
-import type { DenialRecord, MeetRequest } from '@domain/index';
+import type { DenialRecord, MeetRequest, PersonId } from '@domain/index';
 import { senderView } from '@state/machines/meetRequest';
 import { useStore } from '@state/store';
 import { personById } from '@data/seed/people';
@@ -25,6 +25,8 @@ export function RequestsScreen() {
 
   const incoming = requests.filter((r) => r.toPersonId === me.id);
   const outgoing = requests.filter((r) => r.fromPersonId === me.id);
+  // Both directions: once it is agreed, who asked stops mattering.
+  const accepted = requests.filter((r) => r.status === 'accepted');
 
   return (
     <>
@@ -36,6 +38,15 @@ export function RequestsScreen() {
           incoming
             .filter((r) => ['sent', 'viewed'].includes(r.status))
             .map((r) => <IncomingRow key={String(r.id)} request={r} onDeny={() => setDenying(r)} />)
+        )}
+      </section>
+
+      <section className="reqsection">
+        <h2 className="reqsection__title">Meeting</h2>
+        {accepted.length === 0 ? (
+          <p className="reqsection__empty">Nothing agreed yet.</p>
+        ) : (
+          accepted.map((r) => <MeetingRow key={String(r.id)} request={r} meId={me.id} />)
         )}
       </section>
 
@@ -52,6 +63,36 @@ export function RequestsScreen() {
     </>
   );
 }
+
+/** An agreed meet — the door into its room. */
+function MeetingRow({ request, meId }: { request: MeetRequest; meId: PersonId }) {
+  const otherId = String(request.fromPersonId === meId ? request.toPersonId : request.fromPersonId);
+  const other = personById(otherId);
+
+  return (
+    <a className="reqrow reqrow--link" href={`#/meet/${String(request.id)}`}>
+      <Avatar spec={other?.avatar ?? generateAvatar(otherId)} size="md" />
+      <div className="reqrow__body">
+        <p className="reqrow__who">{other?.firstName ?? 'Someone'}</p>
+        <p className="reqrow__msg">{KIND_TEXT[request.proposal.kind] ?? 'Meeting up'}</p>
+      </div>
+      <span className="reqrow__go" aria-hidden="true">
+        →
+      </span>
+    </a>
+  );
+}
+
+const KIND_TEXT: Record<string, string> = {
+  gate_coffee: 'Coffee at the gate',
+  lounge: 'The lounge',
+  terminal_walk: 'A walk round the terminal',
+  ride_share: 'Sharing the ride in',
+  meal: 'A meal',
+  drinks: 'A drink',
+  business_intro: 'An introduction',
+  coworking: 'Coworking',
+};
 
 function IncomingRow({ request, onDeny }: { request: MeetRequest; onDeny: () => void }) {
   const advance = useStore((s) => s.advanceRequest);

@@ -54,6 +54,8 @@ export interface PersonCardProps {
    * states too.
    */
   tripCode?: string;
+  /** Shown to the reader — "SQ317 → SIN". Falls back to the code. */
+  tripLabel?: string;
   /** Why they are here. Shown under the fold on the detail view. */
   footer?: ReactNode;
   onClick?: () => void;
@@ -67,6 +69,7 @@ export function PersonCard({
   person,
   context,
   tripCode,
+  tripLabel,
   footer,
   onClick,
   layout = 'feed',
@@ -98,7 +101,7 @@ export function PersonCard({
         <p className={`pcard__trip mono ${tripHueClass(tripCode)}`}>
           <span className="tripdot" aria-hidden="true" />
           <span className="visually-hidden">For your trip </span>
-          {tripCode}
+          {tripLabel ?? tripCode}
         </p>
       )}
 

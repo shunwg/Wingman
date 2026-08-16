@@ -3,8 +3,11 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
   AdmissionRule,
   DenialRecord,
+  JourneyStage,
+  MeetMessage,
   MeetRequest,
   MeetRequestStatus,
+  Circle,
   MembershipDisplay,
   Person,
   PersonId,
@@ -80,6 +83,22 @@ export interface WingmanState {
    */
   myTrips: Trip[];
   requests: MeetRequest[];
+  /**
+   * Everything said in a meet room, flat and append-only.
+   *
+   * One list rather than a map keyed by request, because messages are read in
+   * time order far more often than they are read per-room, and a flat log makes
+   * "what happened, in order" the cheap query rather than the expensive one.
+   */
+  messages: MeetMessage[];
+  /**
+   * Circles opened from inside the app.
+   *
+   * Separate from SEED_CIRCLES because those are fixtures and these are the
+   * user's own — merging them into one list would make "can I delete this?"
+   * ambiguous, and the seed is not the user's to delete.
+   */
+  myCircles: Circle[];
   /** Candidates shown and not acted on — feeds the fairness fatigue penalty. */
   seenCounts: Record<string, number>;
   /** The simulated clock. Real builds would use the wall clock here. */
@@ -108,9 +127,14 @@ export interface WingmanState {
   addVerification: (record: VerificationRecord) => void;
   revokeVerification: (providerId: string) => void;
 
+  createCircle: (circle: Circle) => void;
   joinCircle: (circleId: string, admittedBy: AdmissionRule['kind']) => void;
   leaveCircle: (circleId: string) => void;
   setMembershipDisplay: (circleId: string, display: MembershipDisplay) => void;
+
+  /** One tap: where you have got to. Terminal is attached by the caller. */
+  postStage: (requestId: string, stage: JourneyStage, at?: { terminal?: string; airportIata?: string }) => void;
+  postText: (requestId: string, text: string) => void;
 
   sendRequest: (input: Omit<MeetRequest, 'id' | 'status' | 'history' | 'createdAt'>) => MeetRequest;
   advanceRequest: (id: string, to: MeetRequestStatus, by: PersonId | 'system', note?: string) => void;
@@ -156,6 +180,8 @@ const initial = () => ({
   me: ME,
   myTrips: MY_TRIPS,
   requests: [seededInbound()],
+  messages: [] as MeetMessage[],
+  myCircles: [] as Circle[],
   seenCounts: {} as Record<string, number>,
   now: SEED_NOW,
   onboarded: false,
@@ -202,6 +228,43 @@ export const useStore = create<WingmanState>()(
 
       completeOnboarding: () => set({ onboarded: true }),
 
+      postStage: (requestId, stage, at) =>
+        set((s) => ({
+          messages: [
+            ...s.messages,
+            {
+              id: `m_${s.messages.length + 1}_${Date.parse(String(s.now))}`,
+              requestId: asMeetRequestId(requestId),
+              from: s.me.id,
+              at: s.now,
+              body: {
+                kind: 'stage' as const,
+                stage,
+                ...(at?.terminal ? { terminal: at.terminal } : {}),
+                ...(at?.airportIata ? { airportIata: at.airportIata as never } : {}),
+              },
+            },
+          ],
+        })),
+
+      postText: (requestId, text) =>
+        set((s) => {
+          const trimmed = text.trim().slice(0, 240);
+          if (!trimmed) return s;
+          return {
+            messages: [
+              ...s.messages,
+              {
+                id: `m_${s.messages.length + 1}_${Date.parse(String(s.now))}`,
+                requestId: asMeetRequestId(requestId),
+                from: s.me.id,
+                at: s.now,
+                body: { kind: 'text' as const, text: trimmed },
+              },
+            ],
+          };
+        }),
+
       addVerification: (record) =>
         set((s) => ({
           me: {
@@ -225,6 +288,28 @@ export const useStore = create<WingmanState>()(
             // disconnect is exactly the kind of quiet retention this app is
             // meant not to do.
             verifications: s.me.verifications.filter((v) => v.providerId !== providerId),
+          },
+        })),
+
+      createCircle: (circle) =>
+        set((s) => ({
+          myCircles: [...s.myCircles.filter((c) => c.id !== circle.id), circle],
+          // The person who opens a circle is in it, and is its admin. A circle
+          // whose creator has to then join their own circle is a bug wearing a
+          // flow's clothing.
+          me: {
+            ...s.me,
+            memberships: [
+              ...s.me.memberships.filter((m) => m.circleId !== circle.id),
+              {
+                circleId: circle.id,
+                personId: s.me.id,
+                display: 'show_badge' as const,
+                joinedAt: s.now,
+                admittedBy: circle.admission.kind,
+                role: 'admin' as const,
+              },
+            ],
           },
         })),
 
@@ -367,6 +452,8 @@ export const useStore = create<WingmanState>()(
         me: s.me,
         myTrips: s.myTrips,
         requests: s.requests,
+        messages: s.messages,
+        myCircles: s.myCircles,
         seenCounts: s.seenCounts,
         onboarded: s.onboarded,
         // `filters` is absent on purpose. It is a lens on this session, not a

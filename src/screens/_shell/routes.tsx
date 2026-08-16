@@ -6,6 +6,9 @@ import { PersonScreen } from '@screens/person/PersonScreen';
 import { RequestsScreen } from '@screens/requests/RequestsScreen';
 import { TripsScreen } from '@screens/trips/TripsScreen';
 import { CirclesScreen } from '@screens/circles/CirclesScreen';
+import { NewCircleScreen } from '@screens/circles/NewCircleScreen';
+import { JoinCircleScreen } from '@screens/circles/JoinCircleScreen';
+import { MeetScreen } from '@screens/meet/MeetScreen';
 import { VerifyScreen } from '@screens/verify/VerifyScreen';
 import { YouScreen } from '@screens/profile/YouScreen';
 
@@ -18,7 +21,18 @@ import { YouScreen } from '@screens/profile/YouScreen';
  */
 
 export interface Route {
-  name: 'discover' | 'person' | 'requests' | 'trip' | 'circles' | 'you' | 'verify' | 'design';
+  name:
+    | 'discover'
+    | 'person'
+    | 'requests'
+    | 'meet'
+    | 'trip'
+    | 'circles'
+    | 'circles.new'
+    | 'join'
+    | 'you'
+    | 'verify'
+    | 'design';
   id?: string;
   /**
    * Which of your trips you opened this person from.
@@ -42,7 +56,12 @@ export function parseRoute(hash: string): Route {
   // aliases so a bookmark or a screenshot URL from an earlier build still lands
   // somewhere sensible.
   if (head === 'trip' || head === 'trips') return { name: 'trip' };
+  if (head === 'circles' && id === 'new') return { name: 'circles.new' };
   if (head === 'circles') return { name: 'circles' };
+  // The invite link. Deliberately its own top-level route rather than a query
+  // string on Circles, so the whole URL is the thing you paste into a message.
+  if (head === 'join' && id) return { name: 'join', id };
+  if (head === 'meet' && id) return { name: 'meet', id };
   if (head === 'verify') return { name: 'verify' };
   if (head === 'you') return { name: 'you' };
   return { name: 'discover' };
@@ -97,6 +116,24 @@ export function Router() {
       return (
         <AppShell route="circles" title="Circles">
           <CirclesScreen />
+        </AppShell>
+      );
+    case 'circles.new':
+      return (
+        <AppShell route="circles" title="Open a circle">
+          <NewCircleScreen onDone={() => navigate('#/circles')} />
+        </AppShell>
+      );
+    case 'join':
+      return (
+        <AppShell route="circles" title="Invitation">
+          <JoinCircleScreen code={route.id ?? ''} onDone={() => navigate('#/circles')} />
+        </AppShell>
+      );
+    case 'meet':
+      return (
+        <AppShell route="requests" title="Meeting">
+          <MeetScreen requestId={route.id ?? ''} onBack={() => navigate('#/requests')} />
         </AppShell>
       );
     case 'verify':

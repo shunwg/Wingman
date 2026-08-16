@@ -34,6 +34,10 @@ export function CirclesScreen() {
   const joinCircle = useStore((s) => s.joinCircle);
   const leaveCircle = useStore((s) => s.leaveCircle);
   const setDisplay = useStore((s) => s.setMembershipDisplay);
+  const myCircles = useStore((s) => s.myCircles);
+
+  // Circles you opened sit first: they are yours, and you came here to see them.
+  const circles = [...myCircles, ...SEED_CIRCLES];
 
   const today = String(now).slice(0, 10);
   const verifiedDomains = new Set(
@@ -46,7 +50,7 @@ export function CirclesScreen() {
         Closed loops where everyone was admitted the same way you were.
       </p>
 
-      {SEED_CIRCLES.map((circle) => {
+      {circles.map((circle) => {
         const mine = me.memberships.find((m) => String(m.circleId) === String(circle.id));
         const live = circleIsLive(circle, today);
         const byDomain = circle.admission.kind === 'email_domain' ? circle.admission : null;
@@ -137,8 +141,11 @@ export function CirclesScreen() {
         <p className="circlecard__admission">
           A circle is a verified domain, a crest, and — for an event — a date range. Admission is
           proved by email or invite, never by typing a name, which is the only reason a member can
-          trust that everyone else in the room belongs there. Ask us to open one.
+          trust that everyone else in the room belongs there.
         </p>
+        <Button size="sm" onClick={() => (window.location.hash = '#/circles/new')}>
+          Open a circle
+        </Button>
       </div>
     </>
   );

@@ -5,7 +5,7 @@ import { personById } from '@data/seed/people';
 import type { Trip } from '@domain/index';
 import { asIata } from '@domain/ids';
 import { localTime, localDate } from '@domain/time';
-import { tripCode, tripIsOpen } from '@domain/trip';
+import { tripCode, tripIsOpen, tripLabel } from '@domain/trip';
 import { tripHueClass } from '@design/tokens/tripHue';
 import { useStore } from '@state/store';
 
@@ -80,7 +80,7 @@ function TripBlock({
     >
       <header className="tripblock__head">
         <span className="tripdot tripblock__dot" aria-hidden="true" />
-        <span className="tripblock__code mono">{tripCode(trip)}</span>
+        <span className="tripblock__code mono">{tripLabel(trip)}</span>
         {trip.outcome ? (
           <Chip tone="trust">Sorted</Chip>
         ) : trip.visibility.listing === 'hidden' ? (

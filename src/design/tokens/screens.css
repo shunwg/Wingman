@@ -1230,3 +1230,145 @@
   font-family: var(--font-body);
   font-size: var(--text-sm);
 }
+
+/* ── Meet room ───────────────────────────────────────────────────────────── */
+
+.room {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+/* The column centres its children by default, which parked the back link in
+   the middle of the screen looking like a heading. */
+.room > .person__back {
+  align-self: flex-start;
+}
+
+/* Two presence cards, theirs first. You already know where you are; the whole
+   reason this screen is open is to find out where they are. */
+.room__presence {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.presence {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+}
+
+.presence__body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.presence__name { font-weight: 600; margin: 0; }
+.presence__stage { font-size: var(--text-sm); color: var(--ink); margin: 0; }
+.presence__stage--quiet { color: var(--faint); }
+.presence__where { margin: 0; }
+.presence__nowhere { font-size: var(--text-xs); color: var(--faint); }
+
+.room__together {
+  margin: 0;
+  padding: var(--sp-3);
+  background: var(--trust-wash);
+  color: var(--trust);
+  border-radius: var(--r-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.room__label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+  margin: 0 0 var(--sp-2);
+}
+
+.room__stages { display: flex; flex-direction: column; }
+
+.room__buttons { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+/* One tap, and deliberately the largest target on the screen — this is used
+   walking through a terminal with a bag in the other hand. */
+.stagebtn {
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-press) ease;
+}
+
+.stagebtn:active { transform: scale(0.97); }
+.stagebtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* "Running late" and "Can't make it" are the two hardest things to send, so
+   they are visually distinct without being alarming — the point is to make
+   them easy, not to make them feel like a failure. */
+.stagebtn--warn { color: var(--warn); border-color: var(--warn); background: var(--warn-wash); }
+
+.room__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.room__empty { font-size: var(--text-sm); color: var(--muted); margin: 0; }
+
+.msg { display: flex; align-items: baseline; gap: var(--sp-2); font-size: var(--text-sm); }
+
+/* A status update is a log line, not a speech bubble — it did not come out of
+   anybody's mouth, and dressing it as speech would make the room noisier. */
+.msg--stage { color: var(--muted); }
+.msg__dot { width: 6px; height: 6px; border-radius: var(--r-pill); background: var(--trust); flex: none; }
+.msg--warn .msg__dot { background: var(--warn); }
+.msg__stage { flex: 1; }
+.msg__where { color: var(--faint); }
+.msg__time { font-size: var(--text-xs); color: var(--faint); flex: none; }
+
+.msg--text { flex-direction: column; align-items: flex-start; gap: 2px; }
+.msg--text.msg--mine { align-items: flex-end; }
+
+.msg__bubble {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-sunk);
+  border-radius: 14px;
+  max-width: 85%;
+  line-height: 1.45;
+}
+
+.msg--mine .msg__bubble { background: var(--accent-wash); color: var(--ink); }
+
+.room__compose { display: flex; gap: var(--sp-2); align-items: center; }
+.room__compose .field__input { flex: 1; }
+
+.room__fineprint { font-size: var(--text-xs); color: var(--faint); line-height: 1.5; margin: 0; }
+
+/* ── Invite link ─────────────────────────────────────────────────────────── */
+
+.invite {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  background: var(--surface-sunk);
+  border-radius: var(--r-md);
+}
+
+.invite__link {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-xs);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* ── Request row as a link ───────────────────────────────────────────────── */
+
+.reqrow--link { text-decoration: none; color: inherit; cursor: pointer; }
+.reqrow__go { color: var(--faint); font-size: var(--text-lg); flex: none; }

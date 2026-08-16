@@ -3,7 +3,7 @@ import { MATCH_CONFIG_V1, findCandidates, relaxations } from '@matching/index';
 import type { MatchInput, MatchResult, RelaxationOutcome } from '@matching/types';
 import type { Candidate } from '@matching/types';
 import type { Trip } from '@domain/index';
-import { tripCode, tripIsOpen } from '@domain/trip';
+import { tripCode, tripIsOpen, tripLabel } from '@domain/trip';
 import { airportIndex } from '@data/airports/index';
 import { RESPONSE_RATES } from '@data/seed/people';
 import { seedPool } from '@data/seed/trips';
@@ -36,7 +36,10 @@ const EMPTY_SUPPRESSED: MatchResult['suppressed'] = {
 /** A candidate, plus which of your journeys produced it. */
 export interface BoardCandidate extends Candidate {
   viaTripId: string;
+  /** Hue key and stable identity — never includes the destination. */
   tripCode: string;
+  /** What the card shows: "SQ317 → SIN". */
+  tripLabel: string;
   /** Kilometres between where the two of you are headed. Undefined if unknown. */
   destinationKm?: number;
 }
@@ -213,6 +216,7 @@ export function useBoard(): Board {
           ...withCircleNames(raw),
           viaTripId: String(trip.id),
           tripCode: tripCode(trip),
+          tripLabel: tripLabel(trip),
         };
         if (myDest && theirDest) candidate.destinationKm = distanceKm(myDest, theirDest);
         merged.push(candidate);

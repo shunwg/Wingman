@@ -130,7 +130,7 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
                 // from. With one open trip the flight code is noise on every
                 // card, repeating what the header already said.
                 {...(board.openTrips.length > 1 && filters.tripId === 'all'
-                  ? { tripCode: c.tripCode }
+                  ? { tripCode: c.tripCode, tripLabel: c.tripLabel }
                   : {})}
                 onClick={() => onOpen(`${String(c.person.id)}/${c.viaTripId}`)}
                 footer={<CardFooter candidate={c} />}

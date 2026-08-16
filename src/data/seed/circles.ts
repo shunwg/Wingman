@@ -61,3 +61,35 @@ export function circleIsLive(circle: Circle, today: string): boolean {
 
 export const circleById = (id: string): Circle | undefined =>
   SEED_CIRCLES.find((c) => c.id === id);
+
+/**
+ * A circle's invite code.
+ *
+ * Derived from the id rather than stored, so it is stable, needs no extra
+ * field, and cannot drift out of sync with the circle it belongs to. It is a
+ * *door key*, not a secret: anyone holding it can ask to join, which is exactly
+ * why a domain circle still demands a verified address on top.
+ */
+export function inviteCodeFor(circle: Circle): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1
+  let h = 2166136261;
+  const seed = String(circle.id) + circle.crestSeed;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(h ^ seed.charCodeAt(i), 16777619) >>> 0;
+  }
+  let out = '';
+  for (let i = 0; i < 6; i++) {
+    out += alphabet[h % alphabet.length];
+    h = Math.floor(h / alphabet.length) + i * 7919;
+  }
+  return out;
+}
+
+/** The whole link, ready to paste into a message. */
+export function inviteLinkFor(circle: Circle): string {
+  const base =
+    typeof window === 'undefined'
+      ? 'https://wingman.app'
+      : `${window.location.origin}${window.location.pathname}`;
+  return `${base}#/join/${inviteCodeFor(circle)}`;
+}

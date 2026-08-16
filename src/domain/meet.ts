@@ -114,6 +114,76 @@ export interface MeetRequest {
   denial?: DenialRecord;
 }
 
+/**
+ * Where someone has got to in an airport.
+ *
+ * The ordered spine of the meet room, and the reason it is a fixed list rather
+ * than free text. "Through security" is the single most useful thing two people
+ * can tell each other before meeting at a gate, it is the same sentence every
+ * time, and typing it out is exactly the friction that stops people sending it.
+ * One tap, no composition, no ambiguity about what was meant.
+ *
+ * It is also the moderation story. A room whose primary vocabulary is nine
+ * buttons is a room where the overwhelming majority of traffic cannot be abuse,
+ * which matters a great deal for App Store Guideline 1.2 and rather more for
+ * the people using it.
+ */
+export type JourneyStage =
+  | 'checked_in'
+  | 'through_security'
+  | 'in_lounge'
+  | 'at_gate'
+  | 'boarded'
+  | 'landed'
+  | 'through_immigration'
+  | 'through_baggage'
+  | 'at_meeting_point'
+  | 'running_late'
+  | 'cannot_make_it';
+
+/** Ordered, for rendering a progress rail. The last two are out-of-band. */
+export const STAGE_ORDER: JourneyStage[] = [
+  'checked_in',
+  'through_security',
+  'in_lounge',
+  'at_gate',
+  'boarded',
+  'landed',
+  'through_immigration',
+  'through_baggage',
+  'at_meeting_point',
+];
+
+export interface StageUpdate {
+  stage: JourneyStage;
+  at: ISODateTime;
+  /** Terminal at the time, when the trip knows it — "T2". */
+  terminal?: string;
+  airportIata?: IataCode;
+}
+
+export type MeetMessageBody =
+  | { kind: 'stage'; stage: JourneyStage; terminal?: string; airportIata?: IataCode }
+  /**
+   * Free text, capped short.
+   *
+   * Present because arranging where exactly to stand needs words, and absent as
+   * the *default* because a blank box is an invitation to write something a
+   * structured update would have said better. 240 characters is enough to name
+   * a landmark and not enough to hold a conversation that should be happening
+   * in person twenty minutes later.
+   */
+  | { kind: 'text'; text: string };
+
+export interface MeetMessage {
+  id: string;
+  /** The accepted request this room belongs to. */
+  requestId: MeetRequestId;
+  from: PersonId;
+  at: ISODateTime;
+  body: MeetMessageBody;
+}
+
 export type MeetStatus = 'scheduled' | 'live' | 'completed' | 'no_show' | 'cancelled';
 
 export interface Meet {

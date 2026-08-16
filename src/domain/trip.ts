@@ -91,15 +91,39 @@ export function tripIsOpen(t: Trip): boolean {
 }
 
 /**
- * The flight code a trip is known by — "SQ317", or a route when there is no
- * flight. This is the label the board tags every suggestion with, so it has to
- * be short enough to sit in a chip and specific enough to be unambiguous.
+ * The flight code a trip is known by — "SQ317", or a city when there is no
+ * flight. Short enough for a chip, and the stable half of the label.
  */
 export function tripCode(t: Trip): string {
   const first = t.segments[0];
   if (first) return first.flightNo;
   const stay = t.stays[0];
   return stay ? String(stay.cityKey).split('-')[0]!.toUpperCase() : 'TRIP';
+}
+
+/** Where the trip ends up — the last arrival airport, or the city stayed in. */
+export function tripDestination(t: Trip): string | undefined {
+  const last = t.segments.at(-1);
+  if (last) return String(last.to);
+  const stay = t.stays[0];
+  if (!stay) return undefined;
+  const city = String(stay.cityKey).split('-')[0]!;
+  return city.charAt(0).toUpperCase() + city.slice(1);
+}
+
+/**
+ * "SQ317 → SIN" — the label a suggestion is tagged with.
+ *
+ * The flight number alone identifies the journey but does not *describe* it: a
+ * board tagged SQ317 / SK1465 / BA767 makes you remember which is which, and
+ * remembering is exactly the work a label should be doing for you. The
+ * destination is the half people actually think in — "the Singapore trip" — so
+ * it earns the extra six characters.
+ */
+export function tripLabel(t: Trip): string {
+  const code = tripCode(t);
+  const to = tripDestination(t);
+  return to && to !== code ? `${code} → ${to}` : code;
 }
 
 /** First departure across all segments — the trip's start instant. */
