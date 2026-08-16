@@ -24,8 +24,16 @@ export const FIELD_LEVEL: Record<LadderField, DisclosureLevel> = {
   stamps: 0,
   circles: 0,
   reputation: 0,
-  /** First name at 1, full name at 2 — handled specially in redact(). */
-  displayName: 1,
+  /**
+   * First name at 0, full name at 2 — handled specially in redact().
+   *
+   * A first name is not an identifier. "Jonas" narrows nobody down, and a board
+   * of fifteen cards all reading "Name shown once you both agree" is not
+   * privacy — it is fifteen repetitions of the same sentence where the humans
+   * should be, and it makes the product feel like a queue rather than a room.
+   * The full name, which *is* findable, still waits for a mutual yes.
+   */
+  displayName: 0,
   pronouns: 1,
   professional: 0, // sub-fields have their own rungs, see below
   bio: 2,
@@ -35,17 +43,31 @@ export const FIELD_LEVEL: Record<LadderField, DisclosureLevel> = {
 /**
  * The professional card, unbundled.
  *
- * Splitting it matters. `industry` and `workingOn` are what make someone worth
- * meeting; `company` plus a face is what makes them findable. A networking app
- * that leads with the employer logo is one search away from being a directory
- * of strangers' workplaces, so the useful half comes early and the identifying
- * half waits for a mutual yes.
+ * Splitting it matters. `industry`, `title` and `workingOn` are what make
+ * someone worth meeting; `company` plus a face is what makes them findable. A
+ * networking app that leads with the employer logo is one search away from
+ * being a directory of strangers' workplaces, so the useful half comes early
+ * and the identifying half waits for a mutual yes.
+ *
+ * `title` and `workingOn` sit at browsing level deliberately, and it is worth
+ * being explicit about the trade this makes. In a dating product they would
+ * belong higher up the ladder — a role plus a face plus a flight narrows a
+ * person considerably. Here they are the entire reason someone opens the app:
+ * "Principal engineer, working on cross-border capacity models" is what makes a
+ * stranger worth crossing a terminal for, and withholding it until after a
+ * request means every request is sent blind. What stays behind a mutual yes is
+ * `company`, which is the field that actually identifies a person — "principal
+ * engineer in energy" is a type, "principal engineer at Northwind Grid" is very
+ * nearly a name.
+ *
+ * `lookingFor` also waits, for a different reason: it is a request for a favour,
+ * and broadcasting it to everyone browsing turns a profile into an ad.
  */
 export const PROFESSIONAL_FIELD_LEVEL: Record<keyof ProfessionalCard, DisclosureLevel> = {
   industry: 0,
-  workingOn: 1,
+  title: 0,
+  workingOn: 0,
   lookingFor: 1,
-  title: 1,
   company: 2,
 };
 

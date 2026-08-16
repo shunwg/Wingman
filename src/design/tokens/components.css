@@ -222,12 +222,21 @@ img.avatar {
   border-color: transparent;
 }
 
+/* No longer sits on a photograph. The translucent-with-blur treatment existed
+   because the compact stamp used to float over the old photo-first card; on a
+   plain surface it renders as a grey outlined circle, which reads as a
+   disabled button parked next to someone's name. Flat and tinted instead, so
+   it reads as a mark rather than a control. */
 .stamp--compact {
-  padding: 5px;
+  padding: 4px;
   border-radius: var(--r-pill);
-  /* Sits on a photo, so it needs its own ground rather than the page's. */
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  backdrop-filter: blur(8px);
+  border: 0;
+  background: var(--surface-sunk);
+  backdrop-filter: none;
+}
+
+.stamp--compact.stamp--trust {
+  background: var(--trust-wash);
 }
 
 .stamp__handle {
@@ -237,15 +246,22 @@ img.avatar {
 
 /* ── Person card ─────────────────────────────────────────────────────────── */
 
+/*
+ * Rebuilt away from the photo-first layout. The photograph is identity now, not
+ * content: 56px beside the name, the size of a face you glance at to recognise
+ * someone rather than one you assess. The sentence they wrote is the largest
+ * thing on the card, and what they are working on gets its own block.
+ */
+
 .pcard {
   display: flex;
   flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--r-card);
-  overflow: hidden;
   text-align: left;
-  padding: 0;
   width: 100%;
   color: inherit;
   font: inherit;
@@ -271,146 +287,108 @@ button.pcard:active {
   }
 }
 
-.pcard__photo {
-  position: relative;
-  aspect-ratio: 4 / 5;
-  overflow: hidden;
+/* Identity: photo · name and role · stamps. Grid rather than flex so the
+   stamps stay pinned right while the middle column truncates. */
+.pcard__id {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--sp-3);
 }
 
-.pcard--row {
-  flex-direction: row;
-  align-items: stretch;
-}
-
-/* Fixed square. `aspect-ratio` alone loses to the flex `stretch` on the row,
-   which leaves the photo letterboxed inside a taller box. */
-.pcard--row .pcard__photo {
-  aspect-ratio: auto;
-  width: 112px;
-  height: 112px;
-  flex: none;
-  align-self: center;
-  margin: var(--sp-3) 0 var(--sp-3) var(--sp-3);
-  border-radius: var(--r-photo);
-}
-
-.pcard--row .pcard__body {
+.pcard__idtext {
   min-width: 0;
-  justify-content: center;
-  gap: var(--sp-1);
-}
-
-.pcard__rowhead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--sp-2);
-}
-
-.pcard__context--row {
-  color: var(--muted);
-  text-transform: uppercase;
-  font-size: var(--text-xs);
-  letter-spacing: 0.02em;
-}
-
-.pcard__rowstamps {
-  display: flex;
-  gap: var(--sp-1);
-  flex-basis: 100%;
-  margin-top: var(--sp-1);
-}
-
-/* A scrim, so the caption stays legible over any generated portrait. Without
-   it, a light palette and white text is a coin flip. */
-.pcard__scrim {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to top,
-    rgb(0 0 0 / 72%) 0%,
-    rgb(0 0 0 / 38%) 22%,
-    rgb(0 0 0 / 0%) 48%
-  );
-  pointer-events: none;
-}
-
-.pcard__stamps {
-  position: absolute;
-  top: var(--sp-3);
-  right: var(--sp-3);
-  display: flex;
-  gap: var(--sp-1);
-}
-
-.pcard__caption {
-  position: absolute;
-  left: var(--sp-4);
-  right: var(--sp-4);
-  bottom: var(--sp-4);
-  color: #fff;
 }
 
 .pcard__name {
-  font-size: var(--text-2xl);
-  font-weight: 600;
-  color: #fff;
-  margin: 0;
-}
-
-/* The base .pcard__name is white because it sits on the photo. On a row it sits
-   on the card, so it has to be re-coloured — and by a more specific selector,
-   since the base rule is declared later in this file. */
-.pcard--row .pcard__name {
+  font-family: var(--font-display);
   font-size: var(--text-lg);
+  font-weight: 600;
   color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
 }
 
-.pcard--row .pcard__name--withheld {
-  color: var(--muted);
-  opacity: 1;
-}
-
-/* A withheld name is stated, not left as a gap. */
+/* A withheld name is stated, not left as a gap — and set in the UI face, so it
+   reads as interface copy rather than as somebody actually called this. */
 .pcard__name--withheld {
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: 500;
-  opacity: 0.86;
-  letter-spacing: 0;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.pcard__role {
+  font-size: var(--text-sm);
+  color: var(--ink);
+  margin: 3px 0 0;
+  line-height: 1.35;
 }
 
 .pcard__context {
   font-size: var(--text-xs);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  opacity: 0.92;
-  margin-top: 2px;
+  color: var(--muted);
+  margin: 5px 0 0;
 }
 
-.pcard__body {
-  padding: var(--sp-4);
+.pcard__stamps {
   display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
+  gap: var(--sp-1);
+  flex: none;
 }
 
+/* Their own sentence. The largest thing on the card, deliberately. */
 .pcard__headline {
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
   line-height: var(--leading-snug);
   color: var(--ink);
+  margin: 0;
+  text-wrap: pretty;
 }
 
 .pcard__work {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: var(--sp-3);
+  background: var(--surface-sunk);
+  border-radius: var(--r-md);
+}
+
+.pcard__worklabel {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+}
+
+.pcard__workvalue {
   font-size: var(--text-sm);
-  color: var(--muted);
+  color: var(--ink);
+  line-height: 1.45;
 }
 
 .pcard__chips {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-2);
-  margin-top: var(--sp-1);
+}
+
+/* Compact list form — same hierarchy, less of it. */
+.pcard--row {
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+}
+
+.pcard--row .pcard__headline {
+  font-size: var(--text-base);
+}
+
+.pcard--row .pcard__work {
+  display: none;
 }
 
 /* ── Gallery (dev only) ──────────────────────────────────────────────────── */

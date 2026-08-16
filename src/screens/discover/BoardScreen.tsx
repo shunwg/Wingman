@@ -78,9 +78,13 @@ function CardFooter({ candidate }: { candidate: Candidate }) {
   return (
     <div className="pcard__footer">
       <p className="pcard__why">{candidate.receipt.headline}</p>
+      {/* What is physically possible given the overlap — information, not
+          controls. These were ember, which made three of them shout louder
+          than the card's actual action and read as buttons that do nothing
+          when tapped. */}
       <div className="pcard__chips">
         {candidate.proposableKinds.slice(0, 3).map((k) => (
-          <Chip key={k} tone="accent">
+          <Chip key={k} tone="neutral">
             {KIND_LABEL[k] ?? k}
           </Chip>
         ))}
@@ -117,7 +121,7 @@ function contextLine(c: Candidate): string {
     case 'same_airport_window':
       return `${o.airport} · ${o.usableMin} min overlap`;
     case 'same_city_night':
-      return `Same city · ${o.night}`;
+      return `Same city · ${humanDate(o.night)}`;
     case 'overlapping_stay':
       return `${o.days} ${o.days === 1 ? 'day' : 'days'} overlapping`;
   }
@@ -128,5 +132,24 @@ const hours = (min: number) => {
   const m = min % 60;
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 };
+
+/**
+ * "2026-09-03" → "Thu 3 Sep".
+ *
+ * An ISO date is a storage format, not a thing to show a person standing in a
+ * terminal. The domain keeps the machine-readable form and the render edge
+ * turns it into something you can read at a glance — the same split that keeps
+ * every time in this app UTC underneath and local on screen.
+ */
+function humanDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return iso;
+  // Noon UTC, so the date cannot slip a day when it is rendered west of GMT.
+  const at = new Date(Date.UTC(y, m - 1, d, 12));
+  // No weekday: the context line is uppercase mono and "SAME CITY · THU 3 SEPT"
+  // wraps at 390px, where "SAME CITY · 3 SEP" does not. The day of the week is
+  // not what anyone is deciding on.
+  return at.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
 
 export { bucketLabel };

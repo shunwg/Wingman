@@ -104,16 +104,14 @@
 
 /* ── Context strip ───────────────────────────────────────────────────────── */
 
+/* Wraps rather than scrolls. As a scroller its last item was sliced through
+   the middle of a word at 390px — "13 overlapp" — which reads as a rendering
+   bug, not as an invitation to swipe. Three short facts fit on two lines. */
 .cstrip {
   display: flex;
-  gap: var(--sp-5);
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-5);
   padding: var(--sp-3) 0 var(--sp-1);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.cstrip::-webkit-scrollbar {
-  display: none;
 }
 
 .cstrip__item {

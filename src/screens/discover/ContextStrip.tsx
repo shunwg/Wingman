@@ -8,11 +8,14 @@ import type { TravelContextSummary } from '@matching/index';
  * the honest answer was available.
  */
 export function ContextStrip({ context }: { context: TravelContextSummary }) {
+  // Short labels. The strip scrolls, but a scroller whose last item is sliced
+  // through the middle of a word reads as a rendering bug rather than as an
+  // invitation to swipe — so each item has to fit whole.
   const items = [
     { n: context.onYourFlight, label: 'on your flight' },
     { n: context.inYourLayover, label: 'in your layover' },
     { n: context.inYourCity, label: 'in your city' },
-    { n: context.overlappingDates, label: 'overlapping days' },
+    { n: context.overlappingDates, label: 'overlapping' },
   ].filter((i) => i.n > 0);
 
   if (items.length === 0) return null;

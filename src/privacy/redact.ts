@@ -59,14 +59,22 @@ export function redact(
   const at = (field: LadderField): boolean =>
     level >= effectiveLevel(field, FIELD_LEVEL[field], ov);
 
-  /* Name: first name at rung 1, full name at rung 2. A stranger gets neither. */
+  /*
+   * Name: first name from the ladder's rung onward, full name only at 2.
+   *
+   * Ordered so that raising `displayName` via a disclosure override still hides
+   * the name entirely — the override is checked first, and only then does the
+   * first-name / full-name split apply. Getting this backwards would let
+   * someone who asked for their name to be private leak their first name to
+   * every browser.
+   */
   const nameLevel = effectiveLevel('displayName', FIELD_LEVEL.displayName, ov);
   const displayName: string | Redacted =
-    level >= 2 || (nameLevel === 0 && level >= 0)
-      ? person.displayName
-      : level >= nameLevel
-        ? person.firstName
-        : hide(reasonForLevel(nameLevel));
+    level < nameLevel
+      ? hide(reasonForLevel(nameLevel))
+      : level >= 2
+        ? person.displayName
+        : person.firstName;
 
   /* Professional card: unbundled, each sub-field on its own rung. */
   const professional: Partial<ProfessionalCard> | Redacted = (() => {

@@ -45,10 +45,12 @@ describe('findCandidates', () => {
     const res = findCandidates(world([openPerson('a')]));
     const c = res.candidates[0]!;
     expect(c.person._level).toBe(0);
-    // A stranger gets a face and a headline, not a name, bio, or links.
+    // A stranger gets a face, a headline and a first name — never the full
+    // name, the bio, or the links. "Ada" narrows nobody down; "Ada Lovelace"
+    // is a search query.
     expect(c.person.avatar).toBeDefined();
     expect(isRedacted(c.person.headline)).toBe(false);
-    expect(isRedacted(c.person.displayName)).toBe(true);
+    expect(c.person.displayName).toBe('Ada');
     expect(isRedacted(c.person.bio)).toBe(true);
     expect(c.person.links.every((l) => isRedacted(l))).toBe(true);
   });

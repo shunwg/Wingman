@@ -125,10 +125,17 @@ describe('privacy is visible in the seed, not theoretical', () => {
     expect(ids(run(social))).not.toContain('tobias');
   });
 
-  it('never leaks a full name onto the board', () => {
+  it('shows first names on the board and never full names', () => {
+    // The old form of this test asserted `typeof displayName !== 'string'` —
+    // no name at all. That is stricter than the invariant its own title
+    // describes, and it would also have passed if the field were dropped
+    // entirely. Asserting the exact value catches both regressions: a surname
+    // leaking, and the name silently disappearing.
     for (const c of run().candidates) {
       expect(c.person._level).toBe(0);
-      expect(typeof c.person.displayName).not.toBe('string');
+      const real = SEED_PEOPLE.find((p) => String(p.id) === String(c.person.id))!;
+      expect(c.person.displayName).toBe(real.firstName);
+      expect(c.person.displayName).not.toBe(real.displayName);
     }
   });
 
