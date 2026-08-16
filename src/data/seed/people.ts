@@ -452,7 +452,7 @@ const SEEDS: Seed[] = [
 
 const STAMP_SPEC: Record<Stamp, { provider: string; kind: StampKind; assurance: 0 | 1 | 2 | 3 }> = {
   bankid: { provider: 'bankid_no', kind: 'government_eid', assurance: 3 },
-  work_email: { provider: 'email_domain', kind: 'email_domain', assurance: 2 },
+  work_email: { provider: 'email_otp', kind: 'email_domain', assurance: 2 },
   linkedin: { provider: 'linkedin', kind: 'social_account', assurance: 1 },
   instagram: { provider: 'instagram', kind: 'social_account', assurance: 1 },
   facebook: { provider: 'facebook', kind: 'social_account', assurance: 1 },

@@ -10,6 +10,7 @@ import type {
   PersonId,
   PrivacyPolicy,
   Trip,
+  VerificationRecord,
 } from '@domain/index';
 import { asCircleId, asMeetRequestId, asUtc } from '@domain/index';
 import type { ISODateTime } from '@domain/time';
@@ -61,6 +62,10 @@ export interface WingmanState {
    * circle, and does it show" is a fact about a person, not about a view. The
    * screen that renders it is not the only thing that will ever ask.
    */
+  /** A stamp that was just earned. Replaces any previous one from the same provider. */
+  addVerification: (record: VerificationRecord) => void;
+  revokeVerification: (providerId: string) => void;
+
   joinCircle: (circleId: string, admittedBy: AdmissionRule['kind']) => void;
   leaveCircle: (circleId: string) => void;
   setMembershipDisplay: (circleId: string, display: MembershipDisplay) => void;
@@ -129,6 +134,32 @@ export const useStore = create<WingmanState>()(
         set((s) => ({ seenCounts: { ...s.seenCounts, [id]: (s.seenCounts[id] ?? 0) + 1 } })),
 
       completeOnboarding: () => set({ onboarded: true }),
+
+      addVerification: (record) =>
+        set((s) => ({
+          me: {
+            ...s.me,
+            // One live stamp per provider. Verifying LinkedIn twice should
+            // replace the record, not stack a second badge onto the card.
+            verifications: [
+              ...s.me.verifications.filter((v) => v.providerId !== record.providerId),
+              record,
+            ],
+          },
+        })),
+
+      revokeVerification: (providerId) =>
+        set((s) => ({
+          me: {
+            ...s.me,
+            // Removed outright rather than marked revoked: this is the person
+            // un-linking their own account, not trust-and-safety withdrawing a
+            // stamp, and keeping a tombstone of an account somebody chose to
+            // disconnect is exactly the kind of quiet retention this app is
+            // meant not to do.
+            verifications: s.me.verifications.filter((v) => v.providerId !== providerId),
+          },
+        })),
 
       joinCircle: (circleId, admittedBy) =>
         set((s) => {

@@ -32,6 +32,12 @@ export default tseslint.config(
       'src/data/airports/*.json',
       'build',
       'wingman.html',
+      // The Lovable build of the same brief, kept locally to read from. Not
+      // ours, not in git, and not ours to lint.
+      'References',
+      // Build scripts for the deployment memo — Node, not browser, same
+      // category as scripts/.
+      'docs/**/*.mjs',
       // The v2 prototype: six concatenated classic scripts sharing one global
       // scope. Kept only until its seed fixtures are ported in phase 4a, then
       // deleted along with build/ and wingman.html. Linting it under the new
@@ -118,11 +124,16 @@ export default tseslint.config(
             message: 'Screens take RedactedPerson. If you need a field the redaction ladder withholds, change the ladder, not the screen.' },
         ],
       }],
+      // Provider *ids* only. `email_domain` used to be on this list and had to
+      // come off: it is also a `StampKind`, so a screen filtering verifications
+      // by kind — which is exactly the right abstraction — tripped a rule meant
+      // to stop it naming providers. The provider is now `email_otp`, and the
+      // kind and the id no longer collide.
       'no-restricted-syntax': ['error', {
         selector:
-          "Literal[value=/^(bankid_no|linkedin|facebook|instagram|email_domain)$/]",
+          "Literal[value=/^(bankid_no|linkedin|facebook|instagram|google|email_otp)$/]",
         message:
-          'Screens must not name a verification provider. Render from registry.list() and each provider\'s display descriptor, so adding a provider needs zero screen edits.',
+          'Screens must not name a verification provider. Render from availableProviders(env) and each provider\'s display descriptor, so adding a provider needs zero screen edits.',
       }],
     },
   },

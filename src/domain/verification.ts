@@ -48,6 +48,9 @@ export interface StampDisplay {
   tone: 'trust' | 'neutral' | 'social';
   /** One plain sentence: what this proves. Shown on tap, not hidden in help. */
   explainer: string;
+  // Note: "what connecting this buys you" is deliberately NOT here. This type
+  // is what a *viewer* sees on someone else's card, and a viewer has no use for
+  // the sales pitch. It lives on `StampProvider.unlocks` instead.
   /** What the *viewer* is told, which is deliberately vaguer than the truth. */
   publicLabel: string;
 }

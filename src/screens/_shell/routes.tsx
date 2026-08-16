@@ -6,6 +6,7 @@ import { PersonScreen } from '@screens/person/PersonScreen';
 import { RequestsScreen } from '@screens/requests/RequestsScreen';
 import { TripsScreen } from '@screens/trips/TripsScreen';
 import { CirclesScreen } from '@screens/circles/CirclesScreen';
+import { VerifyScreen } from '@screens/verify/VerifyScreen';
 import { YouScreen } from '@screens/profile/YouScreen';
 
 /**
@@ -17,7 +18,7 @@ import { YouScreen } from '@screens/profile/YouScreen';
  */
 
 export interface Route {
-  name: 'discover' | 'person' | 'requests' | 'trip' | 'circles' | 'you' | 'design';
+  name: 'discover' | 'person' | 'requests' | 'trip' | 'circles' | 'you' | 'verify' | 'design';
   id?: string;
 }
 
@@ -33,6 +34,7 @@ export function parseRoute(hash: string): Route {
   // somewhere sensible.
   if (head === 'trip' || head === 'trips') return { name: 'trip' };
   if (head === 'circles') return { name: 'circles' };
+  if (head === 'verify') return { name: 'verify' };
   if (head === 'you') return { name: 'you' };
   return { name: 'discover' };
 }
@@ -82,6 +84,12 @@ export function Router() {
       return (
         <AppShell route="circles" title="Circles">
           <CirclesScreen />
+        </AppShell>
+      );
+    case 'verify':
+      return (
+        <AppShell route="you" title="Your accounts">
+          <VerifyScreen />
         </AppShell>
       );
     case 'you':

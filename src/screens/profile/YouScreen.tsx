@@ -57,6 +57,19 @@ export function YouScreen() {
       </section>
 
       <section className="panel">
+        <h3 className="panel__title">Your accounts</h3>
+        <p className="panel__note">
+          Connect LinkedIn, Google, Facebook, Instagram, BankID or a work address. Others see
+          that something was checked — never what, and never by whom.
+        </p>
+        <Button variant="secondary" full onClick={() => (window.location.hash = '#/verify')}>
+          {me.verifications.length > 0
+            ? `Manage ${me.verifications.length} connected`
+            : 'Connect an account'}
+        </Button>
+      </section>
+
+      <section className="panel">
         <h3 className="panel__title">You are</h3>
         <p className="panel__note">
           Used only to make the women-only setting work. It is never shown on your card, and it is
