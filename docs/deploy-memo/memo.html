@@ -1,0 +1,771 @@
+<title>Shipping Wingman</title>
+
+<style>
+  /* ---------------------------------------------------------------
+     Tokens. Light is the complete set; dark redefines tokens ONLY.
+     Wingman's own four hues, doing semantic work here:
+       trust  = already exists in the codebase
+       accent = work you have to do
+       guard  = someone else's dependency (Apple, Criipto, Supabase)
+     --------------------------------------------------------------- */
+  :root {
+    --canvas:      #FBF9F7;
+    --surface:     #FFFFFF;
+    --raised:      #F4EFEA;
+    --ink:         #141110;
+    --muted:       #736A64;
+    --hairline:    #E8E2DC;
+    --accent:      #E2563A;
+    --accent-soft: #FBEAE5;
+    --trust:       #10715C;
+    --trust-soft:  #E2F0EB;
+    --guard:       #3D4EDB;
+    --guard-soft:  #E6E8FB;
+    --shadow:      0 1px 2px rgba(20,17,16,.04), 0 8px 24px -12px rgba(20,17,16,.10);
+
+    --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+    --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, 'Cascadia Mono', 'Cascadia Code', Consolas, 'SF Mono', Menlo, monospace;
+
+    --measure: 68ch;
+    --step--1: clamp(.78rem, .76rem + .1vw, .84rem);
+    --step-0:  clamp(1rem, .97rem + .15vw, 1.08rem);
+    --step-1:  clamp(1.2rem, 1.14rem + .3vw, 1.35rem);
+    --step-2:  clamp(1.5rem, 1.38rem + .6vw, 1.85rem);
+    --step-3:  clamp(2rem, 1.7rem + 1.5vw, 2.9rem);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas:      #141110;
+      --surface:     #1E1A18;
+      --raised:      #262120;
+      --ink:         #F6F2EF;
+      --muted:       #A79C95;
+      --hairline:    #2E2825;
+      --accent:      #FF7355;
+      --accent-soft: #3A211B;
+      --trust:       #3FBF9C;
+      --trust-soft:  #102B25;
+      --guard:       #8A95FF;
+      --guard-soft:  #1E2140;
+      --shadow:      0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --canvas:      #141110;
+    --surface:     #1E1A18;
+    --raised:      #262120;
+    --ink:         #F6F2EF;
+    --muted:       #A79C95;
+    --hairline:    #2E2825;
+    --accent:      #FF7355;
+    --accent-soft: #3A211B;
+    --trust:       #3FBF9C;
+    --trust-soft:  #102B25;
+    --guard:       #8A95FF;
+    --guard-soft:  #1E2140;
+    --shadow:      0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--step-0);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+    padding: 0 1.5rem 6rem;
+  }
+
+  .wrap { max-width: 46rem; margin: 0 auto; }
+
+  /* ---- Type ---- */
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 600; text-wrap: balance; line-height: 1.15; margin: 0; }
+  h1 { font-size: var(--step-3); letter-spacing: -.02em; }
+  h2 { font-size: var(--step-2); letter-spacing: -.01em; }
+  h3 { font-size: var(--step-1); }
+  p { margin: 0; max-width: var(--measure); }
+  a { color: var(--accent); text-underline-offset: .18em; }
+  strong { font-weight: 600; }
+  code, .mono { font-family: var(--font-mono); font-size: .88em; font-variant-numeric: tabular-nums; }
+  code { background: var(--raised); padding: .12em .38em; border-radius: 4px; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  /* ---- Layout ---- */
+  header.masthead {
+    display: flex; flex-direction: column; gap: 1rem;
+    padding: 4.5rem 0 2rem;
+    border-bottom: 2px solid var(--ink);
+  }
+  .standfirst { font-size: var(--step-1); color: var(--muted); line-height: 1.45; max-width: 40ch; }
+  .byline { font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted); display: flex; flex-wrap: wrap; gap: .35rem 1.1rem; }
+
+  section { padding: 3.25rem 0 0; display: flex; flex-direction: column; gap: 1.15rem; }
+  section > h2 { margin-bottom: .15rem; }
+  .lede { color: var(--muted); max-width: var(--measure); }
+
+  /* ---- Table of contents ---- */
+  .toc { display: flex; flex-wrap: wrap; gap: .4rem; padding: 1.5rem 0 0; }
+  .toc a {
+    font-family: var(--font-mono); font-size: var(--step--1);
+    text-decoration: none; color: var(--muted);
+    border: 1px solid var(--hairline); border-radius: 999px;
+    padding: .3rem .7rem; background: var(--surface);
+  }
+  .toc a:hover { color: var(--ink); border-color: var(--ink); }
+
+  /* ---- Cards ---- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 1.15rem 1.25rem;
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: .55rem;
+  }
+  .grid { display: grid; gap: .85rem; }
+  @media (min-width: 44rem) { .grid-3 { grid-template-columns: repeat(3, 1fr); } .grid-2 { grid-template-columns: repeat(2, 1fr); } }
+
+  .card h3 { font-size: var(--step-0); font-family: var(--font-body); font-weight: 600; }
+  .card p { font-size: var(--step--1); color: var(--muted); line-height: 1.55; }
+
+  /* ---- The finding callout: the two things that are wrong ---- */
+  .finding {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-left: 4px solid var(--accent);
+    border-radius: 4px 14px 14px 4px;
+    padding: 1.15rem 1.35rem;
+    display: flex; flex-direction: column; gap: .6rem;
+  }
+  .finding .tag {
+    font-family: var(--font-mono); font-size: var(--step--1);
+    letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+  }
+  .finding h3 { font-size: var(--step-1); }
+
+  /* ---- Ownership chips: who does the work ---- */
+  .chip {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-family: var(--font-mono); font-size: .72rem;
+    letter-spacing: .06em; text-transform: uppercase;
+    padding: .2rem .5rem; border-radius: 999px; white-space: nowrap;
+  }
+  .chip::before { content: ""; width: .45rem; height: .45rem; border-radius: 50%; background: currentColor; }
+  .chip-built { color: var(--trust); background: var(--trust-soft); }
+  .chip-work  { color: var(--accent); background: var(--accent-soft); }
+  .chip-dep   { color: var(--guard); background: var(--guard-soft); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; font-size: var(--step--1); color: var(--muted); }
+
+  /* ---- Tables ---- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--hairline); border-radius: 14px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: var(--step--1); }
+  th, td { text-align: left; padding: .7rem .85rem; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  thead th {
+    font-family: var(--font-mono); font-size: .72rem; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted); font-weight: 500;
+    background: var(--raised);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  td.code { font-family: var(--font-mono); color: var(--muted); white-space: nowrap; }
+
+  /* ---- Phase rail: deployment genuinely is a sequence ---- */
+  .phases { display: flex; flex-direction: column; gap: 0; }
+  .phase {
+    display: grid; grid-template-columns: 3.2rem 1fr; gap: 1rem;
+    padding: 1.05rem 0; border-top: 1px solid var(--hairline);
+  }
+  .phase:last-child { border-bottom: 1px solid var(--hairline); }
+  .phase__no {
+    font-family: var(--font-mono); font-size: var(--step--1);
+    color: var(--muted); padding-top: .15rem; letter-spacing: .04em;
+  }
+  .phase__body { display: flex; flex-direction: column; gap: .45rem; }
+  .phase__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem .7rem; }
+  .phase__title { font-weight: 600; font-size: var(--step-0); }
+  .phase p { font-size: var(--step--1); color: var(--muted); }
+  .phase--critical .phase__no { color: var(--accent); font-weight: 600; }
+
+  /* ---- Code blocks ---- */
+  pre {
+    margin: 0; overflow-x: auto;
+    background: var(--raised); border: 1px solid var(--hairline);
+    border-radius: 12px; padding: 1rem 1.1rem;
+    font-family: var(--font-mono); font-size: .8rem; line-height: 1.65;
+    color: var(--ink);
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .cmt { color: var(--muted); }
+
+  /* ---- Disclosure: App Store items ---- */
+  details {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: 12px; padding: 0;
+  }
+  details + details { margin-top: .6rem; }
+  summary {
+    cursor: pointer; list-style: none; padding: .85rem 1.1rem;
+    display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+    font-weight: 600; font-size: var(--step--1);
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: "+"; margin-left: auto; font-family: var(--font-mono);
+    color: var(--muted); font-weight: 400; font-size: 1.1rem; line-height: 1;
+  }
+  details[open] summary::after { content: "\2212"; }
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 12px; }
+  .details__body { padding: 0 1.1rem 1rem; display: flex; flex-direction: column; gap: .6rem; }
+  .details__body p { font-size: var(--step--1); color: var(--muted); }
+  .guideline { font-family: var(--font-mono); font-size: .72rem; color: var(--muted); }
+
+  /* ---- Cost calculator ---- */
+  .calc { display: flex; flex-direction: column; gap: 1.1rem; }
+  .calc__control { display: flex; flex-direction: column; gap: .5rem; }
+  .calc__readout { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
+  .calc__mau { font-family: var(--font-mono); font-size: var(--step-2); font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); height: 1.6rem; }
+  input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .calc__total {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; padding-top: .8rem; border-top: 2px solid var(--ink);
+    font-family: var(--font-mono);
+  }
+  .calc__total .big { font-size: var(--step-2); font-variant-numeric: tabular-nums; }
+  .assumptions { font-size: var(--step--1); color: var(--muted); }
+
+  ul.plain { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .4rem; }
+  ul.plain li { max-width: var(--measure); }
+  ul.plain li::marker { color: var(--accent); }
+
+  .print-only { display: none; }
+
+  footer.end {
+    margin-top: 4rem; padding-top: 1.5rem;
+    border-top: 1px solid var(--hairline);
+    font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  /* ---- Print: same source, A4 paper ---- */
+  @media print {
+    :root {
+      --canvas: #FFFFFF; --surface: #FFFFFF; --raised: #F6F3F0;
+      --ink: #141110; --muted: #55504C; --hairline: #D8D2CC;
+      --shadow: none;
+    }
+    body { padding: 0; font-size: 10.5pt; }
+    .wrap { max-width: none; }
+    .screen-only { display: none !important; }
+    .print-only { display: revert; }
+    header.masthead { padding-top: 0; }
+    section { padding-top: 1.6rem; break-inside: auto; }
+    h2 { break-after: avoid; }
+    .card, .finding, .phase, details, .tablewrap { break-inside: avoid; }
+    details { border: 0; padding: 0; }
+    details > summary { padding: .3rem 0; }
+    details[open] summary::after, summary::after { content: ""; }
+    /* A closed <details> prints nothing. Force every one open on paper, or the
+       App Store section silently loses five of its six items. */
+    details:not([open]) > .details__body { display: block; }
+    details::details-content { content-visibility: visible; block-size: auto; }
+    .details__body { padding: 0 0 .6rem; }
+    a { color: var(--ink); text-decoration: none; }
+    pre { white-space: pre-wrap; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Wingman · Deployment</p>
+    <h1>From prototype to the App&nbsp;Store</h1>
+    <p class="standfirst">What it takes to put Wingman in front of real people — and the two things in the code today that have to change before anyone else's data touches it.</p>
+    <p class="byline">
+      <span>16 August 2026</span>
+      <span>Tide Capital</span>
+      <span>Branch <code>wingman-v3</code></span>
+    </p>
+  </header>
+
+  <nav class="toc screen-only" aria-label="Contents">
+    <a href="#state">Where it stands</a>
+    <a href="#findings">Two problems</a>
+    <a href="#shape">Target shape</a>
+    <a href="#roadmap">Roadmap</a>
+    <a href="#rls">Privacy in the database</a>
+    <a href="#verify">Verification</a>
+    <a href="#review">App Store review</a>
+    <a href="#costs">Costs</a>
+    <a href="#timeline">Timeline</a>
+    <a href="#gtm">Schools &amp; conferences</a>
+    <a href="#risks">Risks</a>
+  </nav>
+
+  <section id="state">
+    <h2>Where it stands</h2>
+    <p class="lede">Wingman today is a client-only app: a Vite + React bundle with every engine written as a pure, tested function and every byte of state in the browser. That is a good place to be — the hard logic is done and provable — but nothing about it is multi-user yet.</p>
+
+    <div class="legend">
+      <span class="chip chip-built">Already built</span>
+      <span class="chip chip-work">Your work</span>
+      <span class="chip chip-dep">External dependency</span>
+      <span>— the colour tells you who has to move.</span>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Layer</th><th>Today</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Matching engine</td><td>Pure TypeScript, no clock, no randomness, property-tested</td><td><span class="chip chip-built">Built</span></td></tr>
+          <tr><td>Privacy engine</td><td>Two-rule model, disclosure ladder, redaction — all client-side</td><td><span class="chip chip-work">Move to server</span></td></tr>
+          <tr><td>Airport data</td><td>3,270 airports worldwide with derived IANA timezones, bundled</td><td><span class="chip chip-built">Built</span></td></tr>
+          <tr><td>Flight schedules</td><td>Bundled + synthetic fallback; live providers behind an interface</td><td><span class="chip chip-work">Needs a key + proxy</span></td></tr>
+          <tr><td>Verification stamps</td><td>Mocked behind a provider contract</td><td><span class="chip chip-dep">Criipto / OAuth</span></td></tr>
+          <tr><td>Persistence</td><td><code>localStorage</code> / IndexedDB, one device, one person</td><td><span class="chip chip-work">Needs Postgres</span></td></tr>
+          <tr><td>Accounts</td><td>None. There is one seeded "you".</td><td><span class="chip chip-work">Needs auth</span></td></tr>
+          <tr><td>Native shell</td><td>None.</td><td><span class="chip chip-dep">Apple + a Mac</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="findings">
+    <h2>Two problems to fix before launch</h2>
+    <p class="lede">Both are invisible while the app is single-player and both become serious the moment there is a server. Neither is difficult; both are much cheaper to fix now than after a schema exists.</p>
+
+    <div class="finding">
+      <p class="tag">Finding 01 · Security</p>
+      <h3>Client-side privacy is not privacy</h3>
+      <p>The <code>audience</code> and <code>seeking</code> rules run in the browser. That is correct for a prototype, where the browser holds all the data anyway. With a real API it stops being a privacy control and becomes a <em>suggestion</em>: anyone can call the endpoint directly, skip the client entirely, and read the rows the rules were supposed to withhold.</p>
+      <p><strong>The fix:</strong> visibility becomes a database guarantee via Postgres row-level security. The client keeps doing redaction for presentation; the database decides what rows exist at all. Detail in <a href="#rls">Privacy in the database</a>.</p>
+    </div>
+
+    <div class="finding">
+      <p class="tag">Finding 02 · Secrets</p>
+      <h3>Anything named <code>VITE_*</code> ships to the browser</h3>
+      <p>Vite inlines every <code>VITE_</code>-prefixed variable into the bundle at build time. The flight API keys in <code>.env.example</code> — <code>VITE_AERODATABOX_KEY</code> and the rest — would be readable in DevTools by anyone who opens the site, and billable to you until the quota burns.</p>
+      <p><strong>The fix:</strong> the key moves to a Supabase Edge Function that proxies the provider. The client calls your function; your function holds the secret. The existing resolver chain does not change shape — only which side of the wire it runs on.</p>
+    </div>
+  </section>
+
+  <section id="shape">
+    <h2>The target shape</h2>
+    <p class="lede">Three pieces. The web build and the iOS build come from the same bundle, which is the entire argument for Capacitor over a rewrite.</p>
+
+    <div class="grid grid-3">
+      <div class="card">
+        <h3>Web — Vercel</h3>
+        <p>Static SPA from <code>npm run build</code>. Preview deployment per branch, custom domain, and the marketing site on the same project. This part is close to free and close to instant.</p>
+      </div>
+      <div class="card">
+        <h3>iOS — Capacitor</h3>
+        <p>Wraps the existing <code>dist/</code> in a native shell with real native APIs for location, camera and deep links. Not React Native: no rewrite, no second codebase, no re-testing the engines.</p>
+      </div>
+      <div class="card">
+        <h3>Backend — Supabase</h3>
+        <p>Postgres with row-level security, Auth, Storage for photos, Realtime for requests, Edge Functions for the flight proxy, <code>pg_cron</code> for expiring requests and guardian sessions.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Why not React Native or a PWA</h3>
+      <p><strong>React Native</strong> would mean rebuilding every screen and re-verifying engines that are already tested — months of work to arrive where you already are. <strong>A PWA</strong> is not an App Store path at all: Apple does not list them, and your go-to-market is a conference handing out a link to an app people expect to find in the store. Capacitor is the only route that preserves the work.</p>
+    </div>
+  </section>
+
+  <section id="roadmap">
+    <h2>The roadmap</h2>
+    <p class="lede">Ordered by dependency, not by preference. Phases 1–3 unblock everything else; 4 and 5 can run in parallel once accounts exist. Phases marked in ember are on the critical path to a TestFlight build.</p>
+
+    <div class="phases">
+      <div class="phase phase--critical">
+        <div class="phase__no">P1</div>
+        <div class="phase__body">
+          <div class="phase__head"><span class="phase__title">Web deploy</span><span class="chip chip-work">1 day</span></div>
+          <p>Point Vercel at the repo, set the build to <code>npm run build</code> and the output to <code>dist</code>. Hash routing already works without rewrite rules, so there is nothing to configure. You get a shareable URL the same afternoon — useful immediately for showing schools and conferences.</p>
+        </div>
+      </div>
+
+      <div class="phase phase--critical">
+        <div class="phase__no">P2</div>
+        <div class="phase__body">
+          <div class="phase__head"><span class="phase__title">Supabase project, schema, RLS</span><span class="chip chip-work">2–3 weeks</span></div>
+          <p>The big one. Tables for people, trips, requests, meets, ratings, circles and memberships; auth wired to the existing profile slice; and the privacy model expressed as RLS policies. Do RLS <em>as</em> you write the schema, never after — retrofitting policies onto a live schema is how visibility bugs ship.</p>
+        </div>
+      </div>
+
+      <div class="phase phase--critical">
+        <div class="phase__no">P3</div>
+        <div class="phase__body">
+          <div class="phase__head"><span class="phase__title">Apple Developer + a Mac</span><span class="chip chip-dep">1–2 weeks, mostly waiting</span></div>
+          <p>$99/year, and enrolment as a company needs a D-U-N-S number, which is the slow part — start it before you need it. You also need macOS to build: either a Mac, or a hosted macOS runner (GitHub Actions, Codemagic). <strong>There is no way to produce an iOS build on Windows.</strong> This is the single hardest dependency in the plan and the reason it starts early.</p>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase__no">P4</div>
+        <div class="phase__body">
+          <div class="phase__head"><span class="phase__title">Capacitor shell + TestFlight</span><span class="chip chip-work">1–2 weeks</span></div>
+          <p>Add the iOS platform, set the purpose strings, wire deep links for BankID's return trip, archive, and upload. First TestFlight build is usually the same day the certificates finally behave.</p>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase__no">P5</div>
+        <div class="phase__body">
+          <div class="phase__head"><span class="phase__title">Real verification providers</span><span class="chip chip-dep">2–4 weeks</span></div>
+          <p>BankID through Criipto or Signicat; LinkedIn, Instagram and Facebook through OAuth. The provider contract already exists, so each one is a file and a registry line — the time goes to their approval processes, not your code. Meta's app review for Instagram is the slowest.</p>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase__no">P6</div>
+        <div class="phase__body">
+          <div class="phase__head"><span class="phase__title">Trust &amp; safety before review</span><span class="chip chip-work">1–2 weeks</span></div>
+          <p>Apple will not pass a user-content app without moderation, reporting, blocking and account deletion. Block and report already exist in the request flow; you need the moderation queue, the 24-hour response commitment, and in-app account deletion.</p>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase__no">P7</div>
+        <div class="phase__body">
+          <div class="phase__head"><span class="phase__title">Submit</span><span class="chip chip-dep">1–3 weeks of review</span></div>
+          <p>Screenshots, privacy nutrition label, age rating, and a demo account that reviewers can actually sign into — an app that shows an empty board to a reviewer with no trip gets rejected under 2.1 for looking broken. Seed the demo account with a trip.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="rls">
+    <h2>Privacy in the database</h2>
+    <p class="lede">The engine's central rule is that visibility is mutual: A sees B only if B's audience admits A <em>and</em> A's seeking wants B. That rule has to hold at the row level, so the API cannot return a person the policy forbids even to a caller who bypasses the app entirely.</p>
+
+    <pre><code><span class="cmt">-- Both directions, in the database. The client no longer decides.</span>
+create or replace function can_see(viewer uuid, subject uuid)
+returns boolean language sql stable security definer as $$
+  select admits(subject, viewer)   <span class="cmt">-- subject's audience admits viewer</span>
+     and wants (viewer,  subject)  <span class="cmt">-- viewer's seeking wants subject</span>
+     and not blocked(viewer, subject);
+$$;
+
+alter table people enable row level security;
+
+create policy people_are_mutually_visible
+  on people for select
+  using ( id = auth.uid() or can_see(auth.uid(), id) );</code></pre>
+
+    <ul class="plain">
+      <li><strong>Redaction stays on the client.</strong> The ladder decides which <em>fields</em> to show at each disclosure level; RLS decides which <em>rows</em> exist. Different jobs — keep them separate.</li>
+      <li><strong>Never persist derived state</strong> — the same rule as today. No materialised match lists, no cached visibility. A policy change has to invalidate instantly, and it only does if nothing stale was stored.</li>
+      <li><strong>Index for the policy.</strong> RLS predicates run per row; <code>can_see</code> over an unindexed table will be the first thing that gets slow. Test it against 10,000 seeded people before you believe it.</li>
+      <li><strong>Port the property tests.</strong> The fast-check properties that prove <code>mutual === aSees &amp;&amp; bSees</code> should run against the SQL too, via pgTAP. The engine and the database must agree, or the client shows people the server would refuse.</li>
+    </ul>
+  </section>
+
+  <section id="verify">
+    <h2>Verification in production</h2>
+    <p class="lede">Every provider is already mocked behind the same contract, so this phase is procurement rather than engineering.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Stamp</th><th>How</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>BankID (NO)</td><td class="code">Criipto / Signicat</td><td>Nobody integrates BankID directly — you go through a broker. Criipto is self-serve; Signicat is enterprise and quoted.</td></tr>
+          <tr><td>LinkedIn</td><td class="code">OAuth 2.0 · OIDC</td><td>"Sign In with LinkedIn using OpenID Connect" gives name and email. The company field needs the deeper product.</td></tr>
+          <tr><td>Facebook</td><td class="code">OAuth 2.0</td><td>Meta app review required before public use.</td></tr>
+          <tr><td>Instagram</td><td class="code">Instagram Basic Display</td><td>Slowest approval of the three. Handle-only verification, which is all the stamp claims.</td></tr>
+          <tr><td>Email domain</td><td class="code">Supabase Auth OTP</td><td>Cheapest and most valuable one you have — it powers circle admission, which is what schools are buying.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="finding">
+      <p class="tag">Apple · Guideline 4.8</p>
+      <h3>Third-party login obliges Sign in with Apple</h3>
+      <p>Offering LinkedIn or Facebook login means you must also offer an equivalent privacy-preserving option — one that limits data collection to name and email, allows the email to be kept private, and does not track for advertising. Sign in with Apple qualifies by construction. Supabase supports it natively; budget an afternoon, not a sprint.</p>
+    </div>
+  </section>
+
+  <section id="review">
+    <h2>The App Store review gauntlet</h2>
+    <p class="lede">An app for meeting strangers gets read carefully. Each item below is a rejection reason with a known fix, and several are already half-built.</p>
+
+    <details open>
+      <summary><span class="guideline">1.2</span> User-generated content <span class="chip chip-work">Partly built</span></summary>
+      <div class="details__body">
+        <p>Requires four things: a method for filtering objectionable content, a mechanism for users to report it with a timely response, the ability to block abusive users, and published contact information.</p>
+        <p><strong>You have</strong> blocking and reporting — the deny flow's "this made me uncomfortable" already blocks and flags. <strong>You need</strong> a moderation queue behind it, a published commitment to act within 24 hours, and a support address in the listing.</p>
+      </div>
+    </details>
+
+    <details open>
+      <summary><span class="guideline">5.1.1(v)</span> Account deletion <span class="chip chip-work">Not built</span></summary>
+      <div class="details__body">
+        <p>Any app that lets a user create an account must let them delete it from inside the app — not by emailing support, not by a web form. This is a hard, automated check and a common first rejection.</p>
+        <p>With Supabase it is one Edge Function that cascades the delete and revokes the session. Worth doing properly: the guardian sessions and location pings must go too.</p>
+      </div>
+    </details>
+
+    <details open>
+      <summary><span class="guideline">5.1.1</span> Location purpose strings <span class="chip chip-dep">Needs care</span></summary>
+      <div class="details__body">
+        <p>Guardian tracking needs <code>NSLocationAlwaysAndWhenInUseUsageDescription</code>, which draws more scrutiny than the foreground string. The purpose text has to say plainly what it does and who sees it — "so a person you choose can see where you are during a meet, until it ends" — not "to improve your experience".</p>
+        <p>The design helps here: the session is time-boxed and scoped, and it expires. Say that in the string.</p>
+      </div>
+    </details>
+
+    <details open>
+      <summary><span class="guideline">2.1</span> Completeness — the demo account <span class="chip chip-work">Easy to miss</span></summary>
+      <div class="details__body">
+        <p>Reviewers get a fresh account with no trip, so they see an empty board and reject the app as non-functional. Provide credentials in App Review notes for an account that already has a trip and a populated board, and say in the notes that content depends on having a flight.</p>
+      </div>
+    </details>
+
+    <details open>
+      <summary>Age rating <span class="chip chip-dep">Expect 16+ or 18+</span></summary>
+      <div class="details__body">
+        <p>Apps built around meeting strangers land high on the scale, and anything read as dating goes to 18+. Wingman's non-dating framing is genuine, so make it legible <em>in the listing itself</em> — the screenshots, the description and the first-run screen should all show the professional and social framing, not just the card stack.</p>
+        <p>This matters commercially: an 18+ rating complicates a university pilot where some students are 17.</p>
+      </div>
+    </details>
+
+    <details open>
+      <summary>App Privacy nutrition label <span class="chip chip-work">Straightforward</span></summary>
+      <div class="details__body">
+        <p>You declare what you collect and whether it is linked to identity. Wingman collects precise location, contact info, identifiers and user content. The declaration is easy — the useful exercise is checking that the answer is as small as you think it is. Data minimisation is a feature you can sell to a school.</p>
+      </div>
+    </details>
+  </section>
+
+  <section id="costs">
+    <h2>What it costs</h2>
+    <p class="lede">Almost nothing until there are real users, then it steps rather than curves. BankID is the item that dominates, and it is charged per verification — so verification stays opt-in, not a signup requirement.</p>
+
+    <div class="card calc screen-only">
+      <div class="calc__control">
+        <label for="mau" class="eyebrow">Monthly active users</label>
+        <div class="calc__readout">
+          <span class="calc__mau" id="mauOut">10,000</span>
+          <span class="assumptions" id="tierOut">pilot scale</span>
+        </div>
+        <input type="range" id="mau" min="0" max="100" value="50" step="1"
+               aria-label="Monthly active users" aria-describedby="tierOut" />
+      </div>
+
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Line item</th><th>Basis</th><th class="num">USD / month</th></tr>
+          </thead>
+          <tbody id="calcRows"></tbody>
+        </table>
+      </div>
+
+      <div class="calc__total">
+        <span>Total</span>
+        <span class="big" id="totalOut">$—</span>
+      </div>
+
+      <p class="assumptions" id="assumptions"></p>
+    </div>
+
+    <div class="tablewrap print-only">
+      <table>
+        <thead>
+          <tr><th>Line item · USD/mo</th><th class="num">1k</th><th class="num">10k</th><th class="num">100k</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Apple Developer Program</td><td class="num">$8</td><td class="num">$8</td><td class="num">$8</td></tr>
+          <tr><td>Vercel Pro</td><td class="num">$20</td><td class="num">$20</td><td class="num">$20</td></tr>
+          <tr><td>Supabase Pro</td><td class="num">$25</td><td class="num">$25</td><td class="num">$60</td></tr>
+          <tr><td>Flight data</td><td class="num">$10</td><td class="num">$22</td><td class="num">$220</td></tr>
+          <tr><td>BankID (Criipto)</td><td class="num">$113</td><td class="num">$164</td><td class="num">$677</td></tr>
+          <tr><td>Moderation tooling</td><td class="num">$0</td><td class="num">$50</td><td class="num">$300</td></tr>
+          <tr><td><strong>Total</strong></td><td class="num"><strong>$176</strong></td><td class="num"><strong>$289</strong></td><td class="num"><strong>$1,285</strong></td></tr>
+          <tr><td>Without BankID</td><td class="num">$63</td><td class="num">$125</td><td class="num">$608</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="assumptions print-only">Assumes 2 flight lookups per active user per month; Criipto at roughly €99 base plus €0.35 per verification, billed once per person — so only new joiners are charged, taken as 1.5% of the active base each month; and Supabase compute stepping up above 50k MAU. Apple is $99/year shown monthly. The last row is the number that matters early: BankID is more than half the bill and nothing needs it until a customer asks.</p>
+  </section>
+
+  <section id="timeline">
+    <h2>Timeline</h2>
+    <p class="lede">Roughly ten to fourteen weeks to a submitted build, assuming the schema work and the Apple enrolment run in parallel. The Mac is the constraint that decides the date.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Weeks</th><th>What happens</th><th>Blocks</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="code">0–1</td><td>Vercel live. Apple enrolment and D-U-N-S started.</td><td>Everything downstream of Apple</td></tr>
+          <tr><td class="code">1–4</td><td>Supabase schema + RLS + auth. Flight key behind an Edge Function.</td><td>Multi-user anything</td></tr>
+          <tr><td class="code">3–5</td><td>Capacitor shell, purpose strings, deep links. First TestFlight.</td><td>Needs a Mac</td></tr>
+          <tr><td class="code">4–8</td><td>Verification providers. Meta review runs on their clock.</td><td>Circle admission needs email only</td></tr>
+          <tr><td class="code">6–9</td><td>Moderation queue, account deletion, support address.</td><td>Submission</td></tr>
+          <tr><td class="code">9–11</td><td>Screenshots, privacy label, demo account, submit.</td><td>—</td></tr>
+          <tr><td class="code">11–14</td><td>Review, near-certain first rejection, resubmit.</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="assumptions">Plan for one rejection. Almost every social app gets one, and 1.2 or 5.1.1(v) is usually the reason — both are on this list precisely so they are not a surprise.</p>
+  </section>
+
+  <section id="gtm">
+    <h2>Schools and conferences</h2>
+    <p class="lede">If circles are what you sell, the circle stops being a feature and becomes the product's commercial unit. That has consequences for what gets built first.</p>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>A circle is three things</h3>
+        <p>A verified email domain, a crest, and — new — a date range. Schools are permanent circles; conferences are time-boxed ones that stop matching when the event ends. Same primitive, one extra field.</p>
+      </div>
+      <div class="card">
+        <h3>The wedge</h3>
+        <p>Every conference already has an app, and nobody opens it after collecting the schedule. Wingman is not competing with it — it is the "who should I meet here" layer, which is the thing attendees actually came for and no agenda app does.</p>
+      </div>
+      <div class="card">
+        <h3>Why it is easier to sell than consumer</h3>
+        <p>A closed loop solves cold-start on day one: 400 verified attendees in one terminal beats 400 strangers spread across a country. The organiser supplies the density you would otherwise have to buy.</p>
+      </div>
+      <div class="card">
+        <h3>Pricing</h3>
+        <p>Per event for conferences, per seat per year for schools. The verified-domain admission is the defensible part — it is why an INSEAD circle is actually INSEAD, and it is the thing a spreadsheet cannot replicate.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>What this changes in the build order</h3>
+      <p>Email-domain verification stops being one stamp among five and becomes the first one to ship — it is the gate for circle admission and therefore for the entire pilot motion. BankID can wait; a business school does not need government ID to believe an <code>@insead.edu</code> address. That reordering saves several weeks and a monthly bill before there is revenue.</p>
+    </div>
+  </section>
+
+  <section id="risks">
+    <h2>Risks</h2>
+    <ul class="plain">
+      <li><strong>Moderation is a staffing cost, not a feature.</strong> Apple's "timely response" is a commitment by a person. At pilot scale it is minutes a day; plan who owns it before you promise it in the listing.</li>
+      <li><strong>BankID costs money before it earns any.</strong> Roughly €99/month to have it at all. Defer until a customer asks for it by name — email-domain verification carries the school pilot on its own.</li>
+      <li><strong>Apple may read the app as dating regardless of framing.</strong> Mitigate in the listing, not in an appeal: screenshots and description that lead with the professional and social use, and a first-run screen that says what this is.</li>
+      <li><strong>The Mac dependency is absolute.</strong> No Windows path exists to an iOS build. Decide between buying a Mac and renting a CI runner in week one, not week five.</li>
+      <li><strong>Photos become user uploads.</strong> The current portraits are generated likenesses, which is the right call for a prototype. Real uploads bring image moderation into scope — the same queue as 1.2, so build it once.</li>
+      <li><strong>RLS performance is the sleeper.</strong> The policy runs per row on every read. It will be fine at pilot scale and it is the first thing that breaks at ten thousand people. Load-test it while the schema is still cheap to change.</li>
+    </ul>
+  </section>
+
+  <footer class="end">
+    Wingman · deployment roadmap · 16 August 2026 · prepared for Shun Gong, Tide Capital
+  </footer>
+
+</div>
+
+<script>
+  /**
+   * The App Store items ship EXPANDED in the markup and are collapsed here.
+   *
+   * A closed <details> renders nothing when printed, so authoring them closed
+   * silently drops five of the six items from the A4 and from the reMarkable
+   * edition — the section is only interactive on a screen, and paper is where
+   * this memo actually gets read. Progressive enhancement, in the direction
+   * that fails safe.
+   */
+  (function () {
+    var items = document.querySelectorAll('#review details');
+    for (var i = 1; i < items.length; i++) items[i].open = false;
+  })();
+
+  (function () {
+    var slider = document.getElementById('mau');
+    if (!slider) return;
+
+    var mauOut = document.getElementById('mauOut');
+    var tierOut = document.getElementById('tierOut');
+    var rows = document.getElementById('calcRows');
+    var totalOut = document.getElementById('totalOut');
+    var assumptions = document.getElementById('assumptions');
+
+    var fmtInt = new Intl.NumberFormat('en-US');
+    var money = function (n) { return '$' + fmtInt.format(Math.round(n)); };
+
+    // Slider position 0..100 maps logarithmically over 500 .. 200,000 MAU,
+    // because the interesting decisions all happen in the first tenth.
+    function mauFor(pos) {
+      var lo = Math.log(500), hi = Math.log(200000);
+      return Math.round(Math.exp(lo + (hi - lo) * (pos / 100)) / 100) * 100;
+    }
+
+    function tierName(mau) {
+      if (mau < 2000) return 'one school, one pilot';
+      if (mau < 20000) return 'pilot scale';
+      if (mau < 80000) return 'several campuses';
+      return 'a real consumer product';
+    }
+
+    function lines(mau) {
+      var supabase = 25 + Math.max(0, mau - 50000) / 1000 * 0.7;
+      var flights = Math.max(10, mau * 2 * 0.0011);
+      // Verification is once per person, not monthly: only new joiners are
+      // billed. Assume 10% of the base is new each month and 15% of those
+      // complete BankID — so 1.5% of MAU per month, plus the €99 base.
+      var bankid = 99 * 1.08 + mau * 0.015 * 0.38;
+      var moderation = mau < 2000 ? 0 : Math.max(50, mau * 0.003);
+      return [
+        ['Apple Developer Program', '$99/year', 99 / 12],
+        ['Vercel Pro', 'flat', 20],
+        ['Supabase Pro', mau > 50000 ? 'Pro + compute' : 'Pro, within limits', supabase],
+        ['Flight data', '~2 lookups per user', flights],
+        ['BankID via Criipto', 'base + 1.5% verify/mo', bankid],
+        ['Moderation tooling', mau < 2000 ? 'manual, no tooling' : 'queue + image scan', moderation]
+      ];
+    }
+
+    function render() {
+      var mau = mauFor(Number(slider.value));
+      mauOut.textContent = fmtInt.format(mau);
+      tierOut.textContent = tierName(mau);
+
+      var items = lines(mau);
+      var total = 0;
+      var html = '';
+      for (var i = 0; i < items.length; i++) {
+        total += items[i][2];
+        html += '<tr><td>' + items[i][0] + '</td><td class="code">' + items[i][1] +
+                '</td><td class="num">' + money(items[i][2]) + '</td></tr>';
+      }
+      rows.innerHTML = html;
+      totalOut.textContent = money(total);
+      assumptions.textContent =
+        'At ' + fmtInt.format(mau) + ' monthly actives: ' + money(total) + ' a month, or $' +
+        (total / mau).toFixed(3) + ' per user. ' +
+        'Drop BankID until a customer asks for it by name and that becomes ' +
+        money(total - items[4][2]) + '.';
+    }
+
+    slider.addEventListener('input', render);
+    render();
+  })();
+</script>
