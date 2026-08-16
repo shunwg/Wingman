@@ -1,5 +1,5 @@
 import type { CircleId, PersonId } from './ids';
-import type { ISODateTime } from './time';
+import type { ISODate, ISODateTime } from './time';
 
 /**
  * Closed loops — a school, an employer, an alumni body, a conference.
@@ -31,6 +31,15 @@ export interface Circle {
   /** Members may only ever be discovered by other members. */
   membersOnly: boolean;
   memberCount: number;
+  /**
+   * When a circle only exists for a while.
+   *
+   * A school is permanent; a conference is four days. Without this, a delegate
+   * list keeps matching people to each other months after the event, which is
+   * both useless and a slow privacy leak — nobody consented to being findable
+   * as "someone who attended Grid Week" indefinitely. Absent means permanent.
+   */
+  runs?: { from: ISODate; to: ISODate };
   createdAt: ISODateTime;
 }
 

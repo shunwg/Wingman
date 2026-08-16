@@ -1,6 +1,6 @@
 import type { Circle } from '@domain/index';
 import { asCircleId } from '@domain/ids';
-import { asUtc } from '@domain/time';
+import { asISODate, asUtc } from '@domain/time';
 
 /**
  * Seeded circles.
@@ -45,9 +45,19 @@ export const SEED_CIRCLES: Circle[] = [
     crestSeed: 'gridweek-crest',
     membersOnly: false,
     memberCount: 96,
+    // Four days. After that the circle stops matching anyone, which is the
+    // difference between a delegate list and a permanent directory of who
+    // attended what.
+    runs: { from: asISODate('2026-09-02'), to: asISODate('2026-09-06') },
     createdAt: asUtc('2026-07-20T09:00:00Z'),
   },
 ];
+
+/** Is this circle matching right now? Permanent circles always are. */
+export function circleIsLive(circle: Circle, today: string): boolean {
+  if (!circle.runs) return true;
+  return today >= String(circle.runs.from) && today <= String(circle.runs.to);
+}
 
 export const circleById = (id: string): Circle | undefined =>
   SEED_CIRCLES.find((c) => c.id === id);

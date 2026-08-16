@@ -15,7 +15,10 @@
 
 .shell__frame {
   width: 100%;
-  max-width: 480px;
+  /* A large phone, held in one hand. Wider than this and the photo cards stop
+     being the whole view, which is the only reason the board reads the way it
+     does. On desktop it centres rather than stretching. */
+  max-width: 430px;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -51,9 +54,9 @@
   position: fixed;
   bottom: 0;
   width: 100%;
-  max-width: 480px;
+  max-width: 430px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--hairline);
@@ -662,4 +665,99 @@
 .panel {
   padding-top: var(--sp-4);
   border-top: 1px solid var(--hairline);
+}
+
+/* ── Circles ─────────────────────────────────────────────────────────────── */
+
+.screennote {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  margin: 0;
+}
+
+.circlecard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+}
+
+.circlecard__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+}
+
+/* A crest, not a logo. Generated marks for circles, the same way people get
+   generated portraits — a real logo is somebody else's trademark. */
+.circlecard__crest {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--surface-sunk);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.circlecard__id {
+  min-width: 0;
+}
+
+.circlecard__name {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.circlecard__meta {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  margin: 2px 0 0;
+}
+
+.circlecard__admission,
+.circlecard__note {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.circlecard__note {
+  font-size: var(--text-xs);
+}
+
+.circlecard__display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.circlecard--pitch {
+  background: var(--surface-sunk);
+  border-style: dashed;
+}
+
+/* Locked, not disabled. Says what would unlock it rather than presenting a
+   dead control — a greyed-out primary button is still the loudest element on
+   a card, which is exactly wrong for something you cannot do. */
+.circlecard__locked {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-sunk);
+  border-radius: var(--r-md);
+  line-height: 1.45;
 }

@@ -1,19 +1,38 @@
+import type { ComponentType } from 'react';
+import { Compass } from '@design/icons/Compass';
+import { Plane } from '@design/icons/Plane';
+import { Ticket } from '@design/icons/Ticket';
+import { ShieldCheck } from '@design/icons/ShieldCheck';
+import { PersonMark } from '@design/icons/PersonMark';
 import { useStore } from '@state/store';
 
 /**
  * The tab bar.
  *
- * Four destinations, which is the most a bottom bar can carry before the labels
- * start lying. Real anchors rather than buttons, so middle-click, long-press
- * and "open in new tab" all behave — a nav built from divs quietly removes
- * affordances people rely on without ever looking broken.
+ * Five destinations. Circles earns one because a closed loop is the thing being
+ * sold — a school or a conference buys the circle, and burying it two levels
+ * down inside a settings screen would make the product's commercial centre the
+ * hardest thing in it to find.
+ *
+ * "Trip", singular. You have one trip at a time; the plural promised a list
+ * that does not exist and never will.
+ *
+ * Real anchors rather than buttons, so middle-click, long-press and "open in
+ * new tab" all behave — a nav built from divs quietly removes affordances
+ * people rely on without ever looking broken.
  */
 
-const TABS = [
-  { route: 'board', href: '#/board', label: 'Board', icon: 'M3 6h18M3 12h18M3 18h10' },
-  { route: 'trips', href: '#/trips', label: 'Trips', icon: 'M2 12h20M12 2v20' },
-  { route: 'requests', href: '#/requests', label: 'Requests', icon: 'M4 5h16v11H8l-4 4V5Z' },
-  { route: 'you', href: '#/you', label: 'You', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0' },
+const TABS: {
+  route: string;
+  href: string;
+  label: string;
+  icon: ComponentType<{ size?: number }>;
+}[] = [
+  { route: 'discover', href: '#/', label: 'Discover', icon: Compass },
+  { route: 'trip', href: '#/trip', label: 'Trip', icon: Plane },
+  { route: 'requests', href: '#/requests', label: 'Requests', icon: Ticket },
+  { route: 'circles', href: '#/circles', label: 'Circles', icon: ShieldCheck },
+  { route: 'you', href: '#/you', label: 'You', icon: PersonMark },
 ];
 
 export function TabBar({ route }: { route: string }) {
@@ -34,16 +53,7 @@ export function TabBar({ route }: { route: string }) {
             aria-current={active ? 'page' : undefined}
           >
             <span className="tab__icon">
-              <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-                <path
-                  d={t.icon}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <t.icon />
               {t.route === 'requests' && pending > 0 && (
                 <span className="tab__dot" aria-hidden="true" />
               )}

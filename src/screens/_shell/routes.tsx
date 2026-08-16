@@ -5,6 +5,7 @@ import { BoardScreen } from '@screens/discover/BoardScreen';
 import { PersonScreen } from '@screens/person/PersonScreen';
 import { RequestsScreen } from '@screens/requests/RequestsScreen';
 import { TripsScreen } from '@screens/trips/TripsScreen';
+import { CirclesScreen } from '@screens/circles/CirclesScreen';
 import { YouScreen } from '@screens/profile/YouScreen';
 
 /**
@@ -16,7 +17,7 @@ import { YouScreen } from '@screens/profile/YouScreen';
  */
 
 export interface Route {
-  name: 'board' | 'person' | 'requests' | 'trips' | 'you' | 'design';
+  name: 'discover' | 'person' | 'requests' | 'trip' | 'circles' | 'you' | 'design';
   id?: string;
 }
 
@@ -27,9 +28,13 @@ export function parseRoute(hash: string): Route {
   if (head === '_design') return { name: 'design' };
   if (head === 'person' && id) return { name: 'person', id };
   if (head === 'requests') return { name: 'requests' };
-  if (head === 'trips') return { name: 'trips' };
+  // `trips` and `board` were the names before the tab bar grew to five. Kept as
+  // aliases so a bookmark or a screenshot URL from an earlier build still lands
+  // somewhere sensible.
+  if (head === 'trip' || head === 'trips') return { name: 'trip' };
+  if (head === 'circles') return { name: 'circles' };
   if (head === 'you') return { name: 'you' };
-  return { name: 'board' };
+  return { name: 'discover' };
 }
 
 export const navigate = (to: string) => {
@@ -54,8 +59,8 @@ export function Router() {
 
   if (route.name === 'person' && route.id) {
     return (
-      <AppShell route="board">
-        <PersonScreen id={route.id} onBack={() => navigate('#/board')} />
+      <AppShell route="discover">
+        <PersonScreen id={route.id} onBack={() => navigate('#/')} />
       </AppShell>
     );
   }
@@ -67,10 +72,16 @@ export function Router() {
           <RequestsScreen />
         </AppShell>
       );
-    case 'trips':
+    case 'trip':
       return (
-        <AppShell route="trips" title="Trips">
+        <AppShell route="trip" title="Your trip">
           <TripsScreen />
+        </AppShell>
+      );
+    case 'circles':
+      return (
+        <AppShell route="circles" title="Circles">
+          <CirclesScreen />
         </AppShell>
       );
     case 'you':
@@ -81,7 +92,7 @@ export function Router() {
       );
     default:
       return (
-        <AppShell route="board" title="Around you">
+        <AppShell route="discover" title="Around you">
           <BoardScreen onOpen={(id) => navigate(`#/person/${id}`)} />
         </AppShell>
       );

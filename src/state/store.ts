@@ -1,15 +1,17 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
+  AdmissionRule,
   DenialRecord,
   MeetRequest,
   MeetRequestStatus,
+  MembershipDisplay,
   Person,
   PersonId,
   PrivacyPolicy,
   Trip,
 } from '@domain/index';
-import { asMeetRequestId, asUtc } from '@domain/index';
+import { asCircleId, asMeetRequestId, asUtc } from '@domain/index';
 import type { ISODateTime } from '@domain/time';
 import { ME, MY_TRIP, SEED_NOW } from '@data/seed/trips';
 import { transition } from './machines/meetRequest';
@@ -51,6 +53,17 @@ export interface WingmanState {
   setTrip: (trip: Trip | null) => void;
   markSeen: (id: PersonId) => void;
   completeOnboarding: () => void;
+
+  /**
+   * Circle membership.
+   *
+   * These live in the store rather than in the screen because "am I in this
+   * circle, and does it show" is a fact about a person, not about a view. The
+   * screen that renders it is not the only thing that will ever ask.
+   */
+  joinCircle: (circleId: string, admittedBy: AdmissionRule['kind']) => void;
+  leaveCircle: (circleId: string) => void;
+  setMembershipDisplay: (circleId: string, display: MembershipDisplay) => void;
 
   sendRequest: (input: Omit<MeetRequest, 'id' | 'status' | 'history' | 'createdAt'>) => MeetRequest;
   advanceRequest: (id: string, to: MeetRequestStatus, by: PersonId | 'system', note?: string) => void;
@@ -116,6 +129,49 @@ export const useStore = create<WingmanState>()(
         set((s) => ({ seenCounts: { ...s.seenCounts, [id]: (s.seenCounts[id] ?? 0) + 1 } })),
 
       completeOnboarding: () => set({ onboarded: true }),
+
+      joinCircle: (circleId, admittedBy) =>
+        set((s) => {
+          if (s.me.memberships.some((m) => String(m.circleId) === circleId)) return s;
+          return {
+            me: {
+              ...s.me,
+              memberships: [
+                ...s.me.memberships,
+                {
+                  circleId: asCircleId(circleId),
+                  personId: s.me.id,
+                  // Badge off by default. Joining a circle is a decision about
+                  // who you match with; wearing it is a separate decision, and
+                  // defaulting it on would make that choice for people who
+                  // never open this screen again.
+                  display: 'match_only' as const,
+                  joinedAt: s.now,
+                  admittedBy,
+                  role: 'member' as const,
+                },
+              ],
+            },
+          };
+        }),
+
+      leaveCircle: (circleId) =>
+        set((s) => ({
+          me: {
+            ...s.me,
+            memberships: s.me.memberships.filter((m) => String(m.circleId) !== circleId),
+          },
+        })),
+
+      setMembershipDisplay: (circleId, display) =>
+        set((s) => ({
+          me: {
+            ...s.me,
+            memberships: s.me.memberships.map((m) =>
+              String(m.circleId) === circleId ? { ...m, display } : m,
+            ),
+          },
+        })),
 
       sendRequest: (input) => {
         const now = get().now;

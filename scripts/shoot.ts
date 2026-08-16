@@ -28,10 +28,11 @@ const VIEWPORTS = process.env.SHOOT_ALL
 const THEMES = (process.env.SHOOT_ALL ? ['light', 'dark'] : ['light']) as ('light' | 'dark')[];
 
 const ROUTES = [
-  { name: 'board', hash: '#/board' },
+  { name: 'discover', hash: '#/' },
   { name: 'person', hash: '#/person/jonas' },
   { name: 'requests', hash: '#/requests' },
-  { name: 'trips', hash: '#/trips' },
+  { name: 'trip', hash: '#/trip' },
+  { name: 'circles', hash: '#/circles' },
   { name: 'you', hash: '#/you' },
   { name: 'design', hash: '#/_design' },
 ];
