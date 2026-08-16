@@ -1,5 +1,3 @@
-import { ToggleChip } from '@design/primitives/Chip';
-import { Button } from '@design/primitives/Button';
 import type { Trip } from '@domain/index';
 import { tripCode } from '@domain/trip';
 import { SEED_CIRCLES } from '@data/seed/circles';
@@ -8,14 +6,25 @@ import { NO_FILTERS, useStore } from '@state/store';
 /**
  * Narrowing the board.
  *
- * One distinction runs through this whole component and it is worth stating in
- * the interface rather than only in a comment: **these are a lens, not a
- * policy.** "Women only" here changes what you see and has no effect whatever
- * on who can see you. The setting that does both — atomically, in both
- * directions — lives under You, and confusing the two is precisely the bug the
- * two-rule privacy model exists to prevent. Someone who filters this board and
- * believes they have made themselves invisible to men has been misled by the
- * product, so the screen says which one this is.
+ * Rebuilt to cost two rows instead of six. The first version spent a fixed
+ * label column on every row, which forced the radius options to wrap onto three
+ * lines, and it gave every option a 44px pill — including "Anyone" and
+ * "Anywhere", which are just the absence of a filter. Between them that pushed
+ * the first person below the fold on a 390px screen, which is a strange thing
+ * for a screen whose entire job is showing you people.
+ *
+ * Two changes fixed it. The trip picker became a segmented control, because
+ * "exactly one of these" is what a segmented control means and it reads
+ * instantly without a label. Everything else became a flat toggle that clears
+ * itself when tapped again — so the off-states stopped needing chips of their
+ * own, and nine controls became five.
+ *
+ * One distinction runs through all of it and is stated in the interface rather
+ * than only in a comment: **these are a lens, not a policy.** "Women only" here
+ * changes what you see and has no effect whatever on who can see you. The
+ * setting that does both — atomically, in both directions — lives under You.
+ * Someone who filters this board and believes they have made themselves
+ * invisible to men has been misled by the product.
  */
 
 const RADII = [5, 15, 40] as const;
@@ -40,88 +49,96 @@ export function BoardFilters({ openTrips }: { openTrips: Trip[] }) {
   return (
     <div className="filters">
       {openTrips.length > 1 && (
-        <div className="filters__row" role="group" aria-label="Which trip">
-          <span className="filters__label">Trip</span>
-          <ToggleChip
-            selected={filters.tripId === 'all'}
+        <div className="segmented" role="group" aria-label="Which trip">
+          <button
+            type="button"
+            className={`segmented__item ${filters.tripId === 'all' ? 'is-on' : ''}`}
+            aria-pressed={filters.tripId === 'all'}
             onClick={() => setFilters({ tripId: 'all' })}
           >
             All
-          </ToggleChip>
+          </button>
           {openTrips.map((t) => (
-            <ToggleChip
+            <button
               key={String(t.id)}
-              selected={filters.tripId === String(t.id)}
+              type="button"
+              className={`segmented__item mono ${filters.tripId === String(t.id) ? 'is-on' : ''}`}
+              aria-pressed={filters.tripId === String(t.id)}
               onClick={() => setFilters({ tripId: String(t.id) })}
             >
               {tripCode(t)}
-            </ToggleChip>
+            </button>
           ))}
         </div>
       )}
 
-      {myCircles.length > 0 && (
-        <div className="filters__row" role="group" aria-label="Circle">
-          <span className="filters__label">Circle</span>
-          <ToggleChip
-            selected={filters.circleId === 'any'}
-            onClick={() => setFilters({ circleId: 'any' })}
+      {/*
+        Two short rows rather than one long one. Everything fits on a single
+        line at 390px only if "Women only" is cut to "Women", and a filter about
+        who you meet is the wrong place to save eleven pixels. Split by meaning —
+        who, then where — both rows stay short and the grouping reads without
+        needing labels or dividers.
+      */}
+      <div className="filterbar">
+        {myCircles.map((c) => (
+          <button
+            key={String(c.id)}
+            type="button"
+            // Tapping an active filter clears it, which is why there is no
+            // "Anyone" chip taking up space to mean "no filter".
+            className={`filterchip ${filters.circleId === String(c.id) ? 'is-on' : ''}`}
+            aria-pressed={filters.circleId === String(c.id)}
+            onClick={() =>
+              setFilters({
+                circleId: filters.circleId === String(c.id) ? 'any' : String(c.id),
+              })
+            }
           >
-            Anyone
-          </ToggleChip>
-          {myCircles.map((c) => (
-            <ToggleChip
-              key={String(c.id)}
-              selected={filters.circleId === String(c.id)}
-              onClick={() => setFilters({ circleId: String(c.id) })}
-            >
-              {c.shortName}
-            </ToggleChip>
-          ))}
-        </div>
-      )}
-
-      <div className="filters__row" role="group" aria-label="Heading the same way">
-        <span className="filters__label">Going</span>
-        <ToggleChip
-          selected={filters.withinKm === null}
-          onClick={() => setFilters({ withinKm: null })}
-        >
-          Anywhere
-        </ToggleChip>
-        {/* "Within 5km" wrapped the row onto three lines at 390px and pushed
-            the first card below the fold. The unit carries the meaning; the
-            preposition was costing a third of the screen. */}
-        {RADII.map((km) => (
-          <ToggleChip
-            key={km}
-            selected={filters.withinKm === km}
-            onClick={() => setFilters({ withinKm: km })}
-          >
-            <span className="visually-hidden">Within </span>
-            {km} km
-          </ToggleChip>
+            {c.shortName}
+          </button>
         ))}
-      </div>
 
-      <div className="filters__row">
-        <span className="filters__label">Who</span>
-        <ToggleChip
-          selected={filters.womenOnly}
+        <button
+          type="button"
+          className={`filterchip ${filters.womenOnly ? 'is-on' : ''}`}
+          aria-pressed={filters.womenOnly}
           onClick={() => setFilters({ womenOnly: !filters.womenOnly })}
         >
           Women only
-        </ToggleChip>
+        </button>
+
         {dirty && (
-          <Button size="sm" variant="secondary" onClick={() => setFilters(NO_FILTERS)}>
+          <button
+            type="button"
+            className="filterchip filterchip--clear"
+            onClick={() => setFilters(NO_FILTERS)}
+          >
             Clear
-          </Button>
+          </button>
         )}
+      </div>
+
+      <div className="filterbar" role="group" aria-label="How far they are heading from you">
+        <span className="filterbar__hint" aria-hidden="true">
+          Heading
+        </span>
+        {RADII.map((km) => (
+          <button
+            key={km}
+            type="button"
+            className={`filterchip mono ${filters.withinKm === km ? 'is-on' : ''}`}
+            aria-pressed={filters.withinKm === km}
+            aria-label={`Within ${km} kilometres of where you are going`}
+            onClick={() => setFilters({ withinKm: filters.withinKm === km ? null : km })}
+          >
+            {km}km
+          </button>
+        ))}
       </div>
 
       {filters.womenOnly && (
         <p className="filters__note">
-          This changes what you see, not who sees you. To be visible to women only, use{' '}
+          Changes what you see, not who sees you — that&rsquo;s{' '}
           <a href="#/you">Who can see you</a>.
         </p>
       )}

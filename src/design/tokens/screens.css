@@ -104,25 +104,25 @@
 
 /* ── Context strip ───────────────────────────────────────────────────────── */
 
-/* Wraps rather than scrolls. As a scroller its last item was sliced through
-   the middle of a word at 390px — "13 overlapp" — which reads as a rendering
-   bug, not as an invitation to swipe. Three short facts fit on two lines. */
+/* One line, at body size. This was four stat blocks set in display type, which
+   wrapped to two rows and occupied more of the screen than the filters below
+   it. It is context for the list, not a dashboard. */
 .cstrip {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp-2) var(--sp-5);
-  padding: var(--sp-3) 0 var(--sp-1);
+  gap: var(--sp-1) var(--sp-4);
+  padding: var(--sp-1) 0 var(--sp-2);
 }
 
 .cstrip__item {
   display: flex;
   align-items: baseline;
-  gap: var(--sp-2);
+  gap: 5px;
   white-space: nowrap;
 }
 
 .cstrip__n {
-  font-size: var(--text-xl);
+  font-size: var(--text-base);
   font-weight: 600;
   color: var(--ink);
 }
@@ -962,27 +962,130 @@
 
 /* ── Board filters ───────────────────────────────────────────────────────── */
 
+/*
+ * Two rows, not six.
+ *
+ * The previous version spent a fixed 3.2rem label column on every row, which
+ * forced the radius options onto three lines, and gave a 44px pill to
+ * "Anyone" and "Anywhere" — options that mean *no filter*. Together that was
+ * roughly 400px, on a 390px-wide screen, above a list of people. Flat controls
+ * and self-clearing toggles bring it to about 100px.
+ */
 .filters {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-2);
-  padding: var(--sp-3) 0;
+  gap: var(--sp-1);
+  padding: var(--sp-1) 0 var(--sp-3);
   border-bottom: 1px solid var(--hairline);
 }
 
-.filters__row {
+/* Trip: a segmented control, because "exactly one of these" is what a
+   segmented control means. It needs no label to be understood, which is the
+   whole reason the label column could go. */
+.segmented {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-sunk);
+  border-radius: 12px;
+}
+
+.segmented__item {
+  flex: 1;
+  min-width: 0;
+  /* Full 44px target: a segmented control is the one place designers most
+     often shave this down, and it is used one-handed at a gate. */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--sp-2);
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-press) ease,
+    color var(--dur-press) ease;
+}
+
+/* Raised rather than inverted. A solid ink slab for the active segment is the
+   heaviest possible way to say "this one", and it fights the photographs. */
+.segmented__item.is-on {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 7%);
+}
+
+.segmented__item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Everything else: flat text, no borders, no fills until active. */
+.filterbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-2);
+  gap: 2px;
 }
 
-.filters__label {
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.filterchip {
+  position: relative;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-press) ease,
+    color var(--dur-press) ease;
+}
+
+/* The control stays visually small; the *tap area* is extended past it, so a
+   32px chip is still a 44px target. Small controls and hard-to-hit controls
+   are not the same problem and do not need the same solution. */
+.filterchip::after {
+  content: '';
+  position: absolute;
+  inset: -7px -3px;
+}
+
+.filterchip.is-on {
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.filterchip:active {
+  transform: scale(0.96);
+}
+
+.filterchip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.filterchip--clear {
+  margin-left: auto;
   color: var(--faint);
-  min-width: 3.2rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.filterbar__hint {
+  font-size: var(--text-xs);
+  color: var(--faint);
+  padding-right: 2px;
 }
 
 /* The lens/policy distinction, stated where the confusion would happen. */
@@ -991,9 +1094,6 @@
   color: var(--muted);
   line-height: 1.5;
   margin: 0;
-  padding: var(--sp-2) var(--sp-3);
-  background: var(--surface-sunk);
-  border-radius: var(--r-md);
 }
 
 .filters__hidden {

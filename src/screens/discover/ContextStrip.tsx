@@ -8,15 +8,29 @@ import type { TravelContextSummary } from '@matching/index';
  * the honest answer was available.
  */
 export function ContextStrip({ context }: { context: TravelContextSummary }) {
-  // Short labels. The strip scrolls, but a scroller whose last item is sliced
-  // through the middle of a word reads as a rendering bug rather than as an
-  // invitation to swipe — so each item has to fit whole.
-  const items = [
+  /*
+   * At most two facts, on one line.
+   *
+   * This was four stat blocks at display size, which wrapped to two rows and
+   * took more vertical space than the filters underneath it — on a screen whose
+   * job is showing people. It is context, not the content.
+   *
+   * "Overlapping days" is also dropped whenever it equals the city count, which
+   * in practice is almost always: printing "18 in your city · 18 overlapping"
+   * asks the reader to work out whether those are the same eighteen people. They
+   * are.
+   */
+  const all = [
     { n: context.onYourFlight, label: 'on your flight' },
     { n: context.inYourLayover, label: 'in your layover' },
     { n: context.inYourCity, label: 'in your city' },
     { n: context.overlappingDates, label: 'overlapping' },
   ].filter((i) => i.n > 0);
+
+  const deduped = all.filter(
+    (i, idx) => idx === 0 || !all.slice(0, idx).some((prev) => prev.n === i.n),
+  );
+  const items = deduped.slice(0, 2);
 
   if (items.length === 0) return null;
 
