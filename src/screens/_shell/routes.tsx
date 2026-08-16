@@ -20,14 +20,23 @@ import { YouScreen } from '@screens/profile/YouScreen';
 export interface Route {
   name: 'discover' | 'person' | 'requests' | 'trip' | 'circles' | 'you' | 'verify' | 'design';
   id?: string;
+  /**
+   * Which of your trips you opened this person from.
+   *
+   * Carried in the URL because the same traveller can appear on the board twice
+   * under two flight codes, and a profile that did not know which one you
+   * tapped would send the meet request against the wrong journey — closing the
+   * wrong trip when they say yes.
+   */
+  tripId?: string;
 }
 
 export function parseRoute(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
-  const [head, id] = parts;
+  const [head, id, tripId] = parts;
 
   if (head === '_design') return { name: 'design' };
-  if (head === 'person' && id) return { name: 'person', id };
+  if (head === 'person' && id) return { name: 'person', id, ...(tripId ? { tripId } : {}) };
   if (head === 'requests') return { name: 'requests' };
   // `trips` and `board` were the names before the tab bar grew to five. Kept as
   // aliases so a bookmark or a screenshot URL from an earlier build still lands
@@ -62,7 +71,11 @@ export function Router() {
   if (route.name === 'person' && route.id) {
     return (
       <AppShell route="discover">
-        <PersonScreen id={route.id} onBack={() => navigate('#/')} />
+        <PersonScreen
+          id={route.id}
+          {...(route.tripId ? { tripId: route.tripId } : {})}
+          onBack={() => navigate('#/')}
+        />
       </AppShell>
     );
   }

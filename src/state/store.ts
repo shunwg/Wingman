@@ -14,7 +14,7 @@ import type {
 } from '@domain/index';
 import { asCircleId, asMeetRequestId, asUtc } from '@domain/index';
 import type { ISODateTime } from '@domain/time';
-import { ME, MY_TRIP, SEED_NOW } from '@data/seed/trips';
+import { ME, MY_TRIPS, SEED_NOW } from '@data/seed/trips';
 import { transition } from './machines/meetRequest';
 
 /**
@@ -36,22 +36,64 @@ import { transition } from './machines/meetRequest';
  * what made it unmaintainable.
  */
 
-export const STORE_VERSION = 1;
+// Bumped for `myTrip` -> `myTrips`. A v1 blob has a shape v2 cannot read, and
+// the migration below discards rather than guesses.
+export const STORE_VERSION = 2;
+
+/**
+ * What the board is currently being filtered to.
+ *
+ * A *lens*, not a policy, and the distinction is load-bearing. `womenOnly` here
+ * changes what you see and has no effect whatever on who can see you — that is
+ * the `women_only` preset under You, which compiles both halves atomically.
+ * Conflating them is the bug the whole two-rule model exists to prevent, so the
+ * screen says so in as many words.
+ *
+ * Deliberately not persisted. Reopening the app to a board silently narrowed by
+ * a filter set last week is indistinguishable from a broken product.
+ */
+export interface BoardFilters {
+  /** A specific trip, or every open one. */
+  tripId: string | 'all';
+  circleId: string | 'any';
+  womenOnly: boolean;
+  /** Kilometres between where the two of you are actually headed. */
+  withinKm: number | null;
+}
+
+export const NO_FILTERS: BoardFilters = {
+  tripId: 'all',
+  circleId: 'any',
+  womenOnly: false,
+  withinKm: null,
+};
 
 export interface WingmanState {
   /** The signed-in person. Onboarding overwrites the seeded default. */
   me: Person;
-  myTrip: Trip | null;
+  /**
+   * Every trip, open or settled.
+   *
+   * A list rather than a single trip because people book more than one journey
+   * at a time, and because "which trip is this person for" is unanswerable —
+   * and the board unreadable — when the app can only hold one.
+   */
+  myTrips: Trip[];
   requests: MeetRequest[];
   /** Candidates shown and not acted on — feeds the fairness fatigue penalty. */
   seenCounts: Record<string, number>;
   /** The simulated clock. Real builds would use the wall clock here. */
   now: ISODateTime;
   onboarded: boolean;
+  filters: BoardFilters;
 
   setMe: (patch: Partial<Person>) => void;
   setPrivacy: (patch: Partial<PrivacyPolicy>) => void;
-  setTrip: (trip: Trip | null) => void;
+  upsertTrip: (trip: Trip) => void;
+  removeTrip: (tripId: string) => void;
+  setFilters: (patch: Partial<BoardFilters>) => void;
+  /** Re-open a settled trip. Changing your mind is allowed. */
+  reopenTrip: (tripId: string) => void;
   markSeen: (id: PersonId) => void;
   completeOnboarding: () => void;
 
@@ -90,6 +132,7 @@ const seededInbound = (): MeetRequest => ({
   id: asMeetRequestId('req_seed_priya'),
   fromPersonId: 'priya' as never,
   toPersonId: ME.id,
+  tripId: MY_TRIPS[0]!.id,
   overlapRef: { kind: 'same_airport_window', airport: 'LHR' as never },
   proposal: {
     kind: 'gate_coffee',
@@ -111,11 +154,12 @@ const seededInbound = (): MeetRequest => ({
 
 const initial = () => ({
   me: ME,
-  myTrip: MY_TRIP,
+  myTrips: MY_TRIPS,
   requests: [seededInbound()],
   seenCounts: {} as Record<string, number>,
   now: SEED_NOW,
   onboarded: false,
+  filters: NO_FILTERS,
 });
 
 export const useStore = create<WingmanState>()(
@@ -128,7 +172,30 @@ export const useStore = create<WingmanState>()(
       setPrivacy: (patch) =>
         set((s) => ({ me: { ...s.me, privacy: { ...s.me.privacy, ...patch } } })),
 
-      setTrip: (trip) => set({ myTrip: trip }),
+      upsertTrip: (trip) =>
+        set((s) => ({
+          myTrips: s.myTrips.some((t) => t.id === trip.id)
+            ? s.myTrips.map((t) => (t.id === trip.id ? trip : t))
+            : [...s.myTrips, trip],
+        })),
+
+      removeTrip: (tripId) =>
+        set((s) => ({ myTrips: s.myTrips.filter((t) => String(t.id) !== tripId) })),
+
+      setFilters: (patch) => set((s) => ({ filters: { ...s.filters, ...patch } })),
+
+      reopenTrip: (tripId) =>
+        set((s) => ({
+          myTrips: s.myTrips.map((t) => {
+            if (String(t.id) !== tripId) return t;
+            // Drop the outcome rather than flag it re-opened. A trip is open
+            // exactly when it has no outcome, and keeping a second field in
+            // sync with that is how the two end up disagreeing.
+            const rest = { ...t };
+            delete rest.outcome;
+            return rest;
+          }),
+        })),
 
       markSeen: (id) =>
         set((s) => ({ seenCounts: { ...s.seenCounts, [id]: (s.seenCounts[id] ?? 0) + 1 } })),
@@ -219,13 +286,40 @@ export const useStore = create<WingmanState>()(
       },
 
       advanceRequest: (id, to, by, note) =>
-        set((s) => ({
-          requests: s.requests.map((r) =>
+        set((s) => {
+          const requests = s.requests.map((r) =>
             String(r.id) === id
               ? transition(r, { to, by, at: s.now, ...(note ? { note } : {}) })
               : r,
-          ),
-        })),
+          );
+
+          if (to !== 'accepted') return { requests };
+
+          /*
+           * Saying yes closes that trip.
+           *
+           * You were looking for someone for a particular journey and you found
+           * them; continuing to serve alternatives turns the board into an
+           * invitation to trade up on a person who has already agreed to meet
+           * you. It closes exactly one trip — the one the request came from —
+           * which is the whole reason MeetRequest carries a tripId.
+           *
+           * Reversible from the Trip screen, because plans fall through.
+           */
+          const accepted = requests.find((r) => String(r.id) === id);
+          if (!accepted) return { requests };
+          const other =
+            accepted.fromPersonId === s.me.id ? accepted.toPersonId : accepted.fromPersonId;
+
+          return {
+            requests,
+            myTrips: s.myTrips.map((t) =>
+              t.id === accepted.tripId
+                ? { ...t, outcome: { settledWith: other, at: s.now } }
+                : t,
+            ),
+          };
+        }),
 
       denyRequest: (id, denial) =>
         set((s) => ({
@@ -271,10 +365,13 @@ export const useStore = create<WingmanState>()(
        */
       partialize: (s) => ({
         me: s.me,
-        myTrip: s.myTrip,
+        myTrips: s.myTrips,
         requests: s.requests,
         seenCounts: s.seenCounts,
         onboarded: s.onboarded,
+        // `filters` is absent on purpose. It is a lens on this session, not a
+        // durable fact, and reopening the app to a board silently narrowed by
+        // a filter set last week is indistinguishable from a broken product.
       }),
       migrate: (persisted, version) => {
         // v0 had no schema version at all. Anything from before this chain

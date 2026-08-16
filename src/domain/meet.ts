@@ -1,4 +1,4 @@
-import type { CityKey, IataCode, MeetId, MeetRequestId, PersonId, RatingId } from './ids';
+import type { CityKey, IataCode, MeetId, MeetRequestId, PersonId, RatingId, TripId } from './ids';
 import type { GuardianSessionId } from './ids';
 import type { ISODateTime, TimeWindow } from './time';
 import type { MeetKind } from './intent';
@@ -93,6 +93,14 @@ export interface MeetRequest {
   id: MeetRequestId;
   fromPersonId: PersonId;
   toPersonId: PersonId;
+  /**
+   * Which of the sender's own trips this was sent from.
+   *
+   * Needed because accepting closes that trip and no other. Without it, saying
+   * yes to someone on next month's flight would silently stop suggestions for
+   * the one you are boarding tonight.
+   */
+  tripId: TripId;
   overlapRef: OverlapRef;
   proposal: MeetProposal;
   /** <=200 chars, template-seeded so nobody has to cold-write to a stranger. */

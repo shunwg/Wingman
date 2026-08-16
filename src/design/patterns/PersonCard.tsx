@@ -38,6 +38,17 @@ export interface PersonCardProps {
   person: RedactedPerson;
   /** One line of travel context — "On your flight · 13h in the air". */
   context?: string;
+  /**
+   * Which of the viewer's own journeys this suggestion belongs to — "SQ317".
+   *
+   * A flight code rather than a colour swatch. Colour would need three or four
+   * new hues to stay distinguishable, and the palette is four in total by
+   * design; more importantly a colour has to be learned before it means
+   * anything, whereas the code is the same string the person is already looking
+   * for on a departure board. It is set in mono, like every other flight fact
+   * in this app.
+   */
+  tripCode?: string;
   /** Why they are here. Shown under the fold on the detail view. */
   footer?: ReactNode;
   onClick?: () => void;
@@ -47,7 +58,14 @@ export interface PersonCardProps {
 
 const HIDDEN_NAME = 'Name shown once you both agree';
 
-export function PersonCard({ person, context, footer, onClick, layout = 'feed' }: PersonCardProps) {
+export function PersonCard({
+  person,
+  context,
+  tripCode,
+  footer,
+  onClick,
+  layout = 'feed',
+}: PersonCardProps) {
   const name = isRedacted(person.displayName) ? null : person.displayName;
   const headline = isRedacted(person.headline) ? null : person.headline;
   const professional = isRedacted(person.professional) ? null : person.professional;
@@ -71,6 +89,13 @@ export function PersonCard({ person, context, footer, onClick, layout = 'feed' }
       className={`pcard pcard--${layout}`}
       {...(onClick ? { type: 'button' as const, onClick } : {})}
     >
+      {tripCode && (
+        <p className="pcard__trip mono">
+          <span className="visually-hidden">For your trip </span>
+          {tripCode}
+        </p>
+      )}
+
       <header className="pcard__id">
         <Avatar spec={person.avatar} size="md" {...(name ? { label: name } : {})} />
 

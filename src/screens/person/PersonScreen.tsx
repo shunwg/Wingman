@@ -8,6 +8,7 @@ import type { MeetKind } from '@domain/intent';
 import { useBoard } from '@state/selectors/board';
 import { useStore } from '@state/store';
 import { addMinutes } from '@domain/time';
+import { asTripId } from '@domain/ids';
 
 /**
  * One person, and the decision to ask.
@@ -40,9 +41,23 @@ const OPENERS = [
   'Would be good to talk shop for twenty minutes.',
 ];
 
-export function PersonScreen({ id, onBack }: { id: string; onBack: () => void }) {
+export function PersonScreen({
+  id,
+  tripId,
+  onBack,
+}: {
+  id: string;
+  tripId?: string;
+  onBack: () => void;
+}) {
   const { candidates } = useBoard();
-  const candidate = candidates.find((c) => String(c.person.id) === id);
+  // Narrowed by trip when the board said which one, because the same person
+  // can sit on the board twice under two flight codes and the request has to
+  // go against the journey you actually tapped.
+  const candidate =
+    candidates.find(
+      (c) => String(c.person.id) === id && (!tripId || c.viaTripId === tripId),
+    ) ?? candidates.find((c) => String(c.person.id) === id);
   const sendRequest = useStore((s) => s.sendRequest);
   const me = useStore((s) => s.me);
   const now = useStore((s) => s.now);
@@ -76,6 +91,9 @@ export function PersonScreen({ id, onBack }: { id: string; onBack: () => void })
     sendRequest({
       fromPersonId: me.id,
       toPersonId: p.id,
+      // Which of your journeys this is for. Accepting closes that trip and no
+      // other, so getting this wrong would stop suggestions for the wrong one.
+      tripId: asTripId(candidate.viaTripId),
       overlapRef: overlapRefOf(candidate.overlap),
       proposal: { kind: chosen, window },
       message: opener,

@@ -20,6 +20,28 @@ export function haversineM(aLat: number, aLon: number, bLat: number, bLon: numbe
 export const haversineKm = (aLat: number, aLon: number, bLat: number, bLon: number): number =>
   haversineM(aLat, aLon, bLat, bLon) / 1000;
 
+export interface LatLon {
+  lat: number;
+  lon: number;
+}
+
+/**
+ * Distance between two places people are headed, in kilometres.
+ *
+ * A point-shaped wrapper over `haversineKm`, because the board asks this
+ * question about two `{lat, lon}` objects rather than four loose numbers, and
+ * four positional coordinates is exactly the signature that eventually gets
+ * called with the arguments transposed.
+ *
+ * Great-circle rather than driving distance on purpose: road distance needs a
+ * routing service, a key and a network call, and it answers a question nobody
+ * asked. The filter is "roughly the same direction", not "how long is the
+ * taxi", and a straight line is the honest resolution for a decision made from
+ * a neighbourhood centroid.
+ */
+export const distanceKm = (a: LatLon, b: LatLon): number =>
+  haversineKm(a.lat, a.lon, b.lat, b.lon);
+
 /**
  * Rough block time for a great-circle distance, in minutes.
  *

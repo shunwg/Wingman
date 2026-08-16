@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MeetRequest, MeetRequestStatus } from '@domain/index';
-import { asMeetRequestId, asPersonId, asUtc } from '@domain/index';
+import { asMeetRequestId, asPersonId, asTripId, asUtc } from '@domain/index';
 import {
   IllegalTransitionError,
   TRANSITIONS,
@@ -19,6 +19,7 @@ const req = (status: MeetRequestStatus = 'sent'): MeetRequest => ({
   id: asMeetRequestId('r1'),
   fromPersonId: asPersonId('a'),
   toPersonId: asPersonId('b'),
+  tripId: asTripId('t1'),
   overlapRef: { kind: 'same_flight' },
   proposal: {
     kind: 'gate_coffee',

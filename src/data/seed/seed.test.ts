@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MATCH_CONFIG_V1, findCandidates } from '@matching/index';
 import { airportIndex } from '@data/airports/index';
 import { SEED_PEOPLE, RESPONSE_RATES } from './people';
-import { ME, MY_TRIP, SEED_NOW, seedPool } from './trips';
+import { ME, MY_TRIPS, SEED_NOW, seedPool } from './trips';
 import { SEED_CIRCLES } from './circles';
 
 /**
@@ -16,7 +16,7 @@ import { SEED_CIRCLES } from './circles';
 const run = (me = ME, circleIds = ['insead']) =>
   findCandidates({
     me,
-    myTrip: MY_TRIP,
+    myTrip: MY_TRIPS[0]!,
     myCircleIds: circleIds,
     pool: seedPool(),
     now: SEED_NOW,

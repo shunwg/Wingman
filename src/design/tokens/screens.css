@@ -959,3 +959,135 @@
   color: var(--accent);
   margin: 0;
 }
+
+/* ── Board filters ───────────────────────────────────────────────────────── */
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.filters__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.filters__label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+  min-width: 3.2rem;
+}
+
+/* The lens/policy distinction, stated where the confusion would happen. */
+.filters__note {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-sunk);
+  border-radius: var(--r-md);
+}
+
+.filters__hidden {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ── Trip tag on a card ──────────────────────────────────────────────────── */
+
+/* A flight code, not a colour. It sits above the name because it answers
+   "which of my journeys is this?" — a question you ask before "who is this?". */
+.pcard__trip {
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  color: var(--faint);
+  margin: 0;
+  padding-bottom: var(--sp-1);
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* ── Settled trip ────────────────────────────────────────────────────────── */
+
+.settled {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  background: var(--trust-wash);
+  border-radius: var(--r-card);
+}
+
+.settled__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.settled__code {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.06em;
+}
+
+.settled__body {
+  font-size: var(--text-sm);
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Trip block ──────────────────────────────────────────────────────────── */
+
+.tripblock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+}
+
+/* Settled and hidden trips recede rather than disappear — they are still
+   yours, they are just not doing anything right now. */
+.tripblock--closed {
+  background: var(--surface-sunk);
+}
+
+.tripblock__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+}
+
+.tripblock__code {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.tripblock__stay,
+.tripblock__note {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.tripblock__note {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+}
