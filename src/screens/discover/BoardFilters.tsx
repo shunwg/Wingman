@@ -1,5 +1,6 @@
 import type { Trip } from '@domain/index';
 import { tripCode } from '@domain/trip';
+import { tripHueClass } from '@design/tokens/tripHue';
 import { SEED_CIRCLES } from '@data/seed/circles';
 import { NO_FILTERS, useStore } from '@state/store';
 
@@ -62,10 +63,13 @@ export function BoardFilters({ openTrips }: { openTrips: Trip[] }) {
             <button
               key={String(t.id)}
               type="button"
-              className={`segmented__item mono ${filters.tripId === String(t.id) ? 'is-on' : ''}`}
+              className={`segmented__item mono ${tripHueClass(tripCode(t))} ${
+                filters.tripId === String(t.id) ? 'is-on' : ''
+              }`}
               aria-pressed={filters.tripId === String(t.id)}
               onClick={() => setFilters({ tripId: String(t.id) })}
             >
+              <span className="tripdot" aria-hidden="true" />
               {tripCode(t)}
             </button>
           ))}

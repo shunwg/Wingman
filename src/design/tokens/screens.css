@@ -1015,11 +1015,21 @@
 
 /* Raised rather than inverted. A solid ink slab for the active segment is the
    heaviest possible way to say "this one", and it fights the photographs. */
+.segmented__item {
+  gap: 5px;
+}
+
 .segmented__item.is-on {
   background: var(--surface);
   color: var(--ink);
   font-weight: 600;
   box-shadow: 0 1px 2px rgb(0 0 0 / 7%);
+}
+
+/* Selected or not, the dot stays its journey's colour — that is what makes the
+   picker and the cards read as the same set. */
+.segmented__item.is-on .tripdot {
+  box-shadow: 0 0 0 2px var(--trip-wash);
 }
 
 .segmented__item:focus-visible {
@@ -1107,9 +1117,15 @@
 /* A flight code, not a colour. It sits above the name because it answers
    "which of my journeys is this?" — a question you ask before "who is this?". */
 .pcard__trip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--text-xs);
   letter-spacing: 0.08em;
-  color: var(--faint);
+  /* The journey's own colour, so a glance down the board groups the cards
+     without reading a single code. The code is still right there for anyone
+     the colour does not reach. */
+  color: var(--trip-colour, var(--faint));
   margin: 0;
   padding-bottom: var(--sp-1);
   border-bottom: 1px solid var(--hairline);
@@ -1136,7 +1152,7 @@
 .settled__code {
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--ink);
+  color: var(--trip-colour, var(--ink));
   letter-spacing: 0.06em;
 }
 
@@ -1150,14 +1166,37 @@
 /* ── Trip block ──────────────────────────────────────────────────────────── */
 
 .tripblock {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--sp-3);
-  padding: var(--sp-4);
+  padding: var(--sp-4) var(--sp-4) var(--sp-4) calc(var(--sp-4) + 5px);
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--r-card);
+  overflow: hidden;
+}
+
+/* The stripe down the edge of a boarding pass. This is the thing you learn the
+   colour from — it is the largest instance of it, and it sits on the screen
+   where you look at your own trips, so by the time you reach Discover the
+   association is already made. */
+.tripblock::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--trip-colour, var(--hairline));
+}
+
+/* Settled and hidden tickets keep their identity but stop shouting. */
+.tripblock--closed::before {
+  opacity: 0.45;
+}
+
+.tripblock__code {
+  color: var(--trip-colour, var(--ink));
 }
 
 /* Settled and hidden trips recede rather than disappear — they are still

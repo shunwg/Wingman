@@ -36,6 +36,34 @@
   --warn: #9a5b00;
   --warn-wash: #fdf1e0;
 
+  /* ── Trip colours ────────────────────────────────────────────────────────
+   *
+   * A fifth axis, and deliberately outside "the four hues" above rather than
+   * an exception to them. Those four are *semantic*: ember means act, trust
+   * means proved, guard means safety. These mean nothing at all on their own —
+   * they are wayfinding, like a metro line. Their whole job is that the ticket
+   * in your Trip tab and the tag on a person's card are recognisably the same
+   * journey at a glance.
+   *
+   * Chosen to sit away from the semantic four in hue, so a trip stripe is
+   * never mistaken for a verification state: no oranges (ember), no blue-violet
+   * (guardian), and the green is olive rather than the deep teal of trust.
+   *
+   * Colour is never the only indicator here either. Every place one of these
+   * appears, the flight code appears with it — someone who cannot separate the
+   * violet trip from the rose one still reads SQ317 and SK1465.
+   */
+  --trip-0: #7c4da0;
+  --trip-0-wash: #f4eefa;
+  --trip-1: #a97316;
+  --trip-1-wash: #fbf1e0;
+  --trip-2: #0e7490;
+  --trip-2-wash: #e6f4f8;
+  --trip-3: #b8446a;
+  --trip-3-wash: #fceef2;
+  --trip-4: #5f7326;
+  --trip-4-wash: #f1f5e4;
+
   /* ── Type ────────────────────────────────────────────────────────────── */
   --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -118,6 +146,18 @@
     --trust: #3fbf9c;
     --trust-wash: #10241f;
     --guard: #8a95ff;
+
+    /* Wayfinding hues, lifted for a dark ground — see the light block. */
+    --trip-0: #c49ae0;
+    --trip-0-wash: #2b1f36;
+    --trip-1: #e0b063;
+    --trip-1-wash: #33270f;
+    --trip-2: #5fbcd6;
+    --trip-2-wash: #102c36;
+    --trip-3: #ef8bab;
+    --trip-3-wash: #341823;
+    --trip-4: #a8bf6a;
+    --trip-4-wash: #232b12;
     --guard-wash: #1a1c32;
     --warn: #e0a458;
     --warn-wash: #2a1f0f;
@@ -150,6 +190,18 @@
   --trust: #3fbf9c;
   --trust-wash: #10241f;
   --guard: #8a95ff;
+
+  /* Wayfinding hues, lifted for a dark ground — see the light block. */
+  --trip-0: #c49ae0;
+  --trip-0-wash: #2b1f36;
+  --trip-1: #e0b063;
+  --trip-1-wash: #33270f;
+  --trip-2: #5fbcd6;
+  --trip-2-wash: #102c36;
+  --trip-3: #ef8bab;
+  --trip-3-wash: #341823;
+  --trip-4: #a8bf6a;
+  --trip-4-wash: #232b12;
   --guard-wash: #1a1c32;
   --warn: #e0a458;
   --warn-wash: #2a1f0f;

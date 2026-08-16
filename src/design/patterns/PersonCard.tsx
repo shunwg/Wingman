@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { RedactedPerson } from '@domain/person';
 import { isRedacted } from '@domain/person';
+import { tripHueClass } from '../tokens/tripHue';
 import { Avatar } from '../primitives/Avatar';
 import { Chip } from '../primitives/Chip';
 import { StampBadge } from './StampBadge';
@@ -41,12 +42,16 @@ export interface PersonCardProps {
   /**
    * Which of the viewer's own journeys this suggestion belongs to — "SQ317".
    *
-   * A flight code rather than a colour swatch. Colour would need three or four
-   * new hues to stay distinguishable, and the palette is four in total by
-   * design; more importantly a colour has to be learned before it means
-   * anything, whereas the code is the same string the person is already looking
-   * for on a departure board. It is set in mono, like every other flight fact
-   * in this app.
+   * A flight code *and* a colour. The code is the information — it is the same
+   * string the person is already looking for on a departure board, and it is
+   * set in mono like every other flight fact here. The colour is a shortcut on
+   * top of it: once you have seen the violet ticket in your Trip tab, every
+   * violet tag on this board is that journey without reading anything.
+   *
+   * The colour is never load-bearing on its own. Someone who cannot separate
+   * the violet trip from the rose one loses nothing, because the code is right
+   * there — which is the rule the whole design system follows for stamps and
+   * states too.
    */
   tripCode?: string;
   /** Why they are here. Shown under the fold on the detail view. */
@@ -90,7 +95,8 @@ export function PersonCard({
       {...(onClick ? { type: 'button' as const, onClick } : {})}
     >
       {tripCode && (
-        <p className="pcard__trip mono">
+        <p className={`pcard__trip mono ${tripHueClass(tripCode)}`}>
+          <span className="tripdot" aria-hidden="true" />
           <span className="visually-hidden">For your trip </span>
           {tripCode}
         </p>

@@ -491,3 +491,30 @@ button.pcard:active {
   right: var(--sp-4);
   z-index: var(--z-toast);
 }
+
+/* ── Trip colour ─────────────────────────────────────────────────────────── */
+
+/*
+ * `hue-N` maps a journey to its wayfinding pair, and everything downstream
+ * reads `--trip-colour` / `--trip-wash` rather than naming a hue. That means a
+ * ticket, a card tag and a filter segment all pick up the same colour from one
+ * class, and re-hueing the whole set is five lines here rather than a search
+ * across three screens.
+ */
+.hue-0 { --trip-colour: var(--trip-0); --trip-wash: var(--trip-0-wash); }
+.hue-1 { --trip-colour: var(--trip-1); --trip-wash: var(--trip-1-wash); }
+.hue-2 { --trip-colour: var(--trip-2); --trip-wash: var(--trip-2-wash); }
+.hue-3 { --trip-colour: var(--trip-3); --trip-wash: var(--trip-3-wash); }
+.hue-4 { --trip-colour: var(--trip-4); --trip-wash: var(--trip-4-wash); }
+
+/* The dot that carries the colour. Always beside the flight code, never
+   instead of it — someone who cannot separate violet from rose still reads
+   SQ317, and that has to keep being true. */
+.tripdot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  background: var(--trip-colour, var(--faint));
+  flex: none;
+}

@@ -6,6 +6,7 @@ import type { Trip } from '@domain/index';
 import { asIata } from '@domain/ids';
 import { localTime, localDate } from '@domain/time';
 import { tripCode, tripIsOpen } from '@domain/trip';
+import { tripHueClass } from '@design/tokens/tripHue';
 import { useStore } from '@state/store';
 
 /**
@@ -74,8 +75,11 @@ function TripBlock({
   const open = tripIsOpen(trip);
 
   return (
-    <article className={`tripblock ${open ? '' : 'tripblock--closed'}`}>
+    <article
+      className={`tripblock ${tripHueClass(tripCode(trip))} ${open ? '' : 'tripblock--closed'}`}
+    >
       <header className="tripblock__head">
+        <span className="tripdot tripblock__dot" aria-hidden="true" />
         <span className="tripblock__code mono">{tripCode(trip)}</span>
         {trip.outcome ? (
           <Chip tone="trust">Sorted</Chip>

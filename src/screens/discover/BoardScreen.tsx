@@ -3,6 +3,7 @@ import { Chip } from '@design/primitives/Chip';
 import { Button } from '@design/primitives/Button';
 import { bucketLabel } from '@lib/bucket';
 import { tripCode } from '@domain/trip';
+import { tripHueClass } from '@design/tokens/tripHue';
 import { useBoard, useRelaxations, type BoardCandidate } from '@state/selectors/board';
 import { useStore } from '@state/store';
 import { personById } from '@data/seed/people';
@@ -52,8 +53,9 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
       {board.settledTrips.map((t) => {
         const withWhom = personById(String(t.outcome!.settledWith));
         return (
-          <div className="settled" key={String(t.id)}>
+          <div className={`settled ${tripHueClass(tripCode(t))}`} key={String(t.id)}>
             <div className="settled__head">
+              <span className="tripdot" aria-hidden="true" />
               <span className="settled__code mono">{tripCode(t)}</span>
               <Chip tone="trust">Sorted</Chip>
             </div>
