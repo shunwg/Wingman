@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { Compass } from '@design/icons/Compass';
-import { Plane } from '@design/icons/Plane';
+import { Route } from '@design/icons/Route';
 import { Ticket } from '@design/icons/Ticket';
 import { ShieldCheck } from '@design/icons/ShieldCheck';
 import { PersonMark } from '@design/icons/PersonMark';
@@ -29,7 +29,7 @@ const TABS: {
   icon: ComponentType<{ size?: number }>;
 }[] = [
   { route: 'discover', href: '#/', label: 'Discover', icon: Compass },
-  { route: 'trip', href: '#/trip', label: 'Trip', icon: Plane },
+  { route: 'trip', href: '#/trip', label: 'Trip', icon: Route },
   { route: 'requests', href: '#/requests', label: 'Requests', icon: Ticket },
   { route: 'circles', href: '#/circles', label: 'Circles', icon: ShieldCheck },
   { route: 'you', href: '#/you', label: 'You', icon: PersonMark },

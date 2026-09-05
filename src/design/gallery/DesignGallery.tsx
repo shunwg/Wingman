@@ -4,6 +4,8 @@ import { Button } from '../primitives/Button';
 import { Chip, ToggleChip } from '../primitives/Chip';
 import { PersonCard } from '../patterns/PersonCard';
 import { generateAvatar } from '../avatar/generate';
+import { Logo } from '../brand/Logo';
+import { Wordmark } from '../brand/Wordmark';
 import {
   TOKEN_SWATCHES,
   acceptedCard,
@@ -49,6 +51,30 @@ export function DesignGallery() {
         guardian indigo. Colour is never the only indicator: every stamp and state carries an icon
         and a label too.
       </p>
+
+      <section className="gallery__section">
+        <h2 className="gallery__h2 display">Brand</h2>
+        <p className="gallery__note">
+          Two routes converging. One climbs, one dips, both arrive at the same ember dot — a wing
+          made of two journeys. In mono the dot takes the stroke colour. Never an airplane.
+        </p>
+        <div className="brand-row">
+          <Logo size={16} />
+          <Logo size={24} />
+          <Logo size={48} />
+          <Logo size={96} />
+          <Logo size={48} tone="accent" />
+          <Logo size={48} tone="mono" />
+          <Wordmark />
+          <Wordmark size={40} />
+        </div>
+        <div className="brand-row brand-row--ink">
+          <Logo size={24} />
+          <Logo size={48} />
+          <Logo size={48} tone="mono" />
+          <Wordmark />
+        </div>
+      </section>
 
       <section className="gallery__section">
         <h2 className="gallery__h2 display">Colour</h2>
