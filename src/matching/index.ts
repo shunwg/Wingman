@@ -26,6 +26,8 @@ export {
 export { applyHardFilters, maxAssurance, type DenialReason, type FilterOutcome } from './filters/hardFilters';
 export { buildReceipt } from './explain/receipt';
 export { scoreCandidate, compareCandidates, dayKeyOf } from './rank/score';
+export { deferredAcceptance, blockingPairs, type Preferences, type Matching } from './rank/stable';
+export { estimateAcceptance } from './rank/reciprocity';
 export { SIGNALS, type SignalContext } from './rank/signals';
 export { MATCH_CONFIG_V1 } from './config';
 export { whatIfRelaxed, relaxations } from './relax';

@@ -98,7 +98,10 @@ export type SignalName =
   | 'intentAlignment'
   | 'topicalAffinity'
   | 'circleProximity'
+  | 'cohort'
   | 'reciprocityPrior'
+  | 'scarcity'
+  | 'complementarity'
   | 'fairness';
 
 /** One person plus the trip that puts them near you. */
@@ -177,6 +180,12 @@ export interface Candidate {
   score: number;
   signals: Record<SignalName, number>;
   receipt: RouteReceipt;
+  /**
+   * The stable pick: the one person on this board for whom the two of you
+   * rank each other highest, by deferred acceptance over mutual scores. A
+   * reason, rendered as a label; never a number.
+   */
+  mostCompatible?: boolean;
 }
 
 /**

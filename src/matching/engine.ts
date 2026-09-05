@@ -15,6 +15,7 @@ import { strongest } from './travel/overlap';
 import { proximityClasses } from './travel/proximity';
 import { buildReceipt } from './explain/receipt';
 import { compareCandidates, dayKeyOf, scoreCandidate } from './rank/score';
+import { deferredAcceptance } from './rank/stable';
 import type { SignalContext } from './rank/signals';
 
 /**
@@ -73,7 +74,7 @@ export function findCandidates(input: MatchInput): MatchResult {
     overlappingDates: 0,
   };
 
-  const scored: (Candidate & { _id: string })[] = [];
+  const scored: (Candidate & { _id: string; _mutual: number })[] = [];
 
   for (const entry of pool) {
     const outcome = applyHardFilters({
@@ -122,6 +123,24 @@ export function findCandidates(input: MatchInput): MatchResult {
 
     const { score, signals } = scoreCandidate(ctx);
 
+    /*
+     * How they would rank you: the same signals with the roles swapped. Their
+     * conduct signal has no data about you (you are the viewer), so it sits at
+     * neutral; fairness re-seeds on the swapped pair. The harmonic mean of the
+     * two views is the mutual score deferred acceptance runs on — a pair only
+     * scores well if it scores well from both sides.
+     */
+    const theirView = scoreCandidate({
+      ...ctx,
+      me: entry.person,
+      them: me,
+      myCircleIds: entry.circleIds ?? [],
+      theirCircleIds: myCircleIds,
+      seenCount: 0,
+      responseRate: undefined as never,
+    }).score;
+    const mutual = score + theirView > 0 ? (2 * score * theirView) / (score + theirView) : 0;
+
     // Browsing a board is the stranger relationship. Anything further up the
     // ladder is earned through the request flow, not through appearing here.
     const level: DisclosureLevel = disclosureLevelFor('stranger', {
@@ -141,6 +160,7 @@ export function findCandidates(input: MatchInput): MatchResult {
 
     scored.push({
       _id: entry.person.id,
+      _mutual: mutual,
       person: redact(entry.person, level),
       overlap: top,
       allOverlaps: outcome.overlaps,
@@ -161,6 +181,23 @@ export function findCandidates(input: MatchInput): MatchResult {
 
   scored.sort((a, b) => compareCandidates({ score: a.score, id: a._id }, { score: b.score, id: b._id }));
 
+  /*
+   * The stable pick. One proposer (you), every survivor a receiver, each
+   * receiver's list holding only you: deferred acceptance then reduces to the
+   * viewer's own top-by-mutual choice, which is exactly the "Most Compatible"
+   * mechanic — and running it through the general algorithm keeps the door
+   * open for the pool-wide version a server would run.
+   */
+  if (scored.length > 0) {
+    const byMutual = [...scored].sort((a, b) => b._mutual - a._mutual || a._id.localeCompare(b._id));
+    const m = deferredAcceptance({
+      proposers: { [String(me.id)]: byMutual.map((c) => c._id) },
+      receivers: Object.fromEntries(byMutual.map((c) => [c._id, [String(me.id)]])),
+    });
+    const pick = m.pairs[String(me.id)];
+    for (const c of scored) if (c._id === pick) c.mostCompatible = true;
+  }
+
   const suppressed: SuppressionSummary = {
     // Privacy suppression is reported as one bucket rather than itemised.
     // "2 people hidden by privacy" on a four-passenger flight identifies both.
@@ -172,7 +209,7 @@ export function findCandidates(input: MatchInput): MatchResult {
   };
 
   return {
-    candidates: scored.slice(0, config.limit).map(({ _id: _, ...c }) => c),
+    candidates: scored.slice(0, config.limit).map(({ _id: _, _mutual: _m, ...c }) => c),
     suppressed,
     context,
   };

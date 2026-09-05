@@ -199,6 +199,7 @@ function CardFooter({ candidate }: { candidate: BoardCandidate }) {
     <div className="pcard__footer">
       <p className="pcard__why">
         {candidate.receipt.headline}
+        {candidate.mostCompatible && <Chip tone="trust">Most compatible</Chip>}
         {isSaved && <Chip tone="guard">Saved</Chip>}
       </p>
       {candidate.destinationKm !== undefined && (

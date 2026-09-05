@@ -2,6 +2,7 @@ import type { MeetKind, Person } from '@domain/index';
 import { jitter } from '@lib/rng';
 import type { MatchConfig, SignalName, TravelOverlap } from '../types';
 import { clamp01, intentAlignment } from '../filters/intent';
+import { estimateAcceptance } from './reciprocity';
 
 /**
  * Ranking signals.
@@ -125,14 +126,64 @@ export function circleProximity(ctx: SignalContext): number {
  */
 export function reciprocityPrior(ctx: SignalContext): number {
   if (ctx.responseRate === undefined) return 0.5;
-  const reliability = ctx.them.reputation.hasEnoughSignal
-    ? ctx.them.reputation.reliability === 'reliable'
-      ? 1
-      : ctx.them.reputation.reliability === 'mixed'
-        ? 0.5
-        : 0.35
-    : 0.5;
-  return clamp01(ctx.responseRate * 0.6 + reliability * 0.4);
+  return estimateAcceptance({ responseRate: ctx.responseRate, reputation: ctx.them.reputation });
+}
+
+/**
+ * The window is the thing that expires.
+ *
+ * A ninety-minute layover is a now-or-never; a week in the same city is not.
+ * Ranking the shorter window higher is what makes the board useful at the
+ * gate, where the decision has to be made in the next ten minutes.
+ */
+export function scarcity(ctx: SignalContext): number {
+  const o = ctx.strongest;
+  switch (o.kind) {
+    case 'same_flight':
+      return 0.7;
+    case 'shared_layover':
+    case 'same_airport_window':
+      return o.usableMin <= 90 ? 1 : o.usableMin <= 180 ? 0.85 : 0.7;
+    case 'same_city_night':
+      return 0.45;
+    case 'overlapping_stay':
+      return o.days <= 1 ? 0.5 : o.days <= 3 ? 0.35 : 0.2;
+  }
+}
+
+/**
+ * Adjacent, not identical.
+ *
+ * Two people who both want an introduction from *different* industries have
+ * something to give each other; two who mirror each other have the same
+ * conversation they could have at home. Only engages when both are open to
+ * a professional meet; otherwise neutral.
+ */
+export function complementarity(ctx: SignalContext): number {
+  const both = ctx.me.intent.appetite.professional >= 0.5 && ctx.them.intent.appetite.professional >= 0.5;
+  if (!both) return 0.5;
+  const mine = ctx.me.professional.industry.trim().toLowerCase();
+  const theirs = ctx.them.professional.industry.trim().toLowerCase();
+  if (!mine || !theirs) return 0.5;
+  if (mine !== theirs) return 1;
+  // The same industry still helps when they are looking for what you do.
+  const wants = ctx.them.professional.lookingFor.join(' ').toLowerCase();
+  const title = ctx.me.professional.title.trim().toLowerCase();
+  return title && wants.includes(title) ? 0.8 : 0.4;
+}
+
+/**
+ * Cohort: how much of *your* world they share, under the circle cap.
+ *
+ * One shared circle is proximity; two or three is a cohort — the same school
+ * and the same conference — and that is a stronger reason than either alone.
+ * Weighted low on purpose so a big circle cannot flood the board.
+ */
+export function cohort(ctx: SignalContext): number {
+  if (ctx.myCircleIds.length === 0) return 0;
+  const theirs = new Set(ctx.theirCircleIds);
+  const shared = ctx.myCircleIds.filter((c) => theirs.has(c)).length;
+  return clamp01(shared / Math.min(ctx.myCircleIds.length, 3));
 }
 
 /**
@@ -156,7 +207,10 @@ export const SIGNALS: Record<SignalName, (ctx: SignalContext) => number> = {
   intentAlignment: intentSignal,
   topicalAffinity,
   circleProximity,
+  cohort,
   reciprocityPrior,
+  scarcity,
+  complementarity,
   fairness,
 };
 

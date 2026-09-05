@@ -1,7 +1,7 @@
 # Where the build is
 
 Branch `main`, deployed to https://shunwg.github.io/Wingman/ on every push. `npm run verify`
-is green (typecheck · purity gate · boundaries · dataset · 328 tests · 14 Playwright flows). CI runs `verify`,
+is green (typecheck · purity gate · boundaries · dataset · 335 tests · 14 Playwright flows). CI runs `verify`,
 `lint`, `build` and `e2e` before anything is published.
 
 Plan: `docs/superpowers/plans/2026-09-05-wingman-v4.md` (also the source for every per-stream plan).
@@ -21,14 +21,14 @@ House rules and skill routing: `CLAUDE.md`.
 | # | Stream | State |
 |---|---|---|
 | 0 | Repo hygiene, one alias source, e2e scaffold, CI gate, feedback file | ☑ |
-| 1 | Brand: logo, favicon, icons, manifest, Route glyph | ☐ |
+| 1 | Brand: logo, favicon, icons, manifest, Route glyph | ☑ |
 | 2 | Onboarding, registration, BankID-first verify, first trip, profile edit | ☑ |
 | 3 | Circles: admission by list or domain, logo, badges, roles | ☑ |
 | 4 | Inbox: safety surfaces, then meet / circle / group chat in one list | ☑ |
 | 5 | Trips: add / edit / connections / purpose / bundled lookup | ☑ |
 | 6 | Events: organiser dashboard, QR, event board | ☑ |
 | 7 | Discover density + professional depth | ☑ |
-| 8 | Matching v2 | ☐ |
+| 8 | Matching v2: reciprocity from conduct, stable pick, scarcity / complementarity / cohort | ☑ |
 | 9 | The Jobs / Thiel loop + polish (gate: both ≥ 9.5/10) | ☐ |
 | 10 | Wrap | ☐ |
 
