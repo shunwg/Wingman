@@ -25,7 +25,7 @@ const VIEWPORTS = process.env.SHOOT_ALL
     ]
   : [{ name: 'mobile', width: 390, height: 844 }];
 
-const THEMES = (process.env.SHOOT_ALL ? ['light', 'dark'] : ['light']) as ('light' | 'dark')[];
+const THEMES = (process.env.SHOOT_ALL || process.env.SHOOT_DARK ? ['light', 'dark'] : ['light']) as ('light' | 'dark')[];
 
 /**
  * `fresh` routes are the doors: they need a blank store, and signup needs the

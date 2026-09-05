@@ -6,11 +6,14 @@ import { CircleCrest } from '@design/patterns/CircleCrest';
 import { Ticket } from '@design/icons/Ticket';
 import { ShieldCheck } from '@design/icons/ShieldCheck';
 import { PersonMark } from '@design/icons/PersonMark';
-import type { MeetRequest } from '@domain/index';
+import { meetChannelId, type MeetRequest } from '@domain/index';
+import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
+import { StampBadge } from '@design/patterns/StampBadge';
+import { markArriving } from './arrive';
 import { personById } from '@data/seed/people';
 import { generateAvatar } from '@design/avatar/generate';
 import { useInbox, type InboxFilter, type InboxRow } from '@state/selectors/inbox';
-import { expiresIn } from '@state/selectors/requests';
+import { expiresIn, useIncomingCards } from '@state/selectors/requests';
 import { useStore } from '@state/store';
 import { AcceptSheet } from '@screens/safety/AcceptSheet';
 import { DenySheet } from './DenySheet';
@@ -46,6 +49,7 @@ export function InboxScreen({ onOpen }: { onOpen: (hash: string) => void }) {
   const advance = useStore((s) => s.advanceRequest);
   const [accepting, setAccepting] = useState<MeetRequest | null>(null);
   const [denying, setDenying] = useState<MeetRequest | null>(null);
+  const cards = useIncomingCards();
 
   return (
     <>
@@ -53,6 +57,7 @@ export function InboxScreen({ onOpen }: { onOpen: (hash: string) => void }) {
         <section className="strip" aria-label="Waiting for you">
           {pending.map((r) => {
             const from = personById(String(r.fromPersonId));
+            const card = cards.find((c) => String(c.request.id) === String(r.id))?.card;
             return (
               <article className="strip__row" key={String(r.id)}>
                 <Avatar spec={from?.avatar ?? generateAvatar(String(r.fromPersonId))} size="sm" />
@@ -60,6 +65,17 @@ export function InboxScreen({ onOpen }: { onOpen: (hash: string) => void }) {
                   <p className="strip__who">
                     {from?.firstName ?? 'Someone'} asked to meet
                     <span className="strip__when mono"> · {expiresIn(r, String(now)) ?? 'expiring'}</span>
+                  </p>
+                  {card && card.stamps.length > 0 && (
+                    <span className="strip__stamps">
+                      {card.stamps.slice(0, 3).map((s, i) => (
+                        <StampBadge key={`${s.kind}-${i}`} stamp={s} compact />
+                      ))}
+                    </span>
+                  )}
+                  <p className="strip__receipt">
+                    {MEET_KIND_LABEL[r.proposal.kind]}
+                    {card && typeof card.headline === 'string' && card.headline ? ` · ${card.headline}` : ''}
                   </p>
                   <p className="strip__msg">&ldquo;{r.message}&rdquo;</p>
                 </div>
@@ -107,8 +123,12 @@ export function InboxScreen({ onOpen }: { onOpen: (hash: string) => void }) {
           firstName={personById(String(accepting.fromPersonId))?.firstName ?? 'them'}
           onClose={() => setAccepting(null)}
           onConfirm={() => {
+            const room = String(meetChannelId(accepting.id));
             advance(String(accepting.id), 'accepted', me.id);
             setAccepting(null);
+            // The one moment that animates: mark it, then go there.
+            markArriving(room);
+            onOpen(`#/inbox/${room}`);
           }}
         />
       )}

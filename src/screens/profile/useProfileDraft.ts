@@ -33,7 +33,7 @@ export function validateProfile(d: ProfileDraft): Partial<Record<keyof ProfileDr
   const errs: Partial<Record<keyof ProfileDraft, string>> = {};
   if (d.displayName.trim().length < 2) errs.displayName = 'At least two characters.';
   const h = d.headline.trim().length;
-  if (h < HEADLINE_MIN) errs.headline = 'One real sentence — eight characters or more.';
+  if (h < HEADLINE_MIN) errs.headline = 'One real sentence, eight characters or more.';
   else if (h > HEADLINE_MAX) errs.headline = `Keep it under ${HEADLINE_MAX} characters.`;
   return errs;
 }

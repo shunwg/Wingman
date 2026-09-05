@@ -24,7 +24,7 @@ export function SigninScreen() {
         <h2 className="empty__title display">Sign in</h2>
         <p className="panel__note">
           Your profile lives on this device until Wingman has a server, so there is nothing to
-          sign in to yet — only something to pick up, or to start.
+          sign in to yet, only something to pick up, or to start.
         </p>
       </div>
       <div className="welcome__actions">

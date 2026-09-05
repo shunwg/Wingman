@@ -86,7 +86,7 @@ export function InputChallenge({
               stand-in, because a flow that looks real but is not is how a demo
               gets mistaken for a product. */}
           <p className="verify__mocknote">
-            Nothing was emailed — this is a stand-in. Your code is{' '}
+            Nothing was emailed. This is a stand-in. Your code is{' '}
             <strong className="mono">{mockCodeFor(challenge.sessionId)}</strong>.
           </p>
 

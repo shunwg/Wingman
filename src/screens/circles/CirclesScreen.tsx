@@ -78,7 +78,7 @@ export function CirclesScreen({ onOpen }: { onOpen: (id: string) => void }) {
       <div className="circlecard circlecard--pitch">
         <h2 className="circlecard__name">Running a school or a conference?</h2>
         <p className="circlecard__admission">
-          A circle is a list or an email ending, a mark, and — for an event — a date range.
+          A circle is a list or an email ending, a mark, and, for an event, a date range.
           Admission is proved, never typed, which is the only reason a member can trust that
           everyone else in the room belongs there.
         </p>

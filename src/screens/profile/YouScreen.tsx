@@ -79,7 +79,7 @@ export function YouScreen() {
         <h3 className="panel__title">Your accounts</h3>
         <p className="panel__note">
           Connect LinkedIn, Google, Facebook, Instagram, BankID or a work address. Others see
-          that something was checked — never what, and never by whom.
+          that something was checked, never what, and never by whom.
         </p>
         <Button variant="secondary" full onClick={() => (window.location.hash = '#/verify')}>
           {me.verifications.length > 0
@@ -106,7 +106,7 @@ export function YouScreen() {
       <section className="panel">
         <h3 className="panel__title">Who can see you</h3>
         <p className="panel__note">
-          Each of these works in both directions at once — it changes who sees you and who you
+          Each of these works in both directions at once: it changes who sees you and who you
           see, together.
         </p>
         <div className="panel__stack">
@@ -151,7 +151,7 @@ export function YouScreen() {
         </div>
         <p className="panel__note">
           &ldquo;When not travelling&rdquo; is off by default. Wingman is somewhere you appear
-          because you are going somewhere — not a standing listing of yourself.
+          because you are going somewhere, not a standing listing of yourself.
         </p>
       </section>
 

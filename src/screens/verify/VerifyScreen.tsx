@@ -52,7 +52,7 @@ export function VerifyScreen() {
       )}
 
       <p className="screennote">
-        Nothing here is shared as data. Others see a stamp — that something was checked — never
+        Nothing here is shared as data. Others see a stamp, that something was checked, never
         what was checked or by whom.
       </p>
 

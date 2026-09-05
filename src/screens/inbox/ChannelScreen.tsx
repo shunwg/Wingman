@@ -15,6 +15,7 @@ import { PersonMenu } from '@screens/safety/PersonMenu';
 import { ReportSheet } from '@screens/safety/ReportSheet';
 import { GuardianSheet } from '@screens/safety/GuardianSheet';
 import { AfterMeetSheet } from '@screens/safety/AfterMeetSheet';
+import { takeArriving } from './arrive';
 
 /**
  * One conversation — a meet room, a circle's General, or a group.
@@ -40,6 +41,8 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
   const [guarding, setGuarding] = useState(false);
   const [afterMeet, setAfterMeet] = useState(false);
   const log = useRef<HTMLOListElement>(null);
+  // Taken once, on the first render of a room you have just said yes to.
+  const arrive = useRef(takeArriving(channelId)).current;
 
   const messageCount = view?.messages.length ?? 0;
   useEffect(() => {
@@ -110,12 +113,12 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
 
       {isMeet && mine && theirs && (
         <>
-          <div className="room__presence">
+          <div className={`room__presence ${arrive ? 'room__presence--arrive' : ''}`}>
             <Presence who={theirs} />
             <Presence who={mine} />
           </div>
           {sameTerminal && (
-            <p className="room__together">
+            <p className={`room__together ${arrive ? 'room__together--arrive' : ''}`}>
               You&rsquo;re both in {mine.terminal} at {mine.airportIata}.
             </p>
           )}
@@ -291,7 +294,7 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
       </form>
 
       <p className="room__fineprint">
-        Messages live on this device. Hide or report anyone from the menu at the top — a yes is
+        Messages live on this device. Hide or report anyone from the menu at the top. A yes is
         not a commitment to keep talking.
       </p>
 

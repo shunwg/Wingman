@@ -64,7 +64,7 @@ export function VerifyStep({ onNext, onSkip }: { onNext: () => void; onSkip: () 
     <>
       <p className="signup__lede">
         Verify, and the people who chose &ldquo;verified only&rdquo; can see you back. Others
-        only ever see that something was checked — never what, and never by whom.
+        only ever see that something was checked, never what, and never by whom.
       </p>
 
       {v.flow.step === 'done' && (

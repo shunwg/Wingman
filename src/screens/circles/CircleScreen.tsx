@@ -85,7 +85,7 @@ export function CircleScreen({ id, onBack }: { id: string; onBack: () => void })
 
         {!live && (
           <Chip tone="warn">
-            {String(now).slice(0, 10) > String(circle.runs?.to) ? 'Finished — no longer matching' : 'Not started'}
+            {String(now).slice(0, 10) > String(circle.runs?.to) ? 'Finished. No longer matching' : 'Not started'}
           </Chip>
         )}
 

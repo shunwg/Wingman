@@ -80,6 +80,11 @@
   transition: color var(--dur-press) ease;
 }
 
+/* The press lands on the glyph, not the whole column: the bar is fixed and a
+   scaling strip under the thumb reads as the page moving. */
+.tab .tab__icon { transition: transform var(--dur-press) var(--ease-out); }
+.tab:active .tab__icon { transform: scale(0.9); }
+
 .tab.is-active {
   color: var(--accent);
 }
@@ -305,6 +310,18 @@
   letter-spacing: 0.06em;
   color: var(--faint);
   margin-bottom: var(--sp-3);
+}
+
+/* Facts as a sentence, not a table. The feasible window leads. */
+.receipt__facts {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  line-height: 1.6;
+}
+.receipt__fact + .receipt__fact::before {
+  content: ' · ';
+  color: var(--muted);
 }
 
 .receipt__list {
@@ -1009,9 +1026,11 @@
   color: var(--muted);
   cursor: pointer;
   transition:
+    transform var(--dur-press) var(--ease-out),
     background-color var(--dur-press) ease,
     color var(--dur-press) ease;
 }
+.segmented__item:active { transform: scale(0.97); }
 
 /* Raised rather than inverted. A solid ink slab for the active segment is the
    heaviest possible way to say "this one", and it fights the photographs. */
@@ -1269,6 +1288,35 @@
 .presence__stage--quiet { color: var(--faint); }
 .presence__where { margin: 0; }
 .presence__nowhere { font-size: var(--text-xs); color: var(--faint); }
+
+/* ── The signature moment ────────────────────────────────────────────────
+   1400 ms, once, on the room you have just said yes to. The two cards arrive
+   from opposite sides and lock; the stamp turns in off-axis; the "both in
+   the same terminal" line draws itself. Reduced motion collapses every
+   animation to its final frame (tokens.css), so nothing depends on it. */
+@keyframes arrive-left {
+  from { opacity: 0; transform: translateX(-28px); }
+  65% { transform: translateX(3px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes arrive-right {
+  from { opacity: 0; transform: translateX(28px); }
+  65% { transform: translateX(-3px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes arrive-stamp {
+  from { opacity: 0; transform: rotate(-14deg) scale(1.35); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes arrive-line {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+.room__presence--arrive .presence:first-child { animation: arrive-left 560ms var(--ease-out) both; }
+.room__presence--arrive .presence:last-child { animation: arrive-right 560ms var(--ease-out) 140ms both; }
+.room__presence--arrive .presence .chip,
+.room__presence--arrive .presence .stamp { animation: arrive-stamp 420ms var(--ease-out) 760ms both; }
+.room__together--arrive { animation: arrive-line 460ms var(--ease-out) 940ms both; }
 
 .room__together {
   margin: 0;
@@ -1887,6 +1935,7 @@ textarea.field__input {
   cursor: pointer;
 }
 .menu__item:hover, .menu__item:focus-visible { background: var(--surface-sunk); outline: none; }
+.menu__item:active { background: var(--surface-sunk); transform: scale(0.98); }
 .menu__item--danger { color: var(--accent); }
 
 /* ── Inbox ───────────────────────────────────────────────────────────────── */
@@ -1911,6 +1960,8 @@ textarea.field__input {
 .strip__who { font-weight: 600; margin: 0; }
 .strip__when { font-weight: 400; font-size: var(--text-xs); color: var(--muted); }
 .strip__msg { font-size: var(--text-sm); color: var(--muted); margin: 2px 0 0; }
+.strip__stamps { display: inline-flex; gap: 4px; margin-left: var(--sp-2); vertical-align: middle; }
+.strip__receipt { font-size: var(--text-xs); color: var(--muted); margin: 2px 0 0; }
 .strip__actions { grid-column: 1 / -1; display: flex; gap: var(--sp-2); }
 .strip__actions .btn { flex: 1; }
 
@@ -2084,7 +2135,9 @@ textarea.field__input {
 .filters__top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2); min-width: 0; }
 .filters__top > .segmented:first-child { flex: 1 1 220px; min-width: 0; }
 .segmented--tight { flex: none; margin-left: auto; }
-.segmented--tight .segmented__item { min-height: 36px; padding: 0 var(--sp-3); }
+.segmented--tight .segmented__item { min-height: 36px; padding: 0 var(--sp-3); position: relative; }
+/* Visually 36px, 44px to the thumb: the same extended hit area the filter chips use. */
+.segmented--tight .segmented__item::after { content: ''; position: absolute; inset: -4px 0; }
 
 /* ── Discover density ────────────────────────────────────────────────────── */
 

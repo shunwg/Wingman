@@ -15,7 +15,7 @@ export const WELCOME_CARDS: { title: string; body: string }[] = [
   },
   {
     title: 'You decide who sees you before anyone does.',
-    body: 'Verified people only, women only, your circles only — in both directions at once. Nothing is on until you choose it, and you can change it any time.',
+    body: 'Verified people only, women only, your circles only, in both directions at once. Nothing is on until you choose it, and you can change it any time.',
   },
   {
     title: 'Nothing is shared until you both say yes.',

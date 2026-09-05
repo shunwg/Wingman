@@ -1,27 +1,28 @@
-import { useEffect, useState } from 'react';
-import { DesignGallery } from '@design/gallery/DesignGallery';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { AppShell } from './AppShell';
 import { BoardScreen } from '@screens/discover/BoardScreen';
-import { PersonScreen } from '@screens/person/PersonScreen';
-import { InboxScreen } from '@screens/inbox/InboxScreen';
-import { ChannelScreen } from '@screens/inbox/ChannelScreen';
-import { TripsScreen } from '@screens/trips/TripsScreen';
-import { NewTripScreen } from '@screens/trips/NewTripScreen';
-import { CirclesScreen } from '@screens/circles/CirclesScreen';
-import { SetupScreen } from '@screens/circles/SetupScreen';
-import { CircleScreen } from '@screens/circles/CircleScreen';
-import { InviteScreen } from '@screens/circles/InviteScreen';
-import { AdminScreen } from '@screens/circles/AdminScreen';
-import { JoinCircleScreen } from '@screens/circles/JoinCircleScreen';
-import { VerifyScreen } from '@screens/verify/VerifyScreen';
-import { YouScreen } from '@screens/profile/YouScreen';
-import { EditProfileScreen } from '@screens/profile/EditProfileScreen';
-import { WelcomeScreen } from '@screens/onboarding/WelcomeScreen';
-import { SignupScreen } from '@screens/onboarding/SignupScreen';
-import { SigninScreen } from '@screens/onboarding/SigninScreen';
-import { DemoEntry } from '@screens/onboarding/DemoEntry';
 import { isSignupStep, type SignupStep } from '@screens/onboarding/steps';
 import { useStore } from '@state/store';
+
+const DesignGallery = lazy(() => import('@design/gallery/DesignGallery').then((m) => ({ default: m.DesignGallery })));
+const PersonScreen = lazy(() => import('@screens/person/PersonScreen').then((m) => ({ default: m.PersonScreen })));
+const InboxScreen = lazy(() => import('@screens/inbox/InboxScreen').then((m) => ({ default: m.InboxScreen })));
+const ChannelScreen = lazy(() => import('@screens/inbox/ChannelScreen').then((m) => ({ default: m.ChannelScreen })));
+const TripsScreen = lazy(() => import('@screens/trips/TripsScreen').then((m) => ({ default: m.TripsScreen })));
+const NewTripScreen = lazy(() => import('@screens/trips/NewTripScreen').then((m) => ({ default: m.NewTripScreen })));
+const CirclesScreen = lazy(() => import('@screens/circles/CirclesScreen').then((m) => ({ default: m.CirclesScreen })));
+const SetupScreen = lazy(() => import('@screens/circles/SetupScreen').then((m) => ({ default: m.SetupScreen })));
+const CircleScreen = lazy(() => import('@screens/circles/CircleScreen').then((m) => ({ default: m.CircleScreen })));
+const InviteScreen = lazy(() => import('@screens/circles/InviteScreen').then((m) => ({ default: m.InviteScreen })));
+const AdminScreen = lazy(() => import('@screens/circles/AdminScreen').then((m) => ({ default: m.AdminScreen })));
+const JoinCircleScreen = lazy(() => import('@screens/circles/JoinCircleScreen').then((m) => ({ default: m.JoinCircleScreen })));
+const VerifyScreen = lazy(() => import('@screens/verify/VerifyScreen').then((m) => ({ default: m.VerifyScreen })));
+const YouScreen = lazy(() => import('@screens/profile/YouScreen').then((m) => ({ default: m.YouScreen })));
+const EditProfileScreen = lazy(() => import('@screens/profile/EditProfileScreen').then((m) => ({ default: m.EditProfileScreen })));
+const WelcomeScreen = lazy(() => import('@screens/onboarding/WelcomeScreen').then((m) => ({ default: m.WelcomeScreen })));
+const SignupScreen = lazy(() => import('@screens/onboarding/SignupScreen').then((m) => ({ default: m.SignupScreen })));
+const SigninScreen = lazy(() => import('@screens/onboarding/SigninScreen').then((m) => ({ default: m.SigninScreen })));
+const DemoEntry = lazy(() => import('@screens/onboarding/DemoEntry').then((m) => ({ default: m.DemoEntry })));
 
 /**
  * The URL → screen table.
@@ -110,7 +111,22 @@ export const navigate = (to: string) => {
 /** The routes a person can reach before they have a profile. */
 const DOORS: ReadonlySet<Route['name']> = new Set(['welcome', 'signup', 'signin', 'demo']);
 
+/**
+ * Route-level code splitting.
+ *
+ * The board is the first paint and stays in the entry chunk; every other
+ * screen arrives when it is first opened. The fallback is nothing at all: a
+ * spinner for a 30 ms chunk load is worse than a blank frame.
+ */
 export function Router() {
+  return (
+    <Suspense fallback={null}>
+      <Routes />
+    </Suspense>
+  );
+}
+
+function Routes() {
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
   const onboarded = useStore((s) => s.onboarded);
   const setReturnTo = useStore((s) => s.setReturnTo);

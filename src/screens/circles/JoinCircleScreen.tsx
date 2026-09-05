@@ -109,7 +109,7 @@ export function JoinCircleScreen({ code, onDone }: { code: string; onDone: () =>
             Join {circle.shortName}
           </Button>
           <p className="panel__note">
-            You&rsquo;ll join with the badge hidden — matching only. Turning it on is a separate
+            You&rsquo;ll join with the badge hidden: matching only. Turning it on is a separate
             choice, on the circle&rsquo;s page.
           </p>
         </>
@@ -158,7 +158,7 @@ export function JoinCircleScreen({ code, onDone }: { code: string; onDone: () =>
         <>
           <p className="circlecard__locked">
             {domainRule
-              ? `Verify an address at ${domainRule.domains[0]} first, and this opens. The link alone is not enough — that is the point of a domain circle.`
+              ? `Verify an address at ${domainRule.domains[0]} first, and this opens. The link alone is not enough. That is the point of a domain circle.`
               : 'This circle needs the organiser to let you in.'}
           </p>
           {domainRule && (

@@ -654,6 +654,10 @@ create policy people_are_mutually_visible
         <p>A closed loop solves cold-start on day one: 400 verified attendees in one terminal beats 400 strangers spread across a country. The organiser supplies the density you would otherwise have to buy.</p>
       </div>
       <div class="card">
+        <h3>Why now</h3>
+        <p>Three things arrived together. National eID is ordinary in the Nordics (BankID alone has 4.5 million users in Norway, and every adult has used it this month). The EU Digital Identity Wallet obliges every member state to issue one by the end of 2026, which makes "prove an address, prove a person" a platform feature rather than a start-up's integration. And every conference already ships an app that nobody opens after the schedule loads. A verified room is buildable now and was not two years ago; in two more years it will be table stakes.</p>
+      </div>
+      <div class="card">
         <h3>Pricing</h3>
         <p>Per event for conferences, per seat per year for schools. The verified-domain admission is the defensible part — it is why an INSEAD circle is actually INSEAD, and it is the thing a spreadsheet cannot replicate.</p>
       </div>
@@ -677,8 +681,23 @@ create policy people_are_mutually_visible
     </ul>
   </section>
 
+  <section id="since-v3">
+    <h2>Appendix: what changed since v3 (6 September 2026)</h2>
+    <p class="lede">The memo above described a seeded demo. Between 5 and 6 September the app became something a stranger can register on, and the circle became the commercial unit. What is written above still holds; this is the delta.</p>
+    <ul class="plain">
+      <li><strong>Doors.</strong> Welcome, a five-step sign-up (about, work, privacy, verify, trip), sign-in, and a one-tap demo link. BankID is recommended by kind, never required; the privacy step defaults to "verified people only".</li>
+      <li><strong>Circles.</strong> Admission by email ending, by a pasted list (stored as salted hashes, never addresses), by link, or any combination. Uploaded marks, badges (Organiser, Speaker, Sponsor), roles, an organiser dashboard with bucketed counts, a QR and a short code, and an event board for members with no flight.</li>
+      <li><strong>One inbox.</strong> Meets, circle channels and groups as one list. Hide, report and mute on every person and message surface; a guardian session in the meet room; the other person's terminal only after their first update.</li>
+      <li><strong>Trips.</strong> Add, edit, connections, purpose, and a bundled schedule that fills a form from a flight number. The degrade chain in "Flight schedules" above is now real code under <code>src/providers/flights/</code>.</li>
+      <li><strong>Matching v2.</strong> Reciprocity from conduct only, three new signals, and a deferred-acceptance stable pick shown as a label. The score is still never rendered.</li>
+      <li><strong>The seam.</strong> <code>account.provider</code> is <code>'device'</code> today and becomes <code>'supabase'</code> when the backend lands; nothing else switches on it. Stamps and memberships are already reusable across circles, which is the graph that compounds once it is stored server-side.</li>
+      <li><strong>Team and dependencies, restated.</strong> Unchanged: a Mac or a rented CI runner for iOS, Criipto for BankID, Supabase for the backend, a named person for moderation. New: the organiser is the customer, so the first hire after engineering is whoever sells to schools and conferences, not growth.</li>
+      <li><strong>Review scores.</strong> Two scorecards were run on 6 September (see <code>docs/reviews/2026-09-05-feedback.md</code>): Jobs 9.55 / 10, Thiel 9.5 / 10.</li>
+    </ul>
+  </section>
+
   <footer class="end">
-    Wingman · deployment roadmap · 16 August 2026 · prepared for Shun Gong, Tide Capital
+    Wingman · deployment roadmap · 16 August 2026 · appendix 6 September 2026 · prepared for Shun Gong, Tide Capital
   </footer>
 
 </div>

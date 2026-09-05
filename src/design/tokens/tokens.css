@@ -22,7 +22,7 @@
   /* ── Text. Both clear 4.5:1 on canvas and surface. ───────────────────── */
   --ink: #141110;
   --muted: #736a64;
-  --faint: #a2988f;
+  --faint: #7b706a;
   --on-accent: #ffffff;
 
   /* ── The four hues ───────────────────────────────────────────────────── */
@@ -138,7 +138,7 @@
 
     --ink: #f6f2ef;
     --muted: #a79c95;
-    --faint: #7a6f68;
+    --faint: #8f847d;
 
     --accent: #ff7355;
     --accent-press: #e65c40;
@@ -182,7 +182,7 @@
 
   --ink: #f6f2ef;
   --muted: #a79c95;
-  --faint: #7a6f68;
+  --faint: #8f847d;
 
   --accent: #ff7355;
   --accent-press: #e65c40;

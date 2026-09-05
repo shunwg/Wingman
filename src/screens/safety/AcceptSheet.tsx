@@ -33,7 +33,7 @@ export function AcceptSheet({
   for (const l of me.links) {
     if (linkLevel(l) === 2) reveals.push(`Your ${l.network === 'website' ? 'website' : l.network} link`);
   }
-  reveals.push('Your terminal — once you post an update in the room');
+  reveals.push('Your terminal, once you post an update in the room');
 
   return (
     <Sheet

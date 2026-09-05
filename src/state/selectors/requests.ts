@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
-import type { MeetRequest } from '@domain/index';
+import type { MeetRequest, RedactedPerson } from '@domain/index';
 import { minutesBetween } from '@domain/time';
+import { personById } from '@data/seed/people';
+import { redact } from '@privacy/index';
 import { expireIfDue } from '../machines/meetRequest';
 import { useStore } from '../store';
 
@@ -27,6 +29,25 @@ export function expiresIn(request: MeetRequest, now: string): string | null {
   if (mins < 60) return `Expires in ${mins}m`;
   const h = Math.round(mins / 60);
   return `Expires in ${h}h`;
+}
+
+/**
+ * Who is asking, as you are allowed to see them.
+ *
+ * Someone who asked you has stepped onto rung 1 of the ladder: their headline
+ * and stamps are yours to read before you answer. The full card waits for
+ * a yes. Redacted here, in a selector, so the screen never holds a `Person`.
+ */
+export function useIncomingCards(): { request: MeetRequest; card: RedactedPerson }[] {
+  const { incomingPending } = useRequests();
+  return useMemo(
+    () =>
+      incomingPending.flatMap((request) => {
+        const p = personById(String(request.fromPersonId));
+        return p ? [{ request, card: redact(p, 1) }] : [];
+      }),
+    [incomingPending],
+  );
 }
 
 export function useRequests(): RequestsView {

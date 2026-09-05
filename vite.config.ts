@@ -36,6 +36,10 @@ export default defineConfig({
           // The medium-airport table is only pulled in when a combobox query
           // misses the large-airport set. Keep it out of the entry bundle.
           'airports-medium': ['./src/data/airports/airports.medium.json'],
+          // The city table is needed on first paint but changes never; its own
+          // chunk keeps it cached across every app release.
+          cities: ['./src/data/airports/cities.json'],
+          vendor: ['react', 'react-dom', 'zustand'],
         },
       },
     },

@@ -24,7 +24,7 @@ const KINDS: { id: Circle['kind']; label: string; hint: string }[] = [
   { id: 'conference', label: 'Conference', hint: 'Runs for a few days, then stops matching.' },
   { id: 'school', label: 'School', hint: 'Alumni and students, usually by email ending.' },
   { id: 'employer', label: 'Employer', hint: 'Colleagues only. Never discoverable outside.' },
-  { id: 'community', label: 'Community', hint: 'Anything else — a club, a cohort, a crew.' },
+  { id: 'community', label: 'Community', hint: 'Anything else: a club, a cohort, a crew.' },
 ];
 
 const MODES: { id: AdmissionMode; label: string; hint: string }[] = [
@@ -54,7 +54,7 @@ export function SetupScreen({ onDone }: { onDone: () => void }) {
           </div>
         </div>
         <p className="panel__note">
-          Send this to the people you want in it. They join by opening it — and they still have
+          Send this to the people you want in it. They join by opening it, and they still have
           to prove what the circle asks for before they are in.
         </p>
         <div className="invite">

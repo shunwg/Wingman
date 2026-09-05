@@ -1,4 +1,4 @@
-import hero from '@assets/hero-terminal.jpg';
+import hero from '@assets/hero-terminal.webp';
 import { Wordmark } from '@design/brand/Wordmark';
 import { Button } from '@design/primitives/Button';
 import { useStore } from '@state/store';
@@ -21,7 +21,7 @@ export function WelcomeScreen() {
   return (
     <div className="welcome">
       <div className="welcome__hero">
-        <img src={hero} alt="" width={1600} height={1200} />
+        <img src={hero} alt="" width={1200} height={900} />
         <div className="welcome__mark">
           <Wordmark size={30} tone="mono" />
         </div>

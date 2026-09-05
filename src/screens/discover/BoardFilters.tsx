@@ -171,7 +171,7 @@ export function BoardFilters({
 
       {filters.womenOnly && (
         <p className="filters__note">
-          Changes what you see, not who sees you — that&rsquo;s <a href="#/you">Who can see you</a>.
+          Changes what you see, not who sees you. That&rsquo;s <a href="#/you">Who can see you</a>.
         </p>
       )}
     </div>

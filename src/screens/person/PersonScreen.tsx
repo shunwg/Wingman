@@ -27,7 +27,7 @@ import { asTripId } from '@domain/ids';
 
 
 const OPENERS = [
-  'Same flight — fancy a coffee before boarding?',
+  'Same flight. Fancy a coffee before boarding?',
   'Happy to share the ride into town if you are heading that way.',
   'In town the same nights. Dinner, if you are free?',
   'Would be good to talk shop for twenty minutes.',
@@ -69,7 +69,7 @@ export function PersonScreen({
         <h2 className="empty__title display">Request sent.</h2>
         <p className="empty__body">
           You will hear back if they say yes. If they would rather not, you will simply see this
-          close — no reason, and nothing to read into it.
+          close. No reason, and nothing to read into it.
         </p>
         <Button variant="secondary" onClick={onBack}>
           Back to the board
@@ -159,7 +159,7 @@ export function PersonScreen({
         {professional && (
           <p className="person__work">
             {[professional.title, professional.industry].filter(Boolean).join(' · ')}
-            {professional.workingOn ? ` — ${professional.workingOn}` : ''}
+            {professional.workingOn ? `. ${professional.workingOn}` : ''}
           </p>
         )}
 
@@ -174,14 +174,14 @@ export function PersonScreen({
         {/* Why they are here, in facts. The score exists but is never shown. */}
         <section className="receipt">
           <h3 className="receipt__title">Why you are seeing this</h3>
-          <dl className="receipt__list">
+          {/* J5: a sentence, not a table. Nobody reads label/value rows at a gate. */}
+          <p className="receipt__facts">
             {candidate.receipt.lines.map((l) => (
-              <div className="receipt__row" key={l.label}>
-                <dt>{l.label}</dt>
-                <dd className={l.mono ? 'mono' : undefined}>{l.value}</dd>
-              </div>
+              <span key={l.label} className={`receipt__fact${l.mono ? ' mono' : ''}`}>
+                {l.value}
+              </span>
             ))}
-          </dl>
+          </p>
           {candidate.receipt.suggestion && (
             <p className="receipt__suggestion">{candidate.receipt.suggestion}</p>
           )}
@@ -192,7 +192,7 @@ export function PersonScreen({
             <p className="sentnote__title">Request sent.</p>
             <p className="sentnote__body">
               You will hear back if they say yes. If they would rather not, you will simply see
-              this close — no reason, and nothing to read into it.
+              this close. No reason, and nothing to read into it.
             </p>
           </div>
         ) : (

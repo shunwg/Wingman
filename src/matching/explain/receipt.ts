@@ -49,35 +49,42 @@ export function buildReceipt(input: ReceiptInput): RouteReceipt {
 
     case 'shared_layover': {
       const name = airports.get(strongest.airport)?.city ?? strongest.airport;
-      headline = `You are both connecting through ${name}`;
-      lines.push({ label: 'Airport', value: strongest.airport, mono: true });
-      lines.push({
-        label: 'Overlapping',
-        value: windowLabel(strongest.window, strongest.airport, airports),
-        mono: true,
-      });
+      // The usable window leads: at a gate the decision is made on that
+      // number, not on which airport you both already know you are in.
+      headline = `${strongest.usableMin} min together, connecting through ${name}`;
       lines.push({
         label: 'Realistically',
         value: `${strongest.usableMin} min together`,
         mono: true,
       });
+      lines.push({
+        label: 'Overlapping',
+        value: windowLabel(strongest.window, strongest.airport, airports),
+        mono: true,
+      });
+      lines.push({ label: 'Airport', value: strongest.airport, mono: true });
       if (!strongest.sameTerminal) {
         // Say it plainly. A terminal change is the difference between a coffee
         // and a brisk walk, and finding that out at the airport is too late.
-        lines.push({ label: 'Note', value: 'Different terminals — allow for the transit' });
+        lines.push({ label: 'Note', value: 'Different terminals. Allow for the transit' });
       }
       break;
     }
 
     case 'same_airport_window': {
       const name = airports.get(strongest.airport)?.city ?? strongest.airport;
-      headline = `You are at ${name} at the same time`;
-      lines.push({ label: 'Airport', value: strongest.airport, mono: true });
+      headline = `${strongest.usableMin} min together at ${name}`;
+      lines.push({
+        label: 'Realistically',
+        value: `${strongest.usableMin} min together`,
+        mono: true,
+      });
       lines.push({
         label: 'Overlapping',
         value: windowLabel(strongest.window, strongest.airport, airports),
         mono: true,
       });
+      lines.push({ label: 'Airport', value: strongest.airport, mono: true });
       break;
     }
 

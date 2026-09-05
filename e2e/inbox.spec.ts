@@ -16,8 +16,7 @@ test('a meet, a circle and a group all live in one inbox', async ({ page }) => {
   await expect(page.getByText(/Your terminal/)).toBeVisible();
   await page.getByRole('button', { name: 'Yes, meet' }).click();
 
-  // The meet is now a row; open it.
-  await page.getByRole('button', { name: /^Priya/ }).first().click();
+  // A yes goes straight into the room: the one moment that animates.
   await page.waitForURL(/#\/inbox\/meet:/);
   await expect(page.getByText('Location appears once they post an update')).toBeVisible();
   await page.getByRole('button', { name: 'Through security' }).click();
