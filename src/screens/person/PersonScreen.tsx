@@ -56,7 +56,27 @@ export function PersonScreen({
 
   const [kind, setKind] = useState<MeetKind | null>(null);
   const [opener, setOpener] = useState(OPENERS[0]!);
+  const [custom, setCustom] = useState('');
   const [sent, setSent] = useState(false);
+  const saved = useStore((s) => s.saved);
+  const toggleSaved = useStore((s) => s.toggleSaved);
+
+  // Sending a request takes them off the board — the engine does not re-surface
+  // someone with a live request — so the note has to survive their disappearance.
+  if (!candidate && sent) {
+    return (
+      <div className="empty">
+        <h2 className="empty__title display">Request sent.</h2>
+        <p className="empty__body">
+          You will hear back if they say yes. If they would rather not, you will simply see this
+          close — no reason, and nothing to read into it.
+        </p>
+        <Button variant="secondary" onClick={onBack}>
+          Back to the board
+        </Button>
+      </div>
+    );
+  }
 
   if (!candidate) {
     return (
@@ -94,7 +114,7 @@ export function PersonScreen({
       ...(sharedCircle ? { circleId: sharedCircle } : {}),
       overlapRef: overlapRefOf(candidate.overlap),
       proposal: { kind: chosen, window },
-      message: opener,
+      message: custom.trim() ? custom.trim().slice(0, 240) : opener,
       expiresAt: addMinutes(now, 60 * 24),
     });
     setSent(true);
@@ -106,7 +126,7 @@ export function PersonScreen({
         ← Board
       </button>
 
-      <div className="person__hero">
+      <div className="person__hero person__hero--band">
         <Avatar spec={p.avatar} shape="photo" size="full" {...(name ? { label: name } : {})} />
         <div className="person__scrim" aria-hidden="true" />
         <div className="person__menu">
@@ -130,6 +150,11 @@ export function PersonScreen({
         )}
 
         {headline && <p className="person__headline">{headline}</p>}
+        <div className="person__actions">
+          <Button size="sm" variant={saved.includes(p.id) ? 'secondary' : 'quiet'} onClick={() => toggleSaved(p.id)}>
+            {saved.includes(p.id) ? 'Saved for later' : 'Save for later'}
+          </Button>
+        </div>
 
         {professional && (
           <p className="person__work">
@@ -185,11 +210,20 @@ export function PersonScreen({
             <h4 className="ask__sub">Say something</h4>
             <div className="ask__openers">
               {OPENERS.map((o) => (
-                <ToggleChip key={o} selected={opener === o} onClick={() => setOpener(o)}>
+                <ToggleChip key={o} selected={opener === o && !custom.trim()} onClick={() => { setOpener(o); setCustom(''); }}>
                   {o}
                 </ToggleChip>
               ))}
             </div>
+            <textarea
+              className="field__input ask__custom"
+              rows={2}
+              maxLength={240}
+              placeholder="Or in your own words. Why them, in a sentence."
+              aria-label="In your own words"
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+            />
 
             <Button full size="lg" onClick={send}>
               Send request

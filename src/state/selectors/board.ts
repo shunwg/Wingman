@@ -54,6 +54,8 @@ export interface Board {
   settledTrips: Trip[];
   /** How many candidates the *filters* removed, as opposed to privacy. */
   hiddenByFilters: number;
+  /** Industries on the unfiltered board, for the chips. */
+  industries: { name: string; n: number }[];
 }
 
 function baseInput(
@@ -120,13 +122,16 @@ function destinationOf(personId: string, myTrip: Trip) {
   return undefined;
 }
 
-function applyFilters(
+export function applyBoardFilters(
   candidates: BoardCandidate[],
   filters: BoardFilters,
   genderOf: (id: string) => string | undefined,
+  saved: string[] = [],
 ): BoardCandidate[] {
   return candidates.filter((c) => {
     if (filters.tripId !== 'all' && c.viaTripId !== filters.tripId) return false;
+    if (filters.savedOnly && !saved.includes(String(c.person.id))) return false;
+    if (filters.industry !== 'any' && industryOf(c) !== filters.industry) return false;
 
     if (filters.circleId !== 'any') {
       // Matches on badges the viewer can actually see. A `match_only`
@@ -149,6 +154,27 @@ function applyFilters(
   });
 }
 
+/** The industry on a card, when the ladder released it. */
+export function industryOf(c: BoardCandidate): string | undefined {
+  const p = c.person.professional;
+  if (!p || (typeof p === 'object' && '__redacted' in p)) return undefined;
+  const v = (p as { industry?: string }).industry;
+  return v && v.length > 0 ? v : undefined;
+}
+
+/** Industries on the board, most common first, for the filter chips. */
+export function industriesOn(candidates: BoardCandidate[], limit = 5): { name: string; n: number }[] {
+  const counts = new Map<string, number>();
+  for (const c of candidates) {
+    const i = industryOf(c);
+    if (i) counts.set(i, (counts.get(i) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([name, n]) => ({ name, n }))
+    .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name))
+    .slice(0, limit);
+}
+
 export function useBoard(): Board {
   const me = useStore((s) => s.me);
   const myTrips = useStore((s) => s.myTrips);
@@ -157,6 +183,7 @@ export function useBoard(): Board {
   const requests = useStore((s) => s.requests);
   const filters = useStore((s) => s.filters);
   const myCircles = useStore((s) => s.myCircles);
+  const saved = useStore((s) => s.saved);
 
   return useMemo(() => {
     const circles = allCircles(myCircles);
@@ -217,7 +244,7 @@ export function useBoard(): Board {
     }
 
     merged.sort((a, b) => b.score - a.score);
-    const filtered = applyFilters(merged, filters, (id) => genderById.get(id));
+    const filtered = applyBoardFilters(merged, filters, (id) => genderById.get(id), saved.map(String));
 
     return {
       candidates: filtered,
@@ -226,8 +253,9 @@ export function useBoard(): Board {
       openTrips,
       settledTrips,
       hiddenByFilters: merged.length - filtered.length,
+      industries: industriesOn(merged),
     };
-  }, [me, myTrips, now, seenCounts, requests, filters, myCircles]);
+  }, [me, myTrips, now, seenCounts, requests, filters, myCircles, saved]);
 }
 
 /**

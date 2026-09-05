@@ -2079,3 +2079,29 @@ textarea.field__input {
 .stat { display: flex; flex-direction: column; gap: 2px; padding: var(--sp-3) var(--sp-4); background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-md); }
 .stat__n { font-size: var(--text-2xl); font-weight: 600; }
 .stat__label { font-size: var(--text-xs); color: var(--muted); }
+/* Wraps rather than overflows: a page wider than the phone makes mobile Chrome
+   zoom out, and the fixed tab bar drops below the visual viewport. */
+.filters__top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2); min-width: 0; }
+.filters__top > .segmented:first-child { flex: 1 1 220px; min-width: 0; }
+.segmented--tight { flex: none; margin-left: auto; }
+.segmented--tight .segmented__item { min-height: 36px; padding: 0 var(--sp-3); }
+
+/* ── Discover density ────────────────────────────────────────────────────── */
+
+.filters--sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--canvas);
+  padding-top: var(--sp-2);
+  margin-top: calc(-1 * var(--sp-2));
+}
+
+.person__hero--band { aspect-ratio: 5 / 3; }
+.person__actions { display: flex; gap: var(--sp-2); }
+.ask__custom { margin-top: var(--sp-2); resize: none; }
+
+.contact { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-card); }
+.contact__name { font-weight: 600; margin: 0; }
+.contact__links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: var(--text-sm); }
+.contact__held { color: var(--faint); font-size: var(--text-xs); }

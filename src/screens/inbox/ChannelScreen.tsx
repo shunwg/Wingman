@@ -4,7 +4,8 @@ import { Button } from '@design/primitives/Button';
 import { Chip } from '@design/primitives/Chip';
 import { Menu } from '@design/primitives/Menu';
 import type { Message, PersonId } from '@domain/index';
-import { TEXT_CAP } from '@domain/index';
+import { TEXT_CAP, isRedacted } from '@domain/index';
+import { buildVCard } from '@lib/vcard';
 import { STAGE_COPY, stagesFor } from '@data/copy/stages';
 import { isLive } from '@privacy/index';
 import { bucketPhrase } from '@lib/bucket';
@@ -62,7 +63,7 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
     );
   }
 
-  const { channel, messages, mine, theirs, sameTerminal, circle } = view;
+  const { channel, messages, mine, theirs, theirsCard, sameTerminal, circle } = view;
   const isMeet = channel.kind === 'meet';
   const isMuted = muted.includes(channelId);
   const watching = guardian && String(guardian.meetId) === channelId && isLive(guardian, now) ? guardian : null;
@@ -134,6 +135,53 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
                 We&rsquo;ve met
               </Button>
             </div>
+          )}
+          {theirsCard && (
+            <section className="contact">
+              <h3 className="room__label">Contact</h3>
+              <p className="contact__name">
+                {typeof theirsCard.displayName === 'string' ? theirsCard.displayName : theirs.firstName}
+                {!isRedacted(theirsCard.professional) && theirsCard.professional.title
+                  ? ` · ${theirsCard.professional.title}`
+                  : ''}
+              </p>
+              <ul className="contact__links">
+                {theirsCard.links.map((l, i) =>
+                  isRedacted(l) ? (
+                    <li key={i} className="contact__held">A link, shown once you are meeting.</li>
+                  ) : (
+                    <li key={i}>
+                      <a href={l.url} target="_blank" rel="noreferrer">
+                        {l.network} · {l.handle}
+                      </a>
+                    </li>
+                  ),
+                )}
+              </ul>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  const name = typeof theirsCard.displayName === 'string' ? theirsCard.displayName : theirs.firstName;
+                  const pro = isRedacted(theirsCard.professional) ? undefined : theirsCard.professional;
+                  const card = buildVCard({
+                    fullName: name,
+                    ...(pro?.title ? { title: pro.title } : {}),
+                    ...(pro?.company ? { company: pro.company } : {}),
+                    urls: theirsCard.links.filter((l) => !isRedacted(l)).map((l) => (l as { url: string }).url),
+                    note: 'Met through Wingman',
+                  });
+                  const url = URL.createObjectURL(new Blob([card], { type: 'text/vcard' }));
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${name.replace(/\s+/g, '-')}.vcf`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
+                Save contact
+              </Button>
+            </section>
           )}
           <section className="room__stages">
             <h3 className="room__label">Tell them where you are</h3>

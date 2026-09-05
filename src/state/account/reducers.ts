@@ -6,6 +6,7 @@ import type {
   MeetRequest,
   Message,
   Person,
+  PersonId,
   Rating,
   SafetyReport,
   Trip,
@@ -37,6 +38,8 @@ export interface PersistedSlice {
   ratings: Rating[];
   /** The organiser's pinned note per circle, shown on its General. */
   announcements: Record<string, { text: string; at: ISODateTime }>;
+  /** People saved for later. */
+  saved: PersonId[];
   onboarded: boolean;
   account: Account;
 }
@@ -88,6 +91,7 @@ export function blankState(deviceId: string, now: ISODateTime): PersistedSlice {
     guardian: null,
     ratings: [],
     announcements: {},
+    saved: [],
     onboarded: false,
     account: { mode: 'none', deviceId, provider: 'device' },
   };
@@ -109,6 +113,7 @@ export function demoState(deviceId: string, returnTo?: string): PersistedSlice {
     guardian: null,
     ratings: [],
     announcements: {},
+    saved: [],
     onboarded: true,
     account: {
       mode: 'demo',

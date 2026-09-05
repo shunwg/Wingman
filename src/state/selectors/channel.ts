@@ -7,11 +7,13 @@ import type {
   JourneyStage,
   MeetRequest,
   Message,
+  RedactedPerson,
 } from '@domain/index';
+import { redact } from '@privacy/index';
 import { seedPool } from '@data/seed/trips';
 import { personById } from '@data/seed/people';
 import { useStore } from '../store';
-import { allCircles } from './circles';
+import { allCircles, decoratePerson } from './circles';
 import { channelsFor, messagesFor } from './inbox';
 import { useRequests } from './requests';
 
@@ -90,6 +92,8 @@ export interface ChannelView {
   participants: Participant[];
   mine?: Participant;
   theirs?: Participant;
+  /** The other person as the accepted rung releases them — the contact card. */
+  theirsCard?: RedactedPerson;
   sameTerminal: boolean;
   muted: boolean;
 }
@@ -151,6 +155,7 @@ export function useChannel(channelId: string): ChannelView | undefined {
         participants: [mine, theirs],
         mine,
         theirs,
+        ...(other ? { theirsCard: decoratePerson(redact(other, 2), circles) } : {}),
         sameTerminal:
           Boolean(mine.terminal) && mine.terminal === theirs.terminal && mine.airportIata === theirs.airportIata,
         muted: isMuted,

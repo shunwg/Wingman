@@ -10,4 +10,8 @@ test('five tabs are reachable and the board renders people', async ({ page }) =>
     await page.getByRole('link', { name: new RegExp('^' + tab) }).click();
   }
   await expect(page.locator('.pcard').first()).toBeVisible();
+  // A page wider than the phone makes mobile Chrome zoom out and drops the
+  // fixed tab bar out of the visual viewport. Never.
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
 });

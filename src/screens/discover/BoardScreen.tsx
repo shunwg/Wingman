@@ -93,7 +93,7 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
     <>
       {eventSection}
       <ContextStrip context={board.context} />
-      <BoardFilters openTrips={board.openTrips} />
+      <BoardFilters openTrips={board.openTrips} industries={board.industries} />
 
       {/* A settled trip is not an empty result — it is a finished one, and
           saying so is the difference between "we found nobody" and "you already
@@ -180,6 +180,7 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
                 {...(board.openTrips.length > 1 && filters.tripId === 'all'
                   ? { tripCode: c.tripCode, tripLabel: c.tripLabel }
                   : {})}
+                layout={filters.layout}
                 onClick={() => onOpen(`${String(c.person.id)}/${c.viaTripId}`)}
                 footer={<CardFooter candidate={c} />}
               />
@@ -193,9 +194,13 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
 }
 
 function CardFooter({ candidate }: { candidate: BoardCandidate }) {
+  const isSaved = useStore((s) => s.saved.includes(candidate.person.id));
   return (
     <div className="pcard__footer">
-      <p className="pcard__why">{candidate.receipt.headline}</p>
+      <p className="pcard__why">
+        {candidate.receipt.headline}
+        {isSaved && <Chip tone="guard">Saved</Chip>}
+      </p>
       {candidate.destinationKm !== undefined && (
         <p className="pcard__why">
           {/* Rounded, and never below 1km. A precise distance between two

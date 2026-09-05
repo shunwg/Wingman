@@ -102,6 +102,11 @@ export interface BoardFilters {
   womenOnly: boolean;
   /** Kilometres between where the two of you are actually headed. */
   withinKm: number | null;
+  /** Scan, then read. Rows are for the scan. */
+  layout: 'feed' | 'row';
+  industry: string | 'any';
+  /** Only people you saved for later. */
+  savedOnly: boolean;
 }
 
 export const NO_FILTERS: BoardFilters = {
@@ -109,6 +114,9 @@ export const NO_FILTERS: BoardFilters = {
   circleId: 'any',
   womenOnly: false,
   withinKm: null,
+  layout: 'feed',
+  industry: 'any',
+  savedOnly: false,
 };
 
 export interface WingmanState {
@@ -147,6 +155,8 @@ export interface WingmanState {
   ratings: Rating[];
   /** The organiser's pinned note per circle, shown on its General. */
   announcements: Record<string, { text: string; at: ISODateTime }>;
+  /** People saved for later — a shortlist, not a signal. */
+  saved: PersonId[];
   /**
    * Circles opened from inside the app.
    *
@@ -188,6 +198,7 @@ export interface WingmanState {
   /** Re-open a settled trip. Changing your mind is allowed. */
   reopenTrip: (tripId: string) => void;
   markSeen: (id: PersonId) => void;
+  toggleSaved: (id: PersonId) => void;
 
   /**
    * Circle membership.
@@ -275,6 +286,7 @@ const slice = (s: WingmanState): PersistedSlice => ({
   guardian: s.guardian,
   ratings: s.ratings,
   announcements: s.announcements,
+  saved: s.saved,
   onboarded: s.onboarded,
   account: s.account,
 });
@@ -369,6 +381,11 @@ export const useStore = create<WingmanState>()(
             delete rest.outcome;
             return rest;
           }),
+        })),
+
+      toggleSaved: (id) =>
+        set((s) => ({
+          saved: s.saved.includes(id) ? s.saved.filter((x) => x !== id) : [...s.saved, id],
         })),
 
       markSeen: (id) =>
@@ -749,6 +766,7 @@ export const useStore = create<WingmanState>()(
         guardian: s.guardian,
         ratings: s.ratings,
         announcements: s.announcements,
+        saved: s.saved,
         onboarded: s.onboarded,
         account: s.account,
         // `filters` is absent on purpose. It is a lens on this session, not a

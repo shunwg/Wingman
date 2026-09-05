@@ -43,6 +43,7 @@ function v4Fields(p: Record<string, unknown>): Partial<PersistedSlice> {
     guardian: (p.guardian as PersistedSlice['guardian']) ?? null,
     ratings: Array.isArray(p.ratings) ? (p.ratings as PersistedSlice['ratings']) : [],
     announcements: isRecord(p.announcements) ? (p.announcements as PersistedSlice['announcements']) : {},
+    saved: Array.isArray(p.saved) ? (p.saved as PersistedSlice['saved']) : [],
   };
 }
 export function migratePersisted(
