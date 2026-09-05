@@ -79,7 +79,7 @@ npm run test:pure        # the engines, plain Node, sub-second
 npm run test:ui          # the redaction boundary, jsdom
 npm run e2e              # Playwright flows (starts the dev server itself)
 npm run lint             # boundaries, clock/random bans, provider-id ban
-npm run shoot            # screenshots of every route → docs/shots/ (needs `dev` running)
+npm run shoot            # screenshots of every route → docs/shots/ (needs `dev` running); SHOOT_DARK=1 both themes
 npm run verify           # typecheck + pure typecheck + boundaries + dataset + all tests
 ```
 

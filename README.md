@@ -21,7 +21,7 @@ npm run dev          # http://localhost:5173
 | `npm run lint` | the cross-folder rules, the `Date.now()`/`Math.random()` bans, the provider-id ban in screens |
 | `npm run e2e` | Playwright flows against the dev server (starts it for you) |
 | `npm run build` | the production bundle in `dist/` |
-| `npm run shoot` | screenshots of every route → `docs/shots/` (needs `npm run dev` running) |
+| `npm run shoot` | screenshots of every route → `docs/shots/` (needs `npm run dev` running); `SHOOT_DARK=1` shoots both themes |
 | `npm run build:data` | regenerate the worldwide airport dataset from OurAirports (network) |
 
 ## Where things live
@@ -37,6 +37,8 @@ npm run dev          # http://localhost:5173
 | `scripts/` | data build, boundary checker, screenshots, brand icons, memo print |
 | `e2e/` | Playwright specs |
 | `docs/` | `STATUS.md` (where the build is), `reviews/` (feedback and iteration log), `deploy-memo/`, `superpowers/plans/` |
+
+Reviewed 6 September 2026 against two scorecards (`docs/reviews/2026-09-05-feedback.md`): Jobs 9.55 / 10, Thiel 9.5 / 10.
 
 Rules that are load-bearing, the import boundaries, and the design system are in
 [`CLAUDE.md`](CLAUDE.md). Progress and known gaps are in [`docs/STATUS.md`](docs/STATUS.md).

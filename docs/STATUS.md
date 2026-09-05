@@ -30,10 +30,20 @@ House rules and skill routing: `CLAUDE.md`.
 | 7 | Discover density + professional depth | ☑ |
 | 8 | Matching v2: reciprocity from conduct, stable pick, scarcity / complementarity / cohort | ☑ |
 | 9 | The Jobs / Thiel loop + polish (Jobs 9.55 · Thiel 9.5) | ☑ |
-| 10 | Wrap | ☐ |
+| 10 | Wrap: STATUS, README, media, memo appendix, deploy check | ☑ |
 
-## Known gaps (the S1 findings)
+## Known gaps
 
+Every S1 finding from the review is closed. Deferred, with reasons in the feedback log:
+
+- **C5** `AudienceRule.excludeDomains` ("hide me from my own firm"): a new one-directional privacy rule; needs its own property tests.
+- **First-paint size**: the 465 KB city table (105 KB gz) ships with the entry; making the city picker and stay lookups load it on demand is a data-layout change.
+- **Real providers**: BankID, OAuth and Supabase stay mocked behind their seams by design (`stamps/registry.ts`, `account.provider`). Wiring them is procurement, per the memo.
+
+## Review scores
+
+6 September 2026, round 2 (`docs/reviews/2026-09-05-feedback.md`): **Jobs 9.55 / 10 · Thiel 9.5 / 10.**
+Curated evidence: `docs/media/` (twelve light screens, four dark).
 
 ## Things a later session must not undo
 
@@ -50,5 +60,5 @@ House rules and skill routing: `CLAUDE.md`.
 npm run dev        # http://localhost:5173
 npm run verify     # everything that must be green
 npm run e2e        # Playwright flows
-npm run shoot      # screenshots → docs/shots/ (dev server must be up)
+npm run shoot      # screenshots → docs/shots/ (dev server must be up); SHOOT_DARK=1 for both themes, SHOOT_ALL=1 for every viewport
 ```
