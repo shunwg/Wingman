@@ -27,13 +27,25 @@ const VIEWPORTS = process.env.SHOOT_ALL
 
 const THEMES = (process.env.SHOOT_ALL ? ['light', 'dark'] : ['light']) as ('light' | 'dark')[];
 
-const ROUTES = [
+/**
+ * `fresh` routes are the doors: they need a blank store, and signup needs the
+ * person to have pressed "Create my profile" first. Everything else is shot
+ * as the seeded demo, entered through #/demo.
+ */
+const ROUTES: { name: string; hash: string; fresh?: boolean }[] = [
+  { name: 'welcome', hash: '#/welcome', fresh: true },
+  { name: 'signup-about', hash: '#/signup/about', fresh: true },
+  { name: 'signup-privacy', hash: '#/signup/privacy', fresh: true },
+  { name: 'signup-verify', hash: '#/signup/verify', fresh: true },
+  { name: 'signup-trip', hash: '#/signup/trip', fresh: true },
   { name: 'discover', hash: '#/' },
   { name: 'person', hash: '#/person/jonas' },
   { name: 'requests', hash: '#/requests' },
   { name: 'trip', hash: '#/trip' },
+  { name: 'trip-new', hash: '#/trip/new' },
   { name: 'circles', hash: '#/circles' },
   { name: 'you', hash: '#/you' },
+  { name: 'you-edit', hash: '#/you/edit' },
   { name: 'design', hash: '#/_design' },
 ];
 
@@ -63,7 +75,22 @@ async function main() {
     });
     page.on('pageerror', (e) => errors.push(`[${vp.name}] ${String(e)}`));
 
+    let mode: 'fresh' | 'demo' | null = null;
     for (const route of ROUTES) {
+      const want = route.fresh ? 'fresh' : 'demo';
+      if (mode !== want) {
+        if (want === 'fresh') {
+          await page.goto(`${BASE}/#/welcome`, { waitUntil: 'networkidle' });
+          await page.evaluate(() => localStorage.clear());
+          await page.goto(`${BASE}/#/welcome`, { waitUntil: 'networkidle' });
+          await page.getByRole('button', { name: 'Create my profile' }).click();
+          await page.waitForURL(/signup/);
+        } else {
+          await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' });
+          await page.waitForURL(/#\/$/);
+        }
+        mode = want;
+      }
       await page.goto(`${BASE}/${route.hash}`, { waitUntil: 'networkidle' });
       // Webfonts change metrics; waiting avoids capturing a fallback-font frame.
       await page.evaluate(() => document.fonts.ready);
