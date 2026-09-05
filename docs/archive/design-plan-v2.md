@@ -1,3 +1,5 @@
+> **Superseded 16 Aug 2026.** This is the v2 brief (Oslo ride-matching, dark "midnight terminal" palette). The shipped app is light-first, worldwide, and about meeting rather than ride-splitting — see `CLAUDE.md`. Kept for §10's motif decisions, which still hold: boarding pass, split-flap, route line + orbit ring are the essential motifs; airplane icons, clouds, globes, map pins and purple gradients are banned.
+
 # Wingman — Revised Design Plan
 
 **North star:** *The arrival board for your last mile.*

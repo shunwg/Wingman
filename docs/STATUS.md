@@ -1,55 +1,59 @@
 # Where the build is
 
-Branch `wingman-v3`. Everything committed is green: `npm run verify` passes
-(typecheck · purity gate · import boundaries · 148 tests, ~4s).
+Branch `main`, deployed to https://shunwg.github.io/Wingman/ on every push. `npm run verify`
+is green (typecheck · purity gate · boundaries · dataset · 232 tests). CI runs `verify`,
+`lint`, `build` and `e2e` before anything is published.
 
-Plan: `C:\Users\ShunGong\.claude\plans\read-through-the-data-cozy-wand.md`
-House rules and skill routing: `CLAUDE.md`
+Plan: `docs/superpowers/plans/2026-09-05-wingman-v4.md` (also the source for every per-stream plan).
+Feedback and the iteration log: `docs/reviews/2026-09-05-feedback.md`.
+House rules and skill routing: `CLAUDE.md`.
 
 ## Done
 
 | Phase | What landed |
 |---|---|
-| 0 | Vite/React/TS scaffold, `domain/` contract, 3,270 worldwide airports with derived timezones, 96 metros grouped |
-| 1 | `privacy/` and `matching/` — pure, no clock, no randomness, property-tested |
-| 2 | `design/` tokens, primitives, procedural portraits, `/_design` gallery |
-| 3 (part) | `state/machines/meetRequest.ts` — the request FSM incl. deny-after-send |
+| 0–2 | Vite/React/TS scaffold, `domain/` contract, 3,270 airports with derived zones, the privacy and matching engines (pure, property-tested), the design system and procedural portraits |
+| 3–4 | The store with a versioned migration chain, the meet-request FSM, and a clickable app: Discover · Trip · Requests · Circles · You |
+| v3 | Real portraits for the seed cast, five-tab shell, Circles as a place, stamps (BankID, LinkedIn, Google, Meta, work email — mocked behind one seam), multi-trip boards, trip colours, meet rooms with terminals derived from the flight, circle invites, the deployment memo |
 
-## Next, in order
+## v4 streams
 
-1. **Rest of phase 3** — Zustand slices, idb-keyval persistence with a versioned
-   migration chain from day one, `machines/meet.ts` and `machines/rating.ts`.
-2. **Phase 4a** — `screens/_shell/` (AppShell, TabBar, routes), onboarding,
-   profile, trips, flight search. Replace the stub router in `src/App.tsx`.
-3. **Phase 4b** — board, person, request lifecycle incl. `DenySheet`, meets.
-   Then delete `src/*.js`, `src/styles.css`, `src/shell.html`, `build/`,
-   `wingman.html` — the v2 prototype, kept only for its seed fixtures.
-4. **Phase 4c** — audience, preview-as, policy editor, guardian, ratings, circles.
-5. **Phase 5** — `stamps/` (mocks first, then BankID + the three socials).
-6. **Phase 6** — `providers/flights/`.
-7. **Phase 7** — founder playthrough (7 scenarios → `docs/founder-review.md`),
-   a11y pass, Playwright suite.
+| # | Stream | State |
+|---|---|---|
+| 0 | Repo hygiene, one alias source, e2e scaffold, CI gate, feedback file | ☑ |
+| 1 | Brand: logo, favicon, icons, manifest, Route glyph | ☐ |
+| 2 | Onboarding, registration, BankID-first verify, first trip, profile edit | ☐ |
+| 3 | Circles: admission by list or domain, logo, badges, roles | ☐ |
+| 4 | Inbox: safety surfaces, then meet / circle / group chat in one list | ☐ |
+| 5 | Trips: add / edit / connections / purpose / bundled lookup | ☐ |
+| 6 | Events: organiser dashboard, QR, event board | ☐ |
+| 7 | Discover density + professional depth | ☐ |
+| 8 | Matching v2 | ☐ |
+| 9 | The Jobs / Thiel loop + polish (gate: both ≥ 9.5/10) | ☐ |
+| 10 | Wrap | ☐ |
+
+## Known gaps (the S1 findings)
+
+- No onboarding, sign-up or consent screen — the app boots as the seeded "Alex" (WS2).
+- No way to add a trip (WS2/WS5).
+- Block / report exist only inside the decline sheet; guardian and audience-report engines have no screen (WS4).
+- A circle has no organiser surface, no logo, no chat (WS3, WS4, WS6).
+- Request expiry is defined and tested but never runs (WS4).
 
 ## Things a later session must not undo
 
 - Screens and components take `RedactedPerson`, never `Person`.
 - Never persist derived state — visibility is recomputed on read.
 - Every count crossing into the UI goes through `lib/bucket.ts`.
-- All writes to requests/meets/ratings go through `state/machines/`.
+- All writes to requests / meets / ratings go through `state/machines/`.
 - The ranking score is ordering only and is never rendered.
-- Seed data still to port from the v2 `src/data.js` before deleting it.
+- Colour is never the only indicator; airplane icons are a banned motif.
 
-## Useful commands
+## Commands
 
 ```bash
-npm run dev            # http://localhost:5173 — currently the gallery only
-npm run test:pure      # engines, plain Node, ~4s
-npm run verify         # everything
-npx tsx scripts/shoot.ts   # screenshots → docs/shots/ (needs dev server up)
+npm run dev        # http://localhost:5173
+npm run verify     # everything that must be green
+npm run e2e        # Playwright flows
+npm run shoot      # screenshots → docs/shots/ (dev server must be up)
 ```
-
-## Known gaps
-
-- `src/App.tsx` is a stub router that sends every route to the gallery.
-- No screens exist yet, so there is nothing to click through.
-- `data/seed/` is empty; the board has no people to show until it is populated.

@@ -1,31 +1,19 @@
 import { defineWorkspace } from 'vitest/config';
-import react from '@vitejs/plugin-react';
-import { fileURLToPath, URL } from 'node:url';
 
-const alias = (p: string) => fileURLToPath(new URL(p, import.meta.url));
-
-const resolve = {
-  alias: {
-    '@domain': alias('./src/domain'),
-    '@design': alias('./src/design'),
-    '@screens': alias('./src/screens'),
-    '@matching': alias('./src/matching'),
-    '@privacy': alias('./src/privacy'),
-    '@stamps': alias('./src/stamps'),
-    '@providers': alias('./src/providers'),
-    '@state': alias('./src/state'),
-    '@data': alias('./src/data'),
-    '@lib': alias('./src/lib'),
-    '@assets': alias('./src/assets'),
-  },
-};
-
+/**
+ * Two projects, one alias source. Both extend vite.config.ts so the path
+ * aliases live in exactly one place — the same file Vite and the boundary
+ * checker already agree on.
+ *
+ *   pure — plain Node, no jsdom, no React. The engines. Sub-second.
+ *   ui   — jsdom, narrow: the redaction boundary and a11y-critical rendering.
+ */
 export default defineWorkspace([
   {
     // The engines. If a test here needs a DOM to pass, it is in the wrong
     // project — and that is usually a signal the code under test has drifted
     // out of the pure layer.
-    resolve,
+    extends: './vite.config.ts',
     test: {
       name: 'pure',
       environment: 'node',
@@ -34,8 +22,7 @@ export default defineWorkspace([
         'src/matching/**/*.test.ts',
         'src/privacy/**/*.test.ts',
         'src/stamps/**/*.test.ts',
-        'src/providers/**/*.test.ts',
-        'src/state/machines/**/*.test.ts',
+        'src/state/**/*.test.ts',
         'src/data/**/*.test.ts',
         'src/lib/**/*.test.ts',
         'src/design/avatar/**/*.test.ts',
@@ -43,10 +30,8 @@ export default defineWorkspace([
     },
   },
   {
-    // Deliberately narrow: the redaction boundary and a11y-critical rendering.
     // Everything else is covered by the pure project or by Playwright.
-    resolve,
-    plugins: [react()],
+    extends: './vite.config.ts',
     test: {
       name: 'ui',
       environment: 'jsdom',

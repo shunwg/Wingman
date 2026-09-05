@@ -5,10 +5,15 @@
 import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { mkdirSync } from 'node:fs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const url = `file://${join(here, 'memo.html').replace(/\\/g, '/')}`;
-const shot = (n) => join(here, 'shots', n);
+const memoDir = join(here, '..', '..', 'docs', 'deploy-memo');
+const url = `file://${join(memoDir, 'memo.html').replace(/\\/g, '/')}`;
+// docs/shots is generated output and gitignored, like the app screenshots.
+const shotDir = join(here, '..', '..', 'docs', 'shots');
+mkdirSync(shotDir, { recursive: true });
+const shot = (n) => join(shotDir, n);
 
 const browser = await chromium.launch();
 

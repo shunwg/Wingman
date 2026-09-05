@@ -30,21 +30,12 @@ export default tseslint.config(
       'dist',
       'node_modules',
       'src/data/airports/*.json',
-      'build',
-      'wingman.html',
       // The Lovable build of the same brief, kept locally to read from. Not
       // ours, not in git, and not ours to lint.
       'References',
       // Build scripts for the deployment memo — Node, not browser, same
-      // category as scripts/.
-      'docs/**/*.mjs',
-      // The v2 prototype: six concatenated classic scripts sharing one global
-      // scope. Kept only until its seed fixtures are ported in phase 4a, then
-      // deleted along with build/ and wingman.html. Linting it under the new
-      // config produces 489 no-undef errors and zero useful signal.
-      'src/*.js',
-      'src/styles.css',
-      'src/shell.html',
+      // category as the rest of scripts/.
+      'scripts/memo/*.mjs',
     ],
   },
 

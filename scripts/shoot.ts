@@ -1,7 +1,7 @@
 /**
  * Screenshot the app.
  *
- *     npx tsx scripts/shoot.ts [url] [outDir]
+ *     npm run shoot -- [url] [outDir]
  *
  * Assumes a dev server is already running (`npm run dev`). Shoots each route at
  * three viewports in both themes, because a design that has only ever been seen
@@ -53,7 +53,9 @@ async function main() {
   for (const vp of VIEWPORTS) {
     const context = await browser.newContext({
       viewport: { width: vp.width, height: vp.height },
-      deviceScaleFactor: 2,
+      // 1x keeps a full-page capture under 300 KB, which is what docs/media/
+      // wants. SHOOT_RETINA=1 for pixel-peeping.
+      deviceScaleFactor: process.env.SHOOT_RETINA ? 2 : 1,
     });
     const page = await context.newPage();
     page.on('console', (m) => {

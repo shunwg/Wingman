@@ -74,11 +74,13 @@ Break any of these and something in the privacy model quietly stops being true.
 
 ```bash
 npm run dev              # Vite dev server
-npm run build:data       # rebuild the worldwide airport dataset (+ verify)
+npm run build:data       # rebuild the worldwide airport dataset (+ verify); committed, so only when it changes
 npm run test:pure        # the engines, plain Node, sub-second
 npm run test:ui          # the redaction boundary, jsdom
-npm run e2e              # Playwright flows
-npm run verify           # typecheck + pure typecheck + boundaries + all tests
+npm run e2e              # Playwright flows (starts the dev server itself)
+npm run lint             # boundaries, clock/random bans, provider-id ban
+npm run shoot            # screenshots of every route → docs/shots/ (needs `dev` running)
+npm run verify           # typecheck + pure typecheck + boundaries + dataset + all tests
 ```
 
 ## Skill routing

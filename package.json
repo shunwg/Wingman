@@ -1,14 +1,15 @@
 {
   "name": "wingman",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "private": true,
   "type": "module",
-  "description": "Wingman — meet people worth meeting, around the way you already travel.",
+  "description": "Wingman \u2014 meet people worth meeting, around the way you already travel.",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:data && tsc -p tsconfig.json --noEmit && vite build",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
     "preview": "vite preview",
     "build:data": "tsx scripts/build-airports.ts && tsx scripts/build-city-index.ts && tsx scripts/verify-dataset.ts",
+    "verify:data": "tsx scripts/verify-dataset.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:pure": "tsc -p tsconfig.pure.json --noEmit",
     "check:boundaries": "tsx scripts/check-boundaries.ts",
@@ -18,12 +19,11 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "lint": "eslint .",
-    "verify": "npm run typecheck && npm run typecheck:pure && npm run check:boundaries && npm run test"
+    "shoot": "tsx scripts/shoot.ts",
+    "brand:icons": "tsx scripts/brand/render-icons.ts",
+    "verify": "npm run typecheck && npm run typecheck:pure && npm run check:boundaries && npm run verify:data && npm run test"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.62.0",
-    "@tanstack/react-router": "^1.95.0",
-    "idb-keyval": "^6.2.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "zustand": "^5.0.2"

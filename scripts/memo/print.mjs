@@ -10,8 +10,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const src = join(here, 'memo.html');
-const out = join(here, 'wingman-deploy-memo-A4.pdf');
+// The memo lives with the docs; this script lives with the other tooling.
+const memoDir = join(here, '..', '..', 'docs', 'deploy-memo');
+const src = join(memoDir, 'memo.html');
+const out = join(memoDir, 'wingman-deploy-memo-A4.pdf');
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
