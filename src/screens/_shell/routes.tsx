@@ -5,6 +5,7 @@ import { BoardScreen } from '@screens/discover/BoardScreen';
 import { PersonScreen } from '@screens/person/PersonScreen';
 import { RequestsScreen } from '@screens/requests/RequestsScreen';
 import { TripsScreen } from '@screens/trips/TripsScreen';
+import { NewTripScreen } from '@screens/trips/NewTripScreen';
 import { CirclesScreen } from '@screens/circles/CirclesScreen';
 import { NewCircleScreen } from '@screens/circles/NewCircleScreen';
 import { JoinCircleScreen } from '@screens/circles/JoinCircleScreen';
@@ -27,6 +28,7 @@ export interface Route {
     | 'requests'
     | 'meet'
     | 'trip'
+    | 'trip.new'
     | 'circles'
     | 'circles.new'
     | 'join'
@@ -55,6 +57,7 @@ export function parseRoute(hash: string): Route {
   // `trips` and `board` were the names before the tab bar grew to five. Kept as
   // aliases so a bookmark or a screenshot URL from an earlier build still lands
   // somewhere sensible.
+  if (head === 'trip' && id === 'new') return { name: 'trip.new' };
   if (head === 'trip' || head === 'trips') return { name: 'trip' };
   if (head === 'circles' && id === 'new') return { name: 'circles.new' };
   if (head === 'circles') return { name: 'circles' };
@@ -110,6 +113,12 @@ export function Router() {
       return (
         <AppShell route="trip" title="Your trip">
           <TripsScreen />
+        </AppShell>
+      );
+    case 'trip.new':
+      return (
+        <AppShell route="trip" title="Add a trip">
+          <NewTripScreen onDone={() => navigate('#/trip')} />
         </AppShell>
       );
     case 'circles':

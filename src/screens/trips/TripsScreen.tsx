@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { Chip } from '@design/primitives/Chip';
 import { Button } from '@design/primitives/Button';
+import { Sheet } from '@design/primitives/Sheet';
 import { airportIndex } from '@data/airports/index';
 import { personById } from '@data/seed/people';
 import type { Trip } from '@domain/index';
-import { asIata } from '@domain/ids';
 import { localTime, localDate } from '@domain/time';
 import { tripCode, tripIsOpen, tripLabel } from '@domain/trip';
 import { tripHueClass } from '@design/tokens/tripHue';
@@ -25,18 +26,27 @@ export function TripsScreen() {
   const trips = useStore((s) => s.myTrips);
   const upsertTrip = useStore((s) => s.upsertTrip);
   const reopenTrip = useStore((s) => s.reopenTrip);
+  const removeTrip = useStore((s) => s.removeTrip);
+  const [removing, setRemoving] = useState<Trip | null>(null);
 
   if (trips.length === 0) {
     return (
       <div className="empty">
-        <h2 className="empty__title display">No trips</h2>
+        <h2 className="empty__title display">No trips yet</h2>
         <p className="empty__body">Add a flight and Wingman shows you who else is around it.</p>
+        <Button onClick={() => (window.location.hash = '#/trip/new')}>Add a flight</Button>
       </div>
     );
   }
 
   return (
     <>
+      <div className="panel__row">
+        <Button size="sm" onClick={() => (window.location.hash = '#/trip/new')}>
+          Add a trip
+        </Button>
+      </div>
+
       {trips.map((trip) => (
         <TripBlock
           key={String(trip.id)}
@@ -51,6 +61,7 @@ export function TripsScreen() {
             })
           }
           onReopen={() => reopenTrip(String(trip.id))}
+          onRemove={() => setRemoving(trip)}
         />
       ))}
 
@@ -58,6 +69,33 @@ export function TripsScreen() {
         A trip that is listed lets people around it find you. Hiding one removes you from that
         board without deleting anything, and without touching your other trips.
       </p>
+
+      <Sheet
+        open={removing !== null}
+        title="Remove this trip?"
+        onClose={() => setRemoving(null)}
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setRemoving(null)}>
+              Keep it
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (removing) removeTrip(String(removing.id));
+                setRemoving(null);
+              }}
+            >
+              Remove
+            </Button>
+          </>
+        }
+      >
+        <p className="sheet__body">
+          {removing ? `${tripLabel(removing)} goes, and any request that came from it closes. ` : ''}
+          Your other trips stay as they are.
+        </p>
+      </Sheet>
     </>
   );
 }
@@ -66,10 +104,12 @@ function TripBlock({
   trip,
   onToggleListing,
   onReopen,
+  onRemove,
 }: {
   trip: Trip;
   onToggleListing: () => void;
   onReopen: () => void;
+  onRemove: () => void;
 }) {
   const settledWith = trip.outcome ? personById(String(trip.outcome.settledWith)) : undefined;
   const open = tripIsOpen(trip);
@@ -131,23 +171,26 @@ function TripBlock({
         );
       })}
 
-      {trip.outcome ? (
-        <>
-          <p className="tripblock__note">
-            You&rsquo;re meeting {settledWith?.firstName ?? 'someone'} on this one, so it has
-            stopped suggesting people.
-          </p>
-          <Button size="sm" variant="secondary" onClick={onReopen}>
-            Look again anyway
+      <div className="panel__row">
+        {trip.outcome ? (
+          <>
+            <p className="tripblock__note">
+              You&rsquo;re meeting {settledWith?.firstName ?? 'someone'} on this one, so it has
+              stopped suggesting people.
+            </p>
+            <Button size="sm" variant="secondary" onClick={onReopen}>
+              Look again anyway
+            </Button>
+          </>
+        ) : (
+          <Button size="sm" variant="secondary" onClick={onToggleListing}>
+            {trip.visibility.listing === 'listed' ? 'Hide this trip' : 'List this trip again'}
           </Button>
-        </>
-      ) : (
-        <Button size="sm" variant="secondary" onClick={onToggleListing}>
-          {trip.visibility.listing === 'listed' ? 'Hide this trip' : 'List this trip again'}
+        )}
+        <Button size="sm" variant="quiet" onClick={onRemove}>
+          Remove
         </Button>
-      )}
+      </div>
     </article>
   );
 }
-
-export { asIata };

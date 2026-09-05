@@ -33,11 +33,11 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
   if (myTrips.length === 0) {
     return (
       <div className="empty">
-        <h2 className="empty__title display">No trips yet</h2>
+        <h2 className="empty__title display">Your board is waiting for a flight</h2>
         <p className="empty__body">
-          Wingman only shows you people around a trip. Add one and the board fills in.
+          Wingman only shows you people around a journey. Add the next one and this fills in.
         </p>
-        <Button onClick={() => (window.location.hash = '#/trip')}>Add a trip</Button>
+        <Button onClick={() => (window.location.hash = '#/trip/new')}>Add a flight</Button>
       </div>
     );
   }

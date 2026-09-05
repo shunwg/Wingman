@@ -6,6 +6,7 @@ import { StampBadge } from '@design/patterns/StampBadge';
 import { isRedacted } from '@domain/person';
 import type { MeetKind } from '@domain/intent';
 import { useBoard } from '@state/selectors/board';
+import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { useStore } from '@state/store';
 import { addMinutes } from '@domain/time';
 import { asTripId } from '@domain/ids';
@@ -23,16 +24,6 @@ import { asTripId } from '@domain/ids';
  * accident in one.
  */
 
-const KIND_LABEL: Record<MeetKind, string> = {
-  gate_coffee: 'Coffee at the gate',
-  lounge: 'The lounge',
-  terminal_walk: 'Walk the terminal',
-  ride_share: 'Share the ride in',
-  meal: 'A meal',
-  drinks: 'A drink',
-  business_intro: 'An introduction',
-  coworking: 'Cowork',
-};
 
 const OPENERS = [
   'Same flight — fancy a coffee before boarding?',
@@ -176,7 +167,7 @@ export function PersonScreen({
             <div className="ask__kinds">
               {candidate.proposableKinds.map((k) => (
                 <ToggleChip key={k} selected={chosen === k} onClick={() => setKind(k)}>
-                  {KIND_LABEL[k]}
+                  {MEET_KIND_LABEL[k]}
                 </ToggleChip>
               ))}
             </div>

@@ -1453,3 +1453,137 @@
 .field.is-invalid .field__input {
   border-color: var(--accent);
 }
+
+/* ── Forms: profile and trip ─────────────────────────────────────────────── */
+
+.formstack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.formrow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+
+.formrow > .field {
+  min-width: 0;
+}
+
+.field__input--headline {
+  font-size: var(--text-lg);
+  line-height: var(--leading-snug);
+  resize: none;
+}
+
+textarea.field__input {
+  resize: vertical;
+  min-height: 48px;
+}
+
+.photopick {
+  display: flex;
+  gap: var(--sp-4);
+  align-items: center;
+}
+
+.photopick__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.photopick__note {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  margin: 0;
+}
+
+.formactions {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.formactions .btn {
+  flex: 1;
+}
+
+/* Combobox over the airport index. */
+.combo {
+  position: relative;
+}
+
+.combo__list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: var(--z-sheet);
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lift);
+  max-height: 264px;
+  overflow-y: auto;
+}
+
+.combo__opt {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  min-height: 44px;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.combo__opt[aria-selected='true'],
+.combo__opt:hover {
+  background: var(--surface-sunk);
+}
+
+.combo__iata {
+  font-weight: 600;
+  min-width: 3ch;
+}
+
+.combo__city {
+  color: var(--ink);
+}
+
+.combo__name {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combo__more {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--text-xs);
+  color: var(--faint);
+}
+
+.tripform__legend {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin: var(--sp-2) 0 0;
+}
+
+.tripform__pass {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 44px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
