@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import { Avatar } from '@design/primitives/Avatar';
 import { Button } from '@design/primitives/Button';
 import { Chip, ToggleChip } from '@design/primitives/Chip';
 import { OptionRow } from '@design/primitives/OptionRow';
+import { Sheet } from '@design/primitives/Sheet';
 import { StampBadge } from '@design/patterns/StampBadge';
 import type { Gender, PrivacyPresetId } from '@domain/index';
 import { PRESET_LIST } from '@privacy/index';
+import { SEED_CIRCLES } from '@data/seed/circles';
 import { useStore } from '@state/store';
+import { WelcomeCards } from '@screens/onboarding/WelcomeCards';
 
 /**
  * You, and who can see you.
@@ -18,9 +22,14 @@ import { useStore } from '@state/store';
  */
 export function YouScreen() {
   const me = useStore((s) => s.me);
+  const mode = useStore((s) => s.account.mode);
+  const myCircles = useStore((s) => s.myCircles);
   const setMe = useStore((s) => s.setMe);
   const setPrivacy = useStore((s) => s.setPrivacy);
-  const reset = useStore((s) => s.reset);
+  const startDemo = useStore((s) => s.startDemo);
+  const signOut = useStore((s) => s.signOut);
+  const [confirmOut, setConfirmOut] = useState(false);
+  const [howOpen, setHowOpen] = useState(false);
 
   const togglePreset = (id: PrivacyPresetId) => {
     const has = me.privacy.presets.includes(id);
@@ -29,13 +38,16 @@ export function YouScreen() {
     });
   };
 
+  const circleName = (id: string) =>
+    [...myCircles, ...SEED_CIRCLES].find((c) => String(c.id) === id)?.name ?? id;
+
   return (
     <>
       <section className="youhead">
         <Avatar spec={me.avatar} size="xl" label={me.displayName} />
         <div>
-          <h2 className="youhead__name display">{me.displayName}</h2>
-          <p className="youhead__headline">{me.headline}</p>
+          <h2 className="youhead__name display">{me.displayName || 'Your name'}</h2>
+          <p className="youhead__headline">{me.headline || 'One sentence goes here.'}</p>
           <div className="youhead__stamps">
             {me.verifications.map((v) => (
               <StampBadge
@@ -53,6 +65,11 @@ export function YouScreen() {
                 }}
               />
             ))}
+          </div>
+          <div className="panel__row">
+            <Button size="sm" variant="secondary" onClick={() => (window.location.hash = '#/you/edit')}>
+              Edit your card
+            </Button>
           </div>
         </div>
       </section>
@@ -139,20 +156,74 @@ export function YouScreen() {
 
       <section className="panel">
         <h3 className="panel__title">Your circles</h3>
-        <div className="panel__row">
-          {me.memberships.map((m) => (
-            <Chip key={String(m.circleId)} tone={m.display === 'show_badge' ? 'accent' : 'neutral'}>
-              {String(m.circleId)} · {m.display === 'show_badge' ? 'badge shown' : 'matching only'}
-            </Chip>
-          ))}
-        </div>
+        {me.memberships.length === 0 ? (
+          <p className="panel__note">None yet. Circles are under the shield tab.</p>
+        ) : (
+          <div className="panel__row">
+            {me.memberships.map((m) => (
+              <Chip key={String(m.circleId)} tone={m.display === 'show_badge' ? 'accent' : 'neutral'}>
+                {circleName(String(m.circleId))} ·{' '}
+                {m.display === 'show_badge' ? 'badge shown' : 'matching only'}
+              </Chip>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="panel">
+        <h3 className="panel__title">About Wingman</h3>
+        <p className="panel__note">
+          Organisers pay for circles; travellers never do, and there are no ads. Your profile
+          lives on this device until Wingman has a server.
+        </p>
+        <Button variant="secondary" full onClick={() => setHowOpen(true)}>
+          How Wingman works
+        </Button>
       </section>
 
       <div className="panel">
-        <Button variant="secondary" full onClick={reset}>
-          Reset the demo
-        </Button>
+        {mode === 'demo' ? (
+          <Button variant="secondary" full onClick={() => (window.location.hash = startDemo())}>
+            Reset the demo
+          </Button>
+        ) : (
+          <Button variant="secondary" full onClick={() => setConfirmOut(true)}>
+            Sign out and start over
+          </Button>
+        )}
       </div>
+
+      <Sheet
+        open={confirmOut}
+        title="Start over?"
+        onClose={() => setConfirmOut(false)}
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setConfirmOut(false)}>
+              Keep my profile
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                setConfirmOut(false);
+                signOut();
+                window.location.hash = '#/welcome';
+              }}
+            >
+              Sign out
+            </Button>
+          </>
+        }
+      >
+        <p className="sheet__body">
+          Your profile, trips and conversations live only on this device. Signing out removes
+          them here, and there is no copy anywhere else.
+        </p>
+      </Sheet>
+
+      <Sheet open={howOpen} title="How Wingman works" onClose={() => setHowOpen(false)}>
+        <WelcomeCards />
+      </Sheet>
     </>
   );
 }

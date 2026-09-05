@@ -19,7 +19,11 @@ export default defineConfig({
   // Both projects run on Chromium: it is the only browser installed locally and
   // in CI, and the iPhone descriptor otherwise asks for WebKit.
   projects: [
-    { name: 'mobile', use: { ...devices['iPhone 13'], browserName: 'chromium' } },
+    {
+      name: 'mobile',
+      use: { ...devices['iPhone 13'], browserName: 'chromium' },
+      testIgnore: /.*desktop\.spec\.ts/,
+    },
     {
       name: 'desktop',
       use: { ...devices['Desktop Chrome'], browserName: 'chromium' },

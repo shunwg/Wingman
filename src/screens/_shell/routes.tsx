@@ -12,6 +12,13 @@ import { JoinCircleScreen } from '@screens/circles/JoinCircleScreen';
 import { MeetScreen } from '@screens/meet/MeetScreen';
 import { VerifyScreen } from '@screens/verify/VerifyScreen';
 import { YouScreen } from '@screens/profile/YouScreen';
+import { EditProfileScreen } from '@screens/profile/EditProfileScreen';
+import { WelcomeScreen } from '@screens/onboarding/WelcomeScreen';
+import { SignupScreen } from '@screens/onboarding/SignupScreen';
+import { SigninScreen } from '@screens/onboarding/SigninScreen';
+import { DemoEntry } from '@screens/onboarding/DemoEntry';
+import { isSignupStep, type SignupStep } from '@screens/onboarding/steps';
+import { useStore } from '@state/store';
 
 /**
  * The URL → screen table.
@@ -33,7 +40,12 @@ export interface Route {
     | 'circles.new'
     | 'join'
     | 'you'
+    | 'you.edit'
     | 'verify'
+    | 'welcome'
+    | 'signup'
+    | 'signin'
+    | 'demo'
     | 'design';
   id?: string;
   /**
@@ -45,6 +57,8 @@ export interface Route {
    * wrong trip when they say yes.
    */
   tripId?: string;
+  /** The signup step, so a refresh mid-signup lands where it left off. */
+  step?: SignupStep;
 }
 
 export function parseRoute(hash: string): Route {
@@ -52,6 +66,10 @@ export function parseRoute(hash: string): Route {
   const [head, id, tripId] = parts;
 
   if (head === '_design') return { name: 'design' };
+  if (head === 'welcome') return { name: 'welcome' };
+  if (head === 'signup') return { name: 'signup', step: isSignupStep(id) ? id : 'about' };
+  if (head === 'signin') return { name: 'signin' };
+  if (head === 'demo') return { name: 'demo' };
   if (head === 'person' && id) return { name: 'person', id, ...(tripId ? { tripId } : {}) };
   if (head === 'requests') return { name: 'requests' };
   // `trips` and `board` were the names before the tab bar grew to five. Kept as
@@ -66,6 +84,7 @@ export function parseRoute(hash: string): Route {
   if (head === 'join' && id) return { name: 'join', id };
   if (head === 'meet' && id) return { name: 'meet', id };
   if (head === 'verify') return { name: 'verify' };
+  if (head === 'you' && id === 'edit') return { name: 'you.edit' };
   if (head === 'you') return { name: 'you' };
   return { name: 'discover' };
 }
@@ -74,8 +93,13 @@ export const navigate = (to: string) => {
   window.location.hash = to;
 };
 
+/** The routes a person can reach before they have a profile. */
+const DOORS: ReadonlySet<Route['name']> = new Set(['welcome', 'signup', 'signin', 'demo']);
+
 export function Router() {
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
+  const onboarded = useStore((s) => s.onboarded);
+  const setReturnTo = useStore((s) => s.setReturnTo);
 
   useEffect(() => {
     const onChange = () => {
@@ -88,7 +112,35 @@ export function Router() {
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
 
-  if (route.name === 'design') return <DesignGallery />;
+  const door = DOORS.has(route.name);
+  const gallery = route.name === 'design';
+
+  /*
+   * The first-run gate.
+   *
+   * Nobody sees a board before they have a profile — or the demo. An
+   * invitation opened on a fresh install is kept as `returnTo`, so the person
+   * lands back on it once they are through. The gallery is exempt: it is a
+   * design surface, not a screen.
+   */
+  // Both effects check the live hash before redirecting: a screen that has
+  // just navigated (the demo button sending you to an invitation, say) flips
+  // `onboarded` before the hashchange lands, and `route` is one step behind.
+  useEffect(() => {
+    if (onboarded || door || gallery) return;
+    if (parseRoute(window.location.hash).name !== route.name) return;
+    if (route.name !== 'discover') setReturnTo(window.location.hash);
+    navigate('#/welcome');
+  }, [onboarded, door, gallery, route.name, setReturnTo]);
+
+  useEffect(() => {
+    if (!onboarded || !door || route.name === 'demo') return;
+    if (parseRoute(window.location.hash).name !== route.name) return;
+    navigate('#/');
+  }, [onboarded, door, route.name]);
+
+  if (gallery) return <DesignGallery />;
+  if (!onboarded && !door) return null; // one frame before the redirect lands
 
   if (route.name === 'person' && route.id) {
     return (
@@ -103,6 +155,30 @@ export function Router() {
   }
 
   switch (route.name) {
+    case 'welcome':
+      return (
+        <AppShell route="welcome" chrome="none">
+          <WelcomeScreen />
+        </AppShell>
+      );
+    case 'signup':
+      return (
+        <AppShell route="signup" chrome="none">
+          <SignupScreen step={route.step ?? 'about'} />
+        </AppShell>
+      );
+    case 'signin':
+      return (
+        <AppShell route="signin" chrome="none">
+          <SigninScreen />
+        </AppShell>
+      );
+    case 'demo':
+      return (
+        <AppShell route="demo" chrome="none">
+          <DemoEntry />
+        </AppShell>
+      );
     case 'requests':
       return (
         <AppShell route="requests" title="Requests">
@@ -149,6 +225,12 @@ export function Router() {
       return (
         <AppShell route="you" title="Your accounts">
           <VerifyScreen />
+        </AppShell>
+      );
+    case 'you.edit':
+      return (
+        <AppShell route="you" title="Edit your card">
+          <EditProfileScreen onDone={() => navigate('#/you')} />
         </AppShell>
       );
     case 'you':

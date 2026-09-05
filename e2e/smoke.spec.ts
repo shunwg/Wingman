@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test('five tabs are reachable and the board renders people', async ({ page }) => {
-  await page.goto('/#/');
+  // The demo entry seeds Alex; a fresh context would land on Welcome otherwise.
+  await page.goto('/#/demo');
+  await page.waitForURL(/#\/$/);
   await expect(page.getByRole('heading', { name: 'Around you' })).toBeVisible();
   for (const tab of ['Trip', 'Requests', 'Circles', 'You', 'Discover']) {
     await page.getByRole('link', { name: tab }).click();

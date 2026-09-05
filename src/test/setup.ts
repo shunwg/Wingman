@@ -5,3 +5,6 @@ import { afterEach } from 'vitest';
 // Vitest does not auto-unmount between tests unless `globals` is on; without
 // this, the second test in a file queries the first test's DOM as well.
 afterEach(() => cleanup());
+
+// jsdom has no layout; the router scrolls to the top on every route change.
+window.scrollTo = () => {};
