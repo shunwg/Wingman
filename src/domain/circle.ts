@@ -1,4 +1,4 @@
-import type { CircleId, PersonId } from './ids';
+import type { CircleId, CityKey, PersonId } from './ids';
 import type { ISODate, ISODateTime } from './time';
 
 /**
@@ -50,6 +50,8 @@ export interface Circle {
   crestUrl?: string;
   /** Badges the organiser defined. Absent means none. */
   badges?: CircleBadge[];
+  /** Where an event is held: a city and a label, never an address. */
+  venue?: { cityKey: CityKey; label: string };
   /** Members may only ever be discovered by other members. */
   membersOnly: boolean;
   memberCount: number;

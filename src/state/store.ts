@@ -145,6 +145,8 @@ export interface WingmanState {
   /** At most one live guardian session — a meet is one thing at a time. */
   guardian: GuardianSession | null;
   ratings: Rating[];
+  /** The organiser's pinned note per circle, shown on its General. */
+  announcements: Record<string, { text: string; at: ISODateTime }>;
   /**
    * Circles opened from inside the app.
    *
@@ -201,7 +203,11 @@ export interface WingmanState {
   createCircle: (circle: Circle) => void;
   /** The organiser's edits — mark, badges, admission. Only circles you opened. */
   updateCircle: (circle: Circle) => void;
-  joinCircle: (circleId: string, admittedBy: AdmissionRule['kind']) => void;
+  joinCircle: (circleId: string, admittedBy: AdmissionRule['kind'], badgeIds?: string[]) => void;
+  /** Pin a note on the circle's General. Organiser only, enforced by the screen. */
+  announce: (circleId: string, text: string) => void;
+  /** Stop a circle matching from today. */
+  closeCircle: (circleId: string) => void;
   leaveCircle: (circleId: string) => void;
   setMembershipDisplay: (circleId: string, display: MembershipDisplay) => void;
 
@@ -268,6 +274,7 @@ const slice = (s: WingmanState): PersistedSlice => ({
   muted: s.muted,
   guardian: s.guardian,
   ratings: s.ratings,
+  announcements: s.announcements,
   onboarded: s.onboarded,
   account: s.account,
 });
@@ -561,7 +568,25 @@ export const useStore = create<WingmanState>()(
           myCircles: s.myCircles.map((c) => (c.id === circle.id ? circle : c)),
         })),
 
-      joinCircle: (circleId, admittedBy) =>
+      announce: (circleId, text) =>
+        set((s) => ({
+          announcements: {
+            ...s.announcements,
+            [circleId]: { text: text.trim().slice(0, 280), at: s.now },
+          },
+        })),
+
+      closeCircle: (circleId) =>
+        set((s) => {
+          const today = String(s.now).slice(0, 10) as never;
+          return {
+            myCircles: s.myCircles.map((c) =>
+              String(c.id) === circleId ? { ...c, runs: { from: c.runs?.from ?? today, to: today } } : c,
+            ),
+          };
+        }),
+
+      joinCircle: (circleId, admittedBy, badgeIds) =>
         set((s) => {
           if (s.me.memberships.some((m) => String(m.circleId) === circleId)) return s;
           return {
@@ -580,6 +605,7 @@ export const useStore = create<WingmanState>()(
                   joinedAt: s.now,
                   admittedBy,
                   role: 'member' as const,
+                  ...(badgeIds && badgeIds.length > 0 ? { badgeIds } : {}),
                 },
               ],
             },
@@ -722,6 +748,7 @@ export const useStore = create<WingmanState>()(
         muted: s.muted,
         guardian: s.guardian,
         ratings: s.ratings,
+        announcements: s.announcements,
         onboarded: s.onboarded,
         account: s.account,
         // `filters` is absent on purpose. It is a lens on this session, not a

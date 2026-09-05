@@ -78,6 +78,10 @@ export function PersonScreen({
   const professional = isRedacted(p.professional) ? null : p.professional;
   const chosen = kind ?? candidate.proposableKinds[0]!;
 
+  const sharedCircle = candidate.person.circles.find((c) =>
+    me.memberships.some((m) => String(m.circleId) === String(c.circleId)),
+  )?.circleId;
+
   const send = () => {
     const window = { from: now, to: addMinutes(now, 90) };
     sendRequest({
@@ -86,6 +90,8 @@ export function PersonScreen({
       // Which of your journeys this is for. Accepting closes that trip and no
       // other, so getting this wrong would stop suggestions for the wrong one.
       tripId: asTripId(candidate.viaTripId),
+      // A shared live circle is the organiser's report, so it is recorded here.
+      ...(sharedCircle ? { circleId: sharedCircle } : {}),
       overlapRef: overlapRefOf(candidate.overlap),
       proposal: { kind: chosen, window },
       message: opener,

@@ -42,6 +42,7 @@ function v4Fields(p: Record<string, unknown>): Partial<PersistedSlice> {
     muted: Array.isArray(p.muted) ? (p.muted as string[]) : [],
     guardian: (p.guardian as PersistedSlice['guardian']) ?? null,
     ratings: Array.isArray(p.ratings) ? (p.ratings as PersistedSlice['ratings']) : [],
+    announcements: isRecord(p.announcements) ? (p.announcements as PersistedSlice['announcements']) : {},
   };
 }
 export function migratePersisted(
@@ -65,5 +66,6 @@ export function migratePersisted(
   if (version === 3) {
     return { ...(persisted as unknown as PersistedSlice), ...v4Fields(persisted) };
   }
-  return persisted as unknown as PersistedSlice;
+  // Later additive fields default here too, so an older v4 blob is whole.
+  return { ...(persisted as unknown as PersistedSlice), ...v4Fields(persisted) };
 }

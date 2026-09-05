@@ -10,6 +10,8 @@ import { NewTripScreen } from '@screens/trips/NewTripScreen';
 import { CirclesScreen } from '@screens/circles/CirclesScreen';
 import { SetupScreen } from '@screens/circles/SetupScreen';
 import { CircleScreen } from '@screens/circles/CircleScreen';
+import { InviteScreen } from '@screens/circles/InviteScreen';
+import { AdminScreen } from '@screens/circles/AdminScreen';
 import { JoinCircleScreen } from '@screens/circles/JoinCircleScreen';
 import { VerifyScreen } from '@screens/verify/VerifyScreen';
 import { YouScreen } from '@screens/profile/YouScreen';
@@ -41,6 +43,8 @@ export interface Route {
     | 'circles'
     | 'circles.new'
     | 'circle'
+    | 'circle.invite'
+    | 'circle.admin'
     | 'join'
     | 'you'
     | 'you.edit'
@@ -85,6 +89,8 @@ export function parseRoute(hash: string): Route {
   if (head === 'trip' && id && tripId === 'edit') return { name: 'trip.edit', id };
   if (head === 'trip' || head === 'trips') return { name: 'trip' };
   if (head === 'circles' && id === 'new') return { name: 'circles.new' };
+  if (head === 'circles' && id && tripId === 'invite') return { name: 'circle.invite', id };
+  if (head === 'circles' && id && tripId === 'admin') return { name: 'circle.admin', id };
   if (head === 'circles' && id) return { name: 'circle', id };
   if (head === 'circles') return { name: 'circles' };
   // The invite link. Deliberately its own top-level route rather than a query
@@ -233,6 +239,18 @@ export function Router() {
       return (
         <AppShell route="circles">
           <CircleScreen id={route.id ?? ''} onBack={() => navigate('#/circles')} />
+        </AppShell>
+      );
+    case 'circle.invite':
+      return (
+        <AppShell route="circles" title="Invite people">
+          <InviteScreen id={route.id ?? ''} onBack={() => navigate('#/circles/' + (route.id ?? ''))} />
+        </AppShell>
+      );
+    case 'circle.admin':
+      return (
+        <AppShell route="circles" title="Manage">
+          <AdminScreen id={route.id ?? ''} onBack={() => navigate('#/circles/' + (route.id ?? ''))} />
         </AppShell>
       );
     case 'join':

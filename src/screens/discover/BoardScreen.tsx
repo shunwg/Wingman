@@ -10,6 +10,8 @@ import { personById } from '@data/seed/people';
 import { BoardFilters } from './BoardFilters';
 import { ContextStrip } from './ContextStrip';
 import { SuppressionNote } from './SuppressionNote';
+import { useEventBoards } from '@state/selectors/event';
+import { CircleCrest } from '@design/patterns/CircleCrest';
 
 /**
  * The board.
@@ -29,6 +31,51 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
   const filters = useStore((s) => s.filters);
   const setFilters = useStore((s) => s.setFilters);
   const reopenTrip = useStore((s) => s.reopenTrip);
+  const events = useEventBoards();
+
+  /*
+   * A live event you are in is a place before it is a journey. It sits above
+   * the trips, and it is enough on its own: a delegate who lives in the host
+   * city has no flight and still has a room full of people.
+   */
+  const eventSection = events.map((e) => (
+    <section className="eventboard" key={String(e.circle.id)}>
+      <div className="eventboard__head">
+        <CircleCrest shortName={e.circle.shortName} {...(e.circle.crestUrl ? { crestUrl: e.circle.crestUrl } : {})} size="sm" />
+        <div>
+          <p className="eventboard__title">At {e.circle.shortName}</p>
+          <p className="eventboard__meta mono">
+            {e.circle.venue?.label}
+            {' · '}
+            {e.daysLeft === 0 ? 'last day' : e.daysLeft + (e.daysLeft === 1 ? ' day left' : ' days left')}
+          </p>
+        </div>
+      </div>
+      {e.members.length === 0 ? (
+        <p className="panel__note">Nobody here has chosen to be seen yet.</p>
+      ) : (
+        <div className="board">
+          {e.members.map((p) => (
+            <PersonCard key={String(p.id)} person={p} context={'At ' + e.circle.shortName} layout="row" />
+          ))}
+        </div>
+      )}
+    </section>
+  ));
+
+  if (myTrips.length === 0 && events.length > 0) {
+    return (
+      <>
+        {eventSection}
+        <div className="empty empty--quiet">
+          <p className="empty__body">Add a flight and the people around it appear here too.</p>
+          <Button size="sm" variant="secondary" onClick={() => (window.location.hash = '#/trip/new')}>
+            Add a flight
+          </Button>
+        </div>
+      </>
+    );
+  }
 
   if (myTrips.length === 0) {
     return (
@@ -44,6 +91,7 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
 
   return (
     <>
+      {eventSection}
       <ContextStrip context={board.context} />
       <BoardFilters openTrips={board.openTrips} />
 

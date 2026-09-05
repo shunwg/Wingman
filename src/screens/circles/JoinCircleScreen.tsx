@@ -3,7 +3,7 @@ import { Button } from '@design/primitives/Button';
 import { Chip } from '@design/primitives/Chip';
 import { CircleCrest } from '@design/patterns/CircleCrest';
 import type { AdmissionRule } from '@domain/index';
-import { admissionSentence, admits } from '@domain/index';
+import { admissionSentence, admits, parseInvite } from '@domain/index';
 import { inviteCodeFor } from '@data/seed/circles';
 import { useCircles } from '@state/selectors/circles';
 import { useStore } from '@state/store';
@@ -25,7 +25,8 @@ export function JoinCircleScreen({ code, onDone }: { code: string; onDone: () =>
   const me = useStore((s) => s.me);
   const joinCircle = useStore((s) => s.joinCircle);
   const circles = useCircles();
-  const circle = circles.find((c) => inviteCodeFor(c) === code.toUpperCase());
+  const invite = parseInvite(code);
+  const circle = invite ? circles.find((c) => inviteCodeFor(c) === invite.code) : undefined;
 
   const v = useVerify();
   const [emailHash, setEmailHash] = useState<string | undefined>(undefined);
@@ -66,8 +67,15 @@ export function JoinCircleScreen({ code, onDone }: { code: string; onDone: () =>
   const domainRule = circle.admission.kind === 'email_domain' ? circle.admission : null;
   const otp = v.providers.find((p) => p.kind === 'email_domain');
 
+  // A badge on the link is honoured only if the circle defines it.
+  const badgeDef = invite?.badgeId ? circle.badges?.find((b) => b.id === invite.badgeId) : undefined;
+
   const join = () => {
-    joinCircle(String(circle.id), listRule && emailHash ? 'invite_list' : circle.admission.kind);
+    joinCircle(
+      String(circle.id),
+      listRule && emailHash ? 'invite_list' : circle.admission.kind,
+      badgeDef ? [badgeDef.id] : undefined,
+    );
     onDone();
   };
 
@@ -86,6 +94,7 @@ export function JoinCircleScreen({ code, onDone }: { code: string; onDone: () =>
       </div>
 
       <p className="circlehome__sentence">{admissionSentence(circle.admission)}</p>
+      {badgeDef && <Chip tone={badgeDef.tone}>You join as {badgeDef.label}</Chip>}
 
       {already ? (
         <>

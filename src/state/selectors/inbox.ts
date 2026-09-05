@@ -48,6 +48,7 @@ export function channelsFor(
   accepted: MeetRequest[],
   circleIds: string[],
   mine: Channel[],
+  announcements: Record<string, { text: string; at: ISODateTime }> = {},
 ): Channel[] {
   const meets: Channel[] = accepted.map((r) => {
     const other = r.fromPersonId === meId ? r.toPersonId : r.fromPersonId;
@@ -63,7 +64,8 @@ export function channelsFor(
   });
   const circles: Channel[] = circleIds.map((cid) => {
     const seeded = SEED_CHANNELS.find((c) => String(c.id) === String(circleChannelId(cid)));
-    return (
+    const pin = announcements[cid];
+    const base: Channel =
       seeded ?? {
         id: circleChannelId(cid),
         kind: 'circle',
@@ -72,8 +74,9 @@ export function channelsFor(
         circleId: cid as never,
         createdBy: meId,
         createdAt: '2026-01-01T00:00:00Z' as ISODateTime,
-      }
-    );
+      };
+    // The organiser's own pin wins over the seeded one.
+    return pin ? { ...base, pinned: pin } : base;
   });
   const groups = [...SEED_CHANNELS, ...mine].filter(
     (c) => c.kind === 'group' && c.memberIds.includes(meId),
@@ -111,6 +114,7 @@ export function useInbox(filter: InboxFilter = 'all') {
   const messages = useStore((s) => s.messages);
   const readAt = useStore((s) => s.readAt);
   const muted = useStore((s) => s.muted);
+  const announcements = useStore((s) => s.announcements);
   const { incomingPending, outgoing, accepted } = useRequests();
 
   return useMemo(() => {
@@ -118,7 +122,7 @@ export function useInbox(filter: InboxFilter = 'all') {
     const circleIds = me.memberships
       .filter((m) => m.display !== 'paused')
       .map((m) => String(m.circleId));
-    const all = channelsFor(me.id, accepted, circleIds, channels);
+    const all = channelsFor(me.id, accepted, circleIds, channels, announcements);
 
     const rows: InboxRow[] = all.map((c) => {
       const msgs = messagesFor(c.id, messages);
@@ -180,7 +184,7 @@ export function useInbox(filter: InboxFilter = 'all') {
       rows: sortRows(filtered),
       unreadCount: rows.filter((r) => r.unread && !r.muted).length,
     };
-  }, [me, myCircles, channels, messages, readAt, muted, incomingPending, outgoing, accepted, filter]);
+  }, [me, myCircles, channels, messages, readAt, muted, announcements, incomingPending, outgoing, accepted, filter]);
 }
 
 /** For the tab bar: how many things need you. */

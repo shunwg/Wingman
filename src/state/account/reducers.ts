@@ -35,6 +35,8 @@ export interface PersistedSlice {
   muted: string[];
   guardian: GuardianSession | null;
   ratings: Rating[];
+  /** The organiser's pinned note per circle, shown on its General. */
+  announcements: Record<string, { text: string; at: ISODateTime }>;
   onboarded: boolean;
   account: Account;
 }
@@ -85,6 +87,7 @@ export function blankState(deviceId: string, now: ISODateTime): PersistedSlice {
     muted: [],
     guardian: null,
     ratings: [],
+    announcements: {},
     onboarded: false,
     account: { mode: 'none', deviceId, provider: 'device' },
   };
@@ -105,6 +108,7 @@ export function demoState(deviceId: string, returnTo?: string): PersistedSlice {
     muted: [],
     guardian: null,
     ratings: [],
+    announcements: {},
     onboarded: true,
     account: {
       mode: 'demo',

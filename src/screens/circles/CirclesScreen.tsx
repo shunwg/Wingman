@@ -82,9 +82,19 @@ export function CirclesScreen({ onOpen }: { onOpen: (id: string) => void }) {
           Admission is proved, never typed, which is the only reason a member can trust that
           everyone else in the room belongs there.
         </p>
-        <Button size="sm" onClick={() => (window.location.hash = '#/circles/new')}>
-          Open a circle
-        </Button>
+        <div className="panel__row">
+          <Button size="sm" onClick={() => (window.location.hash = '#/circles/new')}>
+            Open a circle
+          </Button>
+          <a
+            className="btn btn--quiet btn--sm"
+            href={import.meta.env.BASE_URL + 'organisers.html'}
+            target="_blank"
+            rel="noreferrer"
+          >
+            For organisers
+          </a>
+        </div>
       </div>
     </>
   );

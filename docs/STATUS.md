@@ -1,7 +1,7 @@
 # Where the build is
 
 Branch `main`, deployed to https://shunwg.github.io/Wingman/ on every push. `npm run verify`
-is green (typecheck · purity gate · boundaries · dataset · 311 tests · 11 Playwright flows). CI runs `verify`,
+is green (typecheck · purity gate · boundaries · dataset · 321 tests · 13 Playwright flows). CI runs `verify`,
 `lint`, `build` and `e2e` before anything is published.
 
 Plan: `docs/superpowers/plans/2026-09-05-wingman-v4.md` (also the source for every per-stream plan).
@@ -26,7 +26,7 @@ House rules and skill routing: `CLAUDE.md`.
 | 3 | Circles: admission by list or domain, logo, badges, roles | ☑ |
 | 4 | Inbox: safety surfaces, then meet / circle / group chat in one list | ☑ |
 | 5 | Trips: add / edit / connections / purpose / bundled lookup | ☑ |
-| 6 | Events: organiser dashboard, QR, event board | ☐ |
+| 6 | Events: organiser dashboard, QR, event board | ☑ |
 | 7 | Discover density + professional depth | ☐ |
 | 8 | Matching v2 | ☐ |
 | 9 | The Jobs / Thiel loop + polish (gate: both ≥ 9.5/10) | ☐ |
@@ -34,7 +34,6 @@ House rules and skill routing: `CLAUDE.md`.
 
 ## Known gaps (the S1 findings)
 
-- A circle has no organiser dashboard yet (WS6).
 
 ## Things a later session must not undo
 

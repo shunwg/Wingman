@@ -146,6 +146,16 @@ export function CircleScreen({ id, onBack }: { id: string; onBack: () => void })
         </p>
       </section>
 
+      {mine?.role === 'admin' && (
+        <div className="panel panel__row">
+          <Button size="sm" onClick={() => (window.location.hash = '#/circles/' + String(circle.id) + '/invite')}>
+            Invite people
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => (window.location.hash = '#/circles/' + String(circle.id) + '/admin')}>
+            Manage
+          </Button>
+        </div>
+      )}
       {mine && (
         <div className="panel panel__row">
           <Button size="sm" onClick={() => (window.location.hash = `#/inbox/circle:${String(circle.id)}`)}>

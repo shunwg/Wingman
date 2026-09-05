@@ -17,6 +17,7 @@ export * from './avatar';
 export * from './verification';
 export * from './circle';
 export * from './admission';
+export * from './invite';
 export * from './person';
 export * from './privacy';
 export * from './meet';

@@ -1,4 +1,5 @@
-import type { CityKey, IataCode, MeetId, MeetRequestId, PersonId, RatingId, TripId } from './ids';
+import type {
+  CircleId, CityKey, IataCode, MeetId, MeetRequestId, PersonId, RatingId, TripId } from './ids';
 import type { GuardianSessionId } from './ids';
 import type { ISODateTime, TimeWindow } from './time';
 import type { MeetKind } from './intent';
@@ -101,6 +102,8 @@ export interface MeetRequest {
    * the one you are boarding tonight.
    */
   tripId: TripId;
+  /** Set when both people share a live circle at send time; the organiser's report counts it. */
+  circleId?: CircleId;
   overlapRef: OverlapRef;
   proposal: MeetProposal;
   /** <=200 chars, template-seeded so nobody has to cold-write to a stranger. */

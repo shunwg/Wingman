@@ -101,11 +101,14 @@ export function useChannel(channelId: string): ChannelView | undefined {
   const stored = useStore((s) => s.channels);
   const allMessages = useStore((s) => s.messages);
   const muted = useStore((s) => s.muted);
+  const announcements = useStore((s) => s.announcements);
   const { accepted } = useRequests();
 
   return useMemo(() => {
     const circleIds = me.memberships.map((m) => String(m.circleId));
-    const channel = channelsFor(me.id, accepted, circleIds, stored).find((c) => String(c.id) === channelId);
+    const channel = channelsFor(me.id, accepted, circleIds, stored, announcements).find(
+      (c) => String(c.id) === channelId,
+    );
     if (!channel) return undefined;
 
     const messages = messagesFor(channel.id, allMessages);
@@ -160,7 +163,7 @@ export function useChannel(channelId: string): ChannelView | undefined {
       return { id: String(id), firstName: p?.firstName ?? 'Member', avatar: p?.avatar ?? me.avatar, isMe: false };
     });
     return { channel, messages, ...(circle ? { circle } : {}), participants, sameTerminal: false, muted: isMuted };
-  }, [channelId, me, myTrips, myCircles, stored, allMessages, muted, accepted]);
+  }, [channelId, me, myTrips, myCircles, stored, allMessages, muted, announcements, accepted]);
 }
 
 /** Who wrote a message, for a bubble's name line. */

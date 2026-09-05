@@ -43,6 +43,7 @@ export const SEED_CIRCLES: Circle[] = [
     kind: 'conference',
     admission: { kind: 'invite_code' },
     crestSeed: 'gridweek-crest',
+    venue: { cityKey: 'singapore-sg' as never, label: 'Marina Bay Sands, Hall B' },
     // The three badges a conference actually needs. Speakers are findable as
     // speakers; the organiser is findable as the person to ask.
     badges: [

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Wingman for organisers</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root { --canvas:#fbf9f7; --surface:#fff; --sunk:#f4f0ec; --hair:#e8e2dc; --ink:#141110; --muted:#736a64; --accent:#e2563a; --wash:#fdefeb; --trust:#10715c; --trustwash:#e6f2ee; --guard:#3d4edb; --guardwash:#ecedfd; }
+  @media (prefers-color-scheme: dark) { :root { --canvas:#141110; --surface:#1c1917; --sunk:#242019; --hair:#332e29; --ink:#f3ede7; --muted:#a89f97; --accent:#ff7355; --wash:#2e1c17; --trust:#3fbf9c; --trustwash:#152a24; --guard:#8a95ff; --guardwash:#1b1e33; } }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--canvas); color:var(--ink); font:16px/1.6 Inter, system-ui, sans-serif; }
+  main { max-width:680px; margin:0 auto; padding:48px 24px 96px; }
+  h1, h2 { font-family: Fraunces, Georgia, serif; line-height:1.1; letter-spacing:-0.01em; text-wrap:balance; }
+  h1 { font-size:clamp(2rem, 6vw, 3rem); margin:16px 0 8px; }
+  h2 { font-size:1.5rem; margin:48px 0 12px; }
+  p { max-width:62ch; }
+  .lede { font-size:1.125rem; color:var(--muted); }
+  .mark { display:inline-flex; align-items:center; gap:10px; font-family:Fraunces, serif; font-weight:600; font-size:1.4rem; }
+  .steps { list-style:none; padding:0; margin:0; display:grid; gap:12px; }
+  .steps li { display:grid; grid-template-columns:44px 1fr; gap:12px; align-items:start; padding:16px; background:var(--surface); border:1px solid var(--hair); border-radius:16px; }
+  .steps .n { display:grid; place-items:center; width:44px; height:44px; border-radius:12px; background:var(--sunk); font:600 14px/1 "JetBrains Mono", monospace; }
+  .steps b { display:block; margin-bottom:2px; }
+  .sentence { font-family:Fraunces, serif; font-size:1.375rem; padding:20px 24px; border-left:3px solid var(--accent); background:var(--wash); border-radius:0 16px 16px 0; margin:24px 0; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .cell { padding:16px; border-radius:16px; background:var(--surface); border:1px solid var(--hair); }
+  .cell.trust { background:var(--trustwash); border-color:transparent; }
+  .cell.guard { background:var(--guardwash); border-color:transparent; }
+  .cell b { display:block; margin-bottom:4px; }
+  .cell p { margin:0; font-size:.925rem; color:var(--muted); }
+  .cta { display:inline-block; margin-top:24px; padding:14px 22px; border-radius:999px; background:var(--accent); color:#fff; text-decoration:none; font-weight:600; }
+  .fine { font-size:.85rem; color:var(--muted); }
+  code { font-family:"JetBrains Mono", monospace; font-size:.9em; }
+  @media (max-width:560px) { .grid { grid-template-columns:1fr } }
+</style>
+</head>
+<body>
+<main>
+  <span class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 19 C 8 19, 13 15, 17 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 5 C 9 5, 13 6, 17 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="17" cy="9" r="2.1" fill="#e2563a"/></svg>Wingman</span>
+  <h1>Every conference already has an app nobody opens.</h1>
+  <p class="lede">Wingman is the "who should I meet" layer for your event: a closed room where everyone was admitted the same way, and the people worth meeting find each other before the coffee break ends.</p>
+
+  <div class="sentence">Everyone here was on the organiser's list.</div>
+  <p>That one sentence is the product. A circle is worth exactly what its admission is worth, so admission is proved, never typed: your attendee list becomes salted hashes on the organiser's device, and each delegate proves the address you have for them before they are in. Nobody can claim their way into your room.</p>
+
+  <h2>Your first ten minutes</h2>
+  <ol class="steps">
+    <li><span class="n">1</span><span><b>Open a circle</b>Name it, set the dates, upload your mark. Two taps.</span></li>
+    <li><span class="n">2</span><span><b>Paste the attendee list</b>Addresses are hashed on your device and never stored. Or admit anyone at <code>@yourdomain</code>. Or both.</span></li>
+    <li><span class="n">3</span><span><b>Put the QR on the lanyard</b>And the six-character code on a slide. Speakers get their own link and are findable as speakers.</span></li>
+    <li><span class="n">4</span><span><b>Pin a welcome</b>Registration times, the lounge, tonight's dinner — on the circle's General, which every delegate has.</span></li>
+    <li><span class="n">5</span><span><b>Watch the room fill</b>Delegates see each other before they land and while they are in the hall. A delegate who lives in the city needs no flight at all.</span></li>
+  </ol>
+
+  <h2>What your delegates get</h2>
+  <div class="grid">
+    <div class="cell trust"><b>Trust before contact</b><p>Verified people only, women only, your circle only — in both directions. BankID for those who want the strongest room.</p></div>
+    <div class="cell"><b>One sentence, not a profile</b><p>A first name and what they are working on. Nothing else until both say yes.</p></div>
+    <div class="cell guard"><b>Safety on every surface</b><p>Hide, report and mute anywhere a person appears. A friend can watch over a meet with a link that dies when it ends.</p></div>
+    <div class="cell"><b>The room after the room</b><p>A shared flight home, a layover in the same terminal, the same city next month. The event is where it starts.</p></div>
+  </div>
+
+  <h2>What you get</h2>
+  <p>A report a sponsor can read: how many joined, how many met through the circle — bucketed on purpose, because an exact figure on a small circle is a roster. Free while in beta; per-event pricing for organisers comes with the server. Travellers never pay, and there are no ads.</p>
+
+  <a class="cta" href="./#/demo">Try the demo</a>
+  <p class="fine">Wingman is honestly social and professional. It is never a dating app pretending otherwise, and it never pretends to be only a networking tool.</p>
+</main>
+</body>
+</html>

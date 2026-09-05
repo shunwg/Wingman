@@ -65,9 +65,9 @@ describe('migratePersisted', () => {
     expect(s.account.deviceId).toBe('dev-3');
   });
 
-  it('passes a v4 blob through untouched', () => {
+  it('passes a v4 blob through whole', () => {
     const v4 = demoState('dev-4');
-    expect(migratePersisted(v4, 4, mint, NOW)).toBe(v4);
+    expect(migratePersisted(v4, 4, mint, NOW)).toEqual(v4);
   });
 
   it('treats garbage as a fresh install', () => {
