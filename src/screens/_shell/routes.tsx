@@ -37,6 +37,7 @@ export interface Route {
     | 'channel'
     | 'trip'
     | 'trip.new'
+    | 'trip.edit'
     | 'circles'
     | 'circles.new'
     | 'circle'
@@ -81,6 +82,7 @@ export function parseRoute(hash: string): Route {
   // aliases so a bookmark or a screenshot URL from an earlier build still lands
   // somewhere sensible.
   if (head === 'trip' && id === 'new') return { name: 'trip.new' };
+  if (head === 'trip' && id && tripId === 'edit') return { name: 'trip.edit', id };
   if (head === 'trip' || head === 'trips') return { name: 'trip' };
   if (head === 'circles' && id === 'new') return { name: 'circles.new' };
   if (head === 'circles' && id) return { name: 'circle', id };
@@ -207,6 +209,12 @@ export function Router() {
       return (
         <AppShell route="trip" title="Add a trip">
           <NewTripScreen onDone={() => navigate('#/trip')} />
+        </AppShell>
+      );
+    case 'trip.edit':
+      return (
+        <AppShell route="trip" title="Edit this trip">
+          <NewTripScreen tripId={route.id ?? ''} onDone={() => navigate('#/trip')} />
         </AppShell>
       );
     case 'circles':

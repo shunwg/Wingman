@@ -19,7 +19,7 @@ export interface ProfileDraft {
 }
 
 /** Social-vs-professional in three words rather than two sliders. */
-export type Posture = 'social' | 'both' | 'work';
+export type Posture = 'social' | 'leisure' | 'both' | 'work';
 
 export interface WorkDraft extends ProfessionalCard {
   openTo: MeetKind[];
@@ -41,6 +41,7 @@ export function validateProfile(d: ProfileDraft): Partial<Record<keyof ProfileDr
 export function postureToAppetite(p: Posture): Record<IntentAxis, number> {
   switch (p) {
     case 'social':
+    case 'leisure':
       return { social: 0.85, professional: 0.35 };
     case 'work':
       return { social: 0.35, professional: 0.9 };

@@ -22,6 +22,7 @@ export default defineWorkspace([
         'src/matching/**/*.test.ts',
         'src/privacy/**/*.test.ts',
         'src/stamps/**/*.test.ts',
+        'src/providers/**/*.test.ts',
         'src/state/**/*.test.ts',
         'src/data/**/*.test.ts',
         'src/lib/**/*.test.ts',

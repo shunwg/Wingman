@@ -128,6 +128,7 @@ function TripBlock({
         ) : (
           <Chip tone="neutral">Looking</Chip>
         )}
+        {purposeOf(trip) && <Chip tone="neutral">{purposeOf(trip)}</Chip>}
       </header>
 
       {trip.segments.map((s) => {
@@ -187,10 +188,22 @@ function TripBlock({
             {trip.visibility.listing === 'listed' ? 'Hide this trip' : 'List this trip again'}
           </Button>
         )}
+        <Button size="sm" variant="quiet" onClick={() => (window.location.hash = `#/trip/${String(trip.id)}/edit`)}>
+          Edit
+        </Button>
         <Button size="sm" variant="quiet" onClick={onRemove}>
           Remove
         </Button>
       </div>
     </article>
   );
+}
+
+/** Work, Leisure, or nothing when the trip inherits the standing appetite. */
+function purposeOf(trip: Trip): string | null {
+  const a = trip.intent?.appetite;
+  if (!a) return null;
+  if (a.professional - a.social > 0.25) return 'Work';
+  if (a.social - a.professional > 0.25) return 'Leisure';
+  return null;
 }
