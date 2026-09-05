@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Button } from '@design/primitives/Button';
 import { Chip, ToggleChip } from '@design/primitives/Chip';
+import { Field } from '@design/primitives/Field';
+import { OptionRow } from '@design/primitives/OptionRow';
 import type { Circle } from '@domain/index';
 import { asCircleId } from '@domain/ids';
 import { asISODate, asUtc } from '@domain/time';
@@ -44,8 +46,8 @@ export function NewCircleScreen({ onDone }: { onDone: () => void }) {
   const [copied, setCopied] = useState(false);
 
   const timeBoxed = kind === 'conference';
-  const valid =
-    name.trim().length >= 2 && (!byDomain || /^[^\s@]+\.[^\s@]{2,}$/.test(domain.trim()));
+  const domainOk = /^[^\s@]+\.[^\s@]{2,}$/.test(domain.trim());
+  const valid = name.trim().length >= 2 && (!byDomain || domainOk);
 
   if (created) {
     const link = inviteLinkFor(created);
@@ -84,52 +86,46 @@ export function NewCircleScreen({ onDone }: { onDone: () => void }) {
 
   return (
     <section className="panel">
-      <label className="field">
-        <span className="field__label">What is it called?</span>
+      <Field label="What is it called?">
         <input
           className="field__input"
           value={name}
           placeholder="Grid Week Oslo 2026"
           onChange={(e) => setName(e.target.value)}
         />
-      </label>
+      </Field>
 
       <div className="panel__stack">
         <span className="field__label">What kind?</span>
         {KINDS.map((k) => (
-          <button
+          <OptionRow
             key={k.id}
-            type="button"
-            className={`optrow ${kind === k.id ? 'is-selected' : ''}`}
-            aria-pressed={kind === k.id}
+            label={k.label}
+            note={k.hint}
+            selected={kind === k.id}
             onClick={() => setKind(k.id)}
-          >
-            <span className="optrow__label">{k.label}</span>
-            <span className="optrow__note">{k.hint}</span>
-          </button>
+          />
         ))}
       </div>
 
       {timeBoxed && (
         <div className="panel__row">
-          <label className="field">
-            <span className="field__label">From</span>
+          <Field label="From">
             <input
               className="field__input mono"
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
             />
-          </label>
-          <label className="field">
-            <span className="field__label">To</span>
+          </Field>
+          <Field label="To">
             <input
               className="field__input mono"
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
             />
-          </label>
+          </Field>
         </div>
       )}
 
@@ -149,15 +145,19 @@ export function NewCircleScreen({ onDone }: { onDone: () => void }) {
       </div>
 
       {byDomain && (
-        <label className="field">
-          <span className="field__label">Domain</span>
+        <Field
+          label="Domain"
+          {...(domain.length > 0 && !domainOk
+            ? { error: 'That does not look like a domain — try insead.edu, without the @.' }
+            : {})}
+        >
           <input
             className="field__input mono"
             value={domain}
             placeholder="insead.edu"
             onChange={(e) => setDomain(e.target.value.trim().toLowerCase())}
           />
-        </label>
+        </Field>
       )}
 
       <Button
@@ -187,12 +187,6 @@ export function NewCircleScreen({ onDone }: { onDone: () => void }) {
       >
         Open the circle
       </Button>
-
-      {!valid && name.trim().length > 0 && byDomain && (
-        <p className="field__error" role="alert">
-          That does not look like a domain — try insead.edu, without the @.
-        </p>
-      )}
 
       <p className="panel__note">
         You will be its first member and its admin. <Chip tone="neutral">Free while in beta</Chip>

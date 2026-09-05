@@ -2,16 +2,13 @@ import { Button } from '@design/primitives/Button';
 import { Chip } from '@design/primitives/Chip';
 import { isMocked } from '@stamps/index';
 import { useVerify } from './useVerify';
-import { InputChallenge } from './challenges/InputChallenge';
-import { RedirectChallenge } from './challenges/RedirectChallenge';
-import { DeeplinkChallenge } from './challenges/DeeplinkChallenge';
-import { PollingChallenge } from './challenges/PollingChallenge';
+import { ChallengeView } from './ChallengeView';
 
 /**
  * Connect your accounts.
  *
- * The screen renders challenge *shapes*, never provider names — the switch
- * below is over four modes, and there is no branch anywhere in this folder that
+ * The screen renders challenge *shapes*, never provider names — ChallengeView
+ * switches over four modes, and there is no branch anywhere in this folder that
  * says "if linkedin". An ESLint rule bans provider-id literals under screens/,
  * so adding a seventh provider is a registry line and no work here at all.
  *
@@ -31,34 +28,10 @@ export function VerifyScreen() {
   const { env, providers, held, flow, begin, cancel, submit, openAndReturn, revoke } = useVerify();
 
   if (flow.step === 'running') {
-    const { provider, challenge, poll } = flow;
     return (
       <section className="verify">
-        <h2 className="verify__title display">{provider.display.label}</h2>
-
-        {/* One switch, over shapes. Four renderers, forever. */}
-        {challenge.mode === 'input' && (
-          <InputChallenge challenge={challenge} onSubmit={submit} onCancel={cancel} />
-        )}
-        {challenge.mode === 'redirect' && (
-          <RedirectChallenge
-            challenge={challenge}
-            label={provider.display.label}
-            onSubmit={submit}
-            onCancel={cancel}
-          />
-        )}
-        {challenge.mode === 'deeplink' && (
-          <DeeplinkChallenge
-            challenge={challenge}
-            {...(poll ? { poll } : {})}
-            onOpen={() => openAndReturn(challenge)}
-            onCancel={cancel}
-          />
-        )}
-        {challenge.mode === 'polling' && (
-          <PollingChallenge challenge={challenge} {...(poll ? { poll } : {})} onCancel={cancel} />
-        )}
+        <h2 className="verify__title display">{flow.provider.display.label}</h2>
+        <ChallengeView flow={flow} submit={submit} cancel={cancel} openAndReturn={openAndReturn} />
       </section>
     );
   }

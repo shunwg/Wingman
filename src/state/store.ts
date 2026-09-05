@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
   AdmissionRule,
   DenialRecord,
+  IntentProfile,
   JourneyStage,
   MeetMessage,
   MeetRequest,
@@ -12,13 +13,24 @@ import type {
   Person,
   PersonId,
   PrivacyPolicy,
+  ProfessionalCard,
   Trip,
   VerificationRecord,
 } from '@domain/index';
 import { asCircleId, asMeetRequestId, asUtc } from '@domain/index';
 import type { ISODateTime } from '@domain/time';
-import { ME, MY_TRIPS, SEED_NOW } from '@data/seed/trips';
+import { SEED_NOW } from '@data/seed/trips';
+import { layoversFor, MATCH_CONFIG_V1 } from '@matching/index';
 import { transition } from './machines/meetRequest';
+import type { Account } from './account/types';
+import {
+  applyBeginSignup,
+  applyCompleteOnboarding,
+  applyStartDemo,
+  blankState,
+  type PersistedSlice,
+} from './account/reducers';
+import { migratePersisted } from './persist/migrate';
 
 /**
  * The store.
@@ -39,9 +51,10 @@ import { transition } from './machines/meetRequest';
  * what made it unmaintainable.
  */
 
-// Bumped for `myTrip` -> `myTrips`. A v1 blob has a shape v2 cannot read, and
-// the migration below discards rather than guesses.
-export const STORE_VERSION = 2;
+// v2 → v3: the store starts blank and an `account` slice says how a person
+// came to be here. A v2 blob is by construction the seeded demo and migrates
+// to demo mode with its session intact; v1 and earlier are discarded.
+export const STORE_VERSION = 3;
 
 /**
  * What the board is currently being filtered to.
@@ -104,9 +117,27 @@ export interface WingmanState {
   /** The simulated clock. Real builds would use the wall clock here. */
   now: ISODateTime;
   onboarded: boolean;
+  /** How this device came to have a person on it. See account/types.ts. */
+  account: Account;
   filters: BoardFilters;
 
+  /** Alex, three trips, Priya waiting. Returns where to go next. */
+  startDemo: () => string;
+  /** A profile of your own, from nothing. Resumes a half-made one. */
+  beginSignup: () => void;
+  /** Onboarding is done. Returns the deferred destination, or the board. */
+  completeOnboarding: () => string;
+  /** Back to the welcome screen with nothing kept. */
+  signOut: () => void;
+  setReturnTo: (hash: string | null) => void;
+
   setMe: (patch: Partial<Person>) => void;
+  setProfessional: (patch: Partial<ProfessionalCard>) => void;
+  setIntent: (patch: Partial<IntentProfile>) => void;
+  /** A resized data URL, or null to go back to the generated portrait. */
+  setPhoto: (dataUrl: string | null) => void;
+  /** Add a trip typed by hand. Attaches layovers the way the seed does. */
+  addTrip: (trip: Trip) => void;
   setPrivacy: (patch: Partial<PrivacyPolicy>) => void;
   upsertTrip: (trip: Trip) => void;
   removeTrip: (tripId: string) => void;
@@ -114,7 +145,6 @@ export interface WingmanState {
   /** Re-open a settled trip. Changing your mind is allowed. */
   reopenTrip: (tripId: string) => void;
   markSeen: (id: PersonId) => void;
-  completeOnboarding: () => void;
 
   /**
    * Circle membership.
@@ -146,45 +176,27 @@ export interface WingmanState {
 let requestCounter = 0;
 
 /**
- * One request already waiting.
- *
- * Seeded so the decline flow is reachable on a first run. Being able to say no
- * is a stated requirement, and a requirement you cannot reach without first
- * persuading a stranger to message you is not really testable.
+ * Minted once per install. The store is the impure edge, so a random id is
+ * fine here — the engines never generate one.
  */
-const seededInbound = (): MeetRequest => ({
-  id: asMeetRequestId('req_seed_priya'),
-  fromPersonId: 'priya' as never,
-  toPersonId: ME.id,
-  tripId: MY_TRIPS[0]!.id,
-  overlapRef: { kind: 'same_airport_window', airport: 'LHR' as never },
-  proposal: {
-    kind: 'gate_coffee',
-    window: { from: asUtc('2026-09-02T18:10:00Z'), to: asUtc('2026-09-02T19:20:00Z') },
-  },
-  message: 'Long layover and no lounge access — coffee before you board?',
-  status: 'sent',
-  history: [
-    {
-      at: asUtc('2026-09-02T16:05:00Z'),
-      by: 'priya' as never,
-      from: 'draft',
-      to: 'sent',
-    },
-  ],
-  createdAt: asUtc('2026-09-02T16:05:00Z'),
-  expiresAt: asUtc('2026-09-02T19:25:00Z'),
+const mintDeviceId = () => crypto.randomUUID();
+
+/** The persisted facts, as the pure reducers see them. */
+const slice = (s: WingmanState): PersistedSlice => ({
+  me: s.me,
+  myTrips: s.myTrips,
+  requests: s.requests,
+  messages: s.messages,
+  myCircles: s.myCircles,
+  seenCounts: s.seenCounts,
+  onboarded: s.onboarded,
+  account: s.account,
 });
 
+/** A fresh install. The welcome screen is what a person sees next. */
 const initial = () => ({
-  me: ME,
-  myTrips: MY_TRIPS,
-  requests: [seededInbound()],
-  messages: [] as MeetMessage[],
-  myCircles: [] as Circle[],
-  seenCounts: {} as Record<string, number>,
+  ...blankState(mintDeviceId(), SEED_NOW),
   now: SEED_NOW,
-  onboarded: false,
   filters: NO_FILTERS,
 });
 
@@ -193,7 +205,57 @@ export const useStore = create<WingmanState>()(
     (set, get) => ({
       ...initial(),
 
+      startDemo: () => {
+        const next = applyStartDemo(slice(get()));
+        const to = next.account.returnTo ?? '#/';
+        const account = { ...next.account };
+        delete account.returnTo;
+        set({ ...next, account });
+        return to;
+      },
+
+      beginSignup: () =>
+        set((s) => applyBeginSignup(slice(s), s.account.deviceId, s.now)),
+
+      completeOnboarding: () => {
+        const [next, to] = applyCompleteOnboarding(slice(get()), get().now);
+        set(next);
+        return to;
+      },
+
+      signOut: () => set(initial()),
+
+      setReturnTo: (hash) =>
+        set((s) => {
+          const account = { ...s.account };
+          delete account.returnTo;
+          return { account: hash ? { ...account, returnTo: hash } : account };
+        }),
+
       setMe: (patch) => set((s) => ({ me: { ...s.me, ...patch } })),
+
+      setProfessional: (patch) =>
+        set((s) => ({ me: { ...s.me, professional: { ...s.me.professional, ...patch } } })),
+
+      setIntent: (patch) =>
+        set((s) => ({ me: { ...s.me, intent: { ...s.me.intent, ...patch } } })),
+
+      setPhoto: (dataUrl) =>
+        set((s) => {
+          // localStorage is ~5 MB per origin and persist fails silently past
+          // it, so an unresized photo is refused rather than quietly dropped.
+          if (dataUrl && dataUrl.length > 200_000) {
+            throw new Error('Photo too large — resize before storing.');
+          }
+          const avatar = { ...s.me.avatar };
+          delete avatar.photoUrl;
+          return { me: { ...s.me, avatar: dataUrl ? { ...avatar, photoUrl: dataUrl } : avatar } };
+        }),
+
+      addTrip: (trip) => {
+        const withLayovers = { ...trip, layovers: layoversFor(trip, MATCH_CONFIG_V1) };
+        get().upsertTrip(withLayovers);
+      },
 
       setPrivacy: (patch) =>
         set((s) => ({ me: { ...s.me, privacy: { ...s.me.privacy, ...patch } } })),
@@ -225,8 +287,6 @@ export const useStore = create<WingmanState>()(
 
       markSeen: (id) =>
         set((s) => ({ seenCounts: { ...s.seenCounts, [id]: (s.seenCounts[id] ?? 0) + 1 } })),
-
-      completeOnboarding: () => set({ onboarded: true }),
 
       postStage: (requestId, stage, at) =>
         set((s) => ({
@@ -438,7 +498,7 @@ export const useStore = create<WingmanState>()(
           ),
         })),
 
-      reset: () => set({ ...initial(), onboarded: false }),
+      reset: () => set(initial()),
     }),
     {
       name: 'wingman',
@@ -456,22 +516,18 @@ export const useStore = create<WingmanState>()(
         myCircles: s.myCircles,
         seenCounts: s.seenCounts,
         onboarded: s.onboarded,
+        account: s.account,
         // `filters` is absent on purpose. It is a lens on this session, not a
         // durable fact, and reopening the app to a board silently narrowed by
         // a filter set last week is indistinguishable from a broken product.
       }),
-      migrate: (persisted, version) => {
-        // v0 had no schema version at all. Anything from before this chain
-        // started is discarded rather than guessed at — a half-migrated
-        // privacy policy is worse than a fresh one.
-        if (version < STORE_VERSION) return initial() as never;
-        return persisted as never;
-      },
+      migrate: (persisted, version) =>
+        migratePersisted(persisted, version, mintDeviceId, SEED_NOW) as never,
     },
   ),
 );
 
-/** Reset helper for tests and the dev menu. */
+/** Reset helper for tests and the dev menu. Yields a fresh install. */
 export const resetStore = () => useStore.getState().reset();
 
 export const nowOf = (): ISODateTime => useStore.getState().now ?? asUtc(SEED_NOW);

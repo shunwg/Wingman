@@ -1,6 +1,7 @@
 import { Avatar } from '@design/primitives/Avatar';
 import { Button } from '@design/primitives/Button';
 import { Chip, ToggleChip } from '@design/primitives/Chip';
+import { OptionRow } from '@design/primitives/OptionRow';
 import { StampBadge } from '@design/patterns/StampBadge';
 import type { Gender, PrivacyPresetId } from '@domain/index';
 import { PRESET_LIST } from '@privacy/index';
@@ -91,21 +92,15 @@ export function YouScreen() {
           see, together.
         </p>
         <div className="panel__stack">
-          {PRESET_LIST.map((p) => {
-            const on = me.privacy.presets.includes(p.id);
-            return (
-              <button
-                key={p.id}
-                type="button"
-                className={`optrow ${on ? 'is-selected' : ''}`}
-                aria-pressed={on}
-                onClick={() => togglePreset(p.id)}
-              >
-                <span className="optrow__label">{p.label}</span>
-                <span className="optrow__note">{p.explainer}</span>
-              </button>
-            );
-          })}
+          {PRESET_LIST.map((p) => (
+            <OptionRow
+              key={p.id}
+              label={p.label}
+              note={p.explainer}
+              selected={me.privacy.presets.includes(p.id)}
+              onClick={() => togglePreset(p.id)}
+            />
+          ))}
         </div>
       </section>
 

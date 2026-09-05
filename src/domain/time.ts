@@ -143,3 +143,51 @@ export function localTime(t: ISODateTime, zone: IanaZone): string {
     hour12: false,
   }).format(new Date(epoch(t)));
 }
+
+/**
+ * The inverse of `localTime`: a wall-clock `HH:MM` on a local calendar date,
+ * in a zone, as a UTC instant. This is the single place local time enters the
+ * domain from the outside; forms hold strings, the domain holds instants.
+ *
+ * Method: assume the wall clock is UTC, read what that instant looks like in
+ * `zone`, and shift by the difference. A second pass covers DST edges. A time
+ * inside a spring-forward gap resolves to just after the jump; a time that
+ * happens twice on a fall-back night resolves to the first, which is what a
+ * printed ticket means.
+ */
+export function utcFromLocal(date: ISODate, hhmm: string, zone: IanaZone): ISODateTime {
+  const [h, m] = hhmm.split(':').map(Number) as [number, number];
+  const [y, mo, d] = date.split('-').map(Number) as [number, number, number];
+  const want = Date.UTC(y, mo - 1, d, h, m);
+  // Two passes: the offset at the naive instant, then the offset at the
+  // corrected one. They agree everywhere except across a DST change.
+  const g1 = want - (wallClockMs(want, zone) - want);
+  const g2 = g1 - (wallClockMs(g1, zone) - want);
+  let guess: number;
+  if (wallClockMs(g2, zone) === want) {
+    guess = g2;
+    // Fall-back night: two instants show this wall clock; take the earlier one.
+    if (wallClockMs(g2 - 3_600_000, zone) === want) guess = g2 - 3_600_000;
+  } else {
+    // Spring-forward gap: the wall clock never happens. The later candidate is
+    // the one just after the jump.
+    guess = Math.max(g1, g2);
+  }
+  return new Date(guess).toISOString().replace(/\.\d{3}Z$/, 'Z') as ISODateTime;
+}
+
+function wallClockMs(ms: number, zone: IanaZone): number {
+  const p: Record<string, string> = {};
+  for (const part of new Intl.DateTimeFormat('en-GB', {
+    timeZone: zone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).formatToParts(new Date(ms))) {
+    p[part.type] = part.value;
+  }
+  return Date.UTC(+p.year!, +p.month! - 1, +p.day!, +p.hour!, +p.minute!);
+}

@@ -11,6 +11,7 @@ export * from './time';
 export * from './airport';
 export * from './flight';
 export * from './trip';
+export * from './tripEntry';
 export * from './intent';
 export * from './avatar';
 export * from './verification';

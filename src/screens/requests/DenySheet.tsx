@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@design/primitives/Button';
+import { OptionRow } from '@design/primitives/OptionRow';
+import { Sheet } from '@design/primitives/Sheet';
 import type { DenialRecord, MeetRequest } from '@domain/index';
 import { useStore } from '@state/store';
 
@@ -49,48 +51,47 @@ export function DenySheet({ request, onClose }: { request: MeetRequest; onClose:
   };
 
   return (
-    <div className="sheet" role="dialog" aria-modal="true" aria-label="Decline this request">
-      <div className="sheet__scrim" onClick={onClose} />
-      <div className="sheet__panel">
-        <h2 className="sheet__title display">Not this time</h2>
-        <p className="sheet__body">
-          They will just see that this closed. Not the reason, not when you read it, and not
-          whether you read it at all.
-        </p>
-
-        <div className="sheet__options">
-          {REASONS.map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              className={`optrow ${reason === r.id ? 'is-selected' : ''}`}
-              aria-pressed={reason === r.id}
-              onClick={() => setReason(r.id)}
-            >
-              <span className="optrow__label">{r.label}</span>
-              {r.note && <span className="optrow__note">{r.note}</span>}
-            </button>
-          ))}
-        </div>
-
-        {!uncomfortable && (
-          <label className="checkrow">
-            <input
-              type="checkbox"
-              checked={alsoBlock}
-              onChange={(e) => setAlsoBlock(e.target.checked)}
-            />
-            <span>Also block them</span>
-          </label>
-        )}
-
-        <div className="sheet__actions">
+    <Sheet
+      open
+      title="Not this time"
+      label="Decline this request"
+      onClose={onClose}
+      actions={
+        <>
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={submit}>Decline</Button>
-        </div>
+        </>
+      }
+    >
+      <p className="sheet__body">
+        They will just see that this closed. Not the reason, not when you read it, and not
+        whether you read it at all.
+      </p>
+
+      <div className="sheet__options">
+        {REASONS.map((r) => (
+          <OptionRow
+            key={r.id}
+            label={r.label}
+            note={r.note}
+            selected={reason === r.id}
+            onClick={() => setReason(r.id)}
+          />
+        ))}
       </div>
-    </div>
+
+      {!uncomfortable && (
+        <label className="checkrow">
+          <input
+            type="checkbox"
+            checked={alsoBlock}
+            onChange={(e) => setAlsoBlock(e.target.checked)}
+          />
+          <span>Also block them</span>
+        </label>
+      )}
+    </Sheet>
   );
 }

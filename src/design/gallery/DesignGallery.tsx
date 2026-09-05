@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { Avatar } from '../primitives/Avatar';
 import { Button } from '../primitives/Button';
 import { Chip, ToggleChip } from '../primitives/Chip';
+import { Field } from '../primitives/Field';
+import { OptionRow } from '../primitives/OptionRow';
+import { Sheet } from '../primitives/Sheet';
+import { Stepper } from '../primitives/Stepper';
 import { PersonCard } from '../patterns/PersonCard';
 import { generateAvatar } from '../avatar/generate';
 import { Logo } from '../brand/Logo';
@@ -25,6 +29,8 @@ import {
 export function DesignGallery() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [selected, setSelected] = useState<string[]>(['gate_coffee']);
+  const [option, setOption] = useState('verified');
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -153,6 +159,57 @@ export function DesignGallery() {
               {k.replace(/_/g, ' ')}
             </ToggleChip>
           ))}
+        </div>
+      </section>
+
+      <section className="gallery__section">
+        <h2 className="gallery__h2 display">Forms</h2>
+        <p className="gallery__note">
+          Label above, hint under, error under that. Options are pressed buttons. A stepper
+          says where you are; a sheet asks one question and leaves.
+        </p>
+        <div className="gallery__forms">
+          <Stepper index={1} count={5} title="About you" onBack={() => {}} />
+          <Field label="Flight number" hint="Like SK1465. Optional." htmlFor="g-fno">
+            <input id="g-fno" className="field__input mono" placeholder="SK1465" />
+          </Field>
+          <Field label="Date" error="That is before 2026-09-02. Wingman only lists journeys ahead of you.">
+            <input className="field__input mono" type="date" defaultValue="2026-08-01" />
+          </Field>
+          <div className="panel__stack">
+            <OptionRow
+              label="Verified people only"
+              note="Only people who have verified at least one account can see you."
+              selected={option === 'verified'}
+              onClick={() => setOption('verified')}
+            />
+            <OptionRow
+              label="Women only"
+              note="Only women can see you, and you will only see women."
+              selected={option === 'women'}
+              onClick={() => setOption('women')}
+            />
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => setSheetOpen(true)}>
+            Open a sheet
+          </Button>
+          <Sheet
+            open={sheetOpen}
+            title="Remove this trip?"
+            onClose={() => setSheetOpen(false)}
+            actions={
+              <>
+                <Button variant="secondary" onClick={() => setSheetOpen(false)}>
+                  Keep it
+                </Button>
+                <Button variant="danger" onClick={() => setSheetOpen(false)}>
+                  Remove
+                </Button>
+              </>
+            }
+          >
+            <p className="sheet__body">Nothing else changes. Your other trips stay listed.</p>
+          </Sheet>
         </div>
       </section>
 
