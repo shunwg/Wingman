@@ -2,12 +2,12 @@ import { useMemo } from 'react';
 import { MATCH_CONFIG_V1, findCandidates, relaxations } from '@matching/index';
 import type { MatchInput, MatchResult, RelaxationOutcome } from '@matching/types';
 import type { Candidate } from '@matching/types';
-import type { Trip } from '@domain/index';
+import type { Circle, Trip } from '@domain/index';
 import { tripCode, tripIsOpen, tripLabel } from '@domain/trip';
 import { airportIndex } from '@data/airports/index';
 import { RESPONSE_RATES } from '@data/seed/people';
 import { seedPool } from '@data/seed/trips';
-import { circleById } from '@data/seed/circles';
+import { allCircles, decoratePerson } from './circles';
 import { distanceKm } from '@lib/geo';
 import { useStore } from '../store';
 import type { BoardFilters } from '../store';
@@ -89,24 +89,15 @@ function baseInput(
 }
 
 /**
- * Fill in circle display names.
+ * Fill in circle display names and badges.
  *
  * `redact()` cannot do this: the privacy engine may not import from `data/`,
  * and rightly so — a visibility rule should never be able to reach a lookup
- * table. So the badge crosses the boundary carrying only its id, and the label
- * is resolved here, in the layer that is allowed to know both.
+ * table. So the badge crosses the boundary carrying only ids, and the labels
+ * are resolved here, in the layer that is allowed to know both.
  */
-function withCircleNames(c: Candidate): Candidate {
-  return {
-    ...c,
-    person: {
-      ...c.person,
-      circles: c.person.circles.map((badge) => {
-        const circle = circleById(String(badge.circleId));
-        return circle ? { ...badge, shortName: circle.shortName, kind: circle.kind } : badge;
-      }),
-    },
-  };
+function withCircleNames(c: Candidate, circles: Circle[]): Candidate {
+  return { ...c, person: decoratePerson(c.person, circles) };
 }
 
 /**
@@ -165,8 +156,10 @@ export function useBoard(): Board {
   const seenCounts = useStore((s) => s.seenCounts);
   const requests = useStore((s) => s.requests);
   const filters = useStore((s) => s.filters);
+  const myCircles = useStore((s) => s.myCircles);
 
   return useMemo(() => {
+    const circles = allCircles(myCircles);
     const openTrips = myTrips.filter(tripIsOpen);
     const settledTrips = myTrips.filter((t) => t.outcome);
 
@@ -213,7 +206,7 @@ export function useBoard(): Board {
 
         const theirDest = destinationOf(id, trip);
         const candidate: BoardCandidate = {
-          ...withCircleNames(raw),
+          ...withCircleNames(raw, circles),
           viaTripId: String(trip.id),
           tripCode: tripCode(trip),
           tripLabel: tripLabel(trip),
@@ -234,7 +227,7 @@ export function useBoard(): Board {
       settledTrips,
       hiddenByFilters: merged.length - filtered.length,
     };
-  }, [me, myTrips, now, seenCounts, requests, filters]);
+  }, [me, myTrips, now, seenCounts, requests, filters, myCircles]);
 }
 
 /**

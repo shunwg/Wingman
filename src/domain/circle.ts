@@ -17,7 +17,25 @@ export type AdmissionRule =
   /** Manual approval by a circle admin. */
   | { kind: 'admin_approval' }
   /** Any member may vouch for one non-member. */
-  | { kind: 'member_vouch'; vouchesRequired: number };
+  | { kind: 'member_vouch'; vouchesRequired: number }
+  /**
+   * The organiser's list.
+   *
+   * Salted SHA-256 of each lowercased address — never the addresses. The
+   * invitee proves an address with the email-OTP stamp, the screen hashes it
+   * with the circle's salt, and the circle learns only that someone on the
+   * list arrived. The organiser never sees who declined.
+   */
+  | { kind: 'invite_list'; emailHashes: string[]; salt: string }
+  /** "On the list, or anyone at @obf.no." */
+  | { kind: 'any_of'; rules: AdmissionRule[] };
+
+/** A named role inside one circle — Speaker, Sponsor, Organiser. Shown on the badge. */
+export interface CircleBadge {
+  id: string;
+  label: string;
+  tone: 'trust' | 'guard' | 'accent' | 'neutral';
+}
 
 export interface Circle {
   id: CircleId;
@@ -28,6 +46,10 @@ export interface Circle {
   admission: AdmissionRule;
   /** Deterministic crest seed — circles get generated marks, like people get photos. */
   crestSeed: string;
+  /** The organiser's mark, resized to 128px, when they uploaded one. */
+  crestUrl?: string;
+  /** Badges the organiser defined. Absent means none. */
+  badges?: CircleBadge[];
   /** Members may only ever be discovered by other members. */
   membersOnly: boolean;
   memberCount: number;
@@ -67,6 +89,8 @@ export interface CircleMembership {
   /** Present for email_domain admission. The local part is never stored. */
   domain?: string;
   role: 'member' | 'admin';
+  /** Badges this member wears in this circle, by `CircleBadge.id`. */
+  badgeIds?: string[];
 }
 
 /** A circle badge as a viewer sees it — only ever built from `show_badge`. */
@@ -75,4 +99,9 @@ export interface PublicCircleBadge {
   shortName: string;
   crestSeed: string;
   kind: Circle['kind'];
+  crestUrl?: string;
+  /** The member's badge ids, carried raw; the selector resolves them. */
+  badgeIds?: string[];
+  /** The first badge they wear here, e.g. Speaker — resolved outside privacy/. */
+  badge?: { label: string; tone: CircleBadge['tone'] };
 }

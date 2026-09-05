@@ -7,7 +7,8 @@ import { RequestsScreen } from '@screens/requests/RequestsScreen';
 import { TripsScreen } from '@screens/trips/TripsScreen';
 import { NewTripScreen } from '@screens/trips/NewTripScreen';
 import { CirclesScreen } from '@screens/circles/CirclesScreen';
-import { NewCircleScreen } from '@screens/circles/NewCircleScreen';
+import { SetupScreen } from '@screens/circles/SetupScreen';
+import { CircleScreen } from '@screens/circles/CircleScreen';
 import { JoinCircleScreen } from '@screens/circles/JoinCircleScreen';
 import { MeetScreen } from '@screens/meet/MeetScreen';
 import { VerifyScreen } from '@screens/verify/VerifyScreen';
@@ -38,6 +39,7 @@ export interface Route {
     | 'trip.new'
     | 'circles'
     | 'circles.new'
+    | 'circle'
     | 'join'
     | 'you'
     | 'you.edit'
@@ -78,6 +80,7 @@ export function parseRoute(hash: string): Route {
   if (head === 'trip' && id === 'new') return { name: 'trip.new' };
   if (head === 'trip' || head === 'trips') return { name: 'trip' };
   if (head === 'circles' && id === 'new') return { name: 'circles.new' };
+  if (head === 'circles' && id) return { name: 'circle', id };
   if (head === 'circles') return { name: 'circles' };
   // The invite link. Deliberately its own top-level route rather than a query
   // string on Circles, so the whole URL is the thing you paste into a message.
@@ -200,13 +203,19 @@ export function Router() {
     case 'circles':
       return (
         <AppShell route="circles" title="Circles">
-          <CirclesScreen />
+          <CirclesScreen onOpen={(id) => navigate(`#/circles/${id}`)} />
         </AppShell>
       );
     case 'circles.new':
       return (
         <AppShell route="circles" title="Open a circle">
-          <NewCircleScreen onDone={() => navigate('#/circles')} />
+          <SetupScreen onDone={() => navigate('#/circles')} />
+        </AppShell>
+      );
+    case 'circle':
+      return (
+        <AppShell route="circles">
+          <CircleScreen id={route.id ?? ''} onBack={() => navigate('#/circles')} />
         </AppShell>
       );
     case 'join':

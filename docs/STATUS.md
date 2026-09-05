@@ -1,7 +1,7 @@
 # Where the build is
 
 Branch `main`, deployed to https://shunwg.github.io/Wingman/ on every push. `npm run verify`
-is green (typecheck · purity gate · boundaries · dataset · 283 tests · 6 Playwright flows). CI runs `verify`,
+is green (typecheck · purity gate · boundaries · dataset · 295 tests · 8 Playwright flows). CI runs `verify`,
 `lint`, `build` and `e2e` before anything is published.
 
 Plan: `docs/superpowers/plans/2026-09-05-wingman-v4.md` (also the source for every per-stream plan).
@@ -23,7 +23,7 @@ House rules and skill routing: `CLAUDE.md`.
 | 0 | Repo hygiene, one alias source, e2e scaffold, CI gate, feedback file | ☑ |
 | 1 | Brand: logo, favicon, icons, manifest, Route glyph | ☐ |
 | 2 | Onboarding, registration, BankID-first verify, first trip, profile edit | ☑ |
-| 3 | Circles: admission by list or domain, logo, badges, roles | ☐ |
+| 3 | Circles: admission by list or domain, logo, badges, roles | ☑ |
 | 4 | Inbox: safety surfaces, then meet / circle / group chat in one list | ☐ |
 | 5 | Trips: add / edit / connections / purpose / bundled lookup | ☐ |
 | 6 | Events: organiser dashboard, QR, event board | ☐ |
@@ -35,7 +35,7 @@ House rules and skill routing: `CLAUDE.md`.
 ## Known gaps (the S1 findings)
 
 - Block / report exist only inside the decline sheet; guardian and audience-report engines have no screen (WS4).
-- A circle has no organiser surface, no logo, no chat (WS3, WS4, WS6).
+- A circle has no organiser dashboard and no chat yet (WS4, WS6).
 - Request expiry is defined and tested but never runs (WS4).
 
 ## Things a later session must not undo

@@ -5,6 +5,7 @@ import { tripHueClass } from '../tokens/tripHue';
 import { Avatar } from '../primitives/Avatar';
 import { Chip } from '../primitives/Chip';
 import { StampBadge } from './StampBadge';
+import { CircleCrest } from './CircleCrest';
 
 /**
  * The person card.
@@ -138,8 +139,13 @@ export function PersonCard({
       {person.circles.length > 0 && (
         <div className="pcard__chips">
           {person.circles.map((c) => (
-            <Chip key={c.circleId} tone="neutral">
+            <Chip
+              key={c.circleId}
+              tone={c.badge?.tone ?? 'neutral'}
+              icon={<CircleCrest shortName={c.shortName} {...(c.crestUrl ? { crestUrl: c.crestUrl } : {})} size="xs" />}
+            >
               {c.shortName}
+              {c.badge ? ` · ${c.badge.label}` : ''}
             </Chip>
           ))}
         </div>

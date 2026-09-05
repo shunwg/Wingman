@@ -130,6 +130,8 @@ export function redact(
       shortName: '',
       crestSeed: String(m.circleId),
       kind: 'community' as const,
+      // Raw ids only; the layer that knows the circle resolves them to labels.
+      ...(m.badgeIds && m.badgeIds.length > 0 ? { badgeIds: [...m.badgeIds] } : {}),
     }));
 
   /* Reputation: a bucket and a phrase. There is no number to withhold. */

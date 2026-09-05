@@ -51,7 +51,7 @@ interface Seed {
   openTo: MeetKind[];
   stamps: Stamp[];
   handles?: Partial<Record<'linkedin' | 'instagram' | 'facebook', string>>;
-  circles?: { id: string; display: CircleMembership['display'] }[];
+  circles?: { id: string; display: CircleMembership['display']; badgeIds?: string[] }[];
   presets?: PrivacyPresetId[];
   meets: number;
   reliability: 'reliable' | 'mixed' | 'unproven';
@@ -78,7 +78,7 @@ const SEEDS: Seed[] = [
     openTo: ['gate_coffee', 'meal', 'business_intro', 'lounge'],
     stamps: ['bankid', 'linkedin'],
     handles: { linkedin: 'miralindqvist' },
-    circles: [{ id: 'gridweek', display: 'show_badge' }],
+    circles: [{ id: 'gridweek', display: 'show_badge', badgeIds: ['speaker'] }],
     meets: 14,
     reliability: 'reliable',
   },
@@ -512,6 +512,7 @@ function memberships(s: Seed): CircleMembership[] {
     joinedAt: asUtc('2026-03-01T09:00:00Z'),
     admittedBy: 'email_domain' as const,
     role: 'member' as const,
+    ...(c.badgeIds ? { badgeIds: c.badgeIds } : {}),
   }));
 }
 

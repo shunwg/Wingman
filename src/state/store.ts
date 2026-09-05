@@ -158,6 +158,8 @@ export interface WingmanState {
   revokeVerification: (providerId: string) => void;
 
   createCircle: (circle: Circle) => void;
+  /** The organiser's edits — mark, badges, admission. Only circles you opened. */
+  updateCircle: (circle: Circle) => void;
   joinCircle: (circleId: string, admittedBy: AdmissionRule['kind']) => void;
   leaveCircle: (circleId: string) => void;
   setMembershipDisplay: (circleId: string, display: MembershipDisplay) => void;
@@ -368,9 +370,18 @@ export const useStore = create<WingmanState>()(
                 joinedAt: s.now,
                 admittedBy: circle.admission.kind,
                 role: 'admin' as const,
+                // The creator wears the organiser badge if the circle has one.
+                ...(circle.badges?.some((b) => b.id === 'organiser')
+                  ? { badgeIds: ['organiser'] }
+                  : {}),
               },
             ],
           },
+        })),
+
+      updateCircle: (circle) =>
+        set((s) => ({
+          myCircles: s.myCircles.map((c) => (c.id === circle.id ? circle : c)),
         })),
 
       joinCircle: (circleId, admittedBy) =>
