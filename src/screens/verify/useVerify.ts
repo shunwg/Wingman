@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PollState, StampChallenge, StampEnv, StampProvider } from '@stamps/index';
-import { availableProviders, configuredFrom, providerById } from '@stamps/index';
+import { availableProviders, configuredFrom, isMocked, providerById } from '@stamps/index';
 import { useStore } from '@state/store';
 
 /**
@@ -127,13 +127,14 @@ export function useVerify() {
       });
 
       if (res.ok) {
-        addVerification(res.record);
+        // A stand-in proved nothing. The owner sees it labelled; a viewer never sees it.
+        addVerification(isMocked(provider, env) ? { ...res.record, mocked: true } : res.record);
         setFlow({ step: 'done', provider });
       } else {
         setFlow({ step: 'failed', provider, error: res.error });
       }
     },
-    [addVerification, me.id, now],
+    [addVerification, env, me.id, now],
   );
 
   /** `redirect` and `deeplink`: hand off, then come back and confirm. */

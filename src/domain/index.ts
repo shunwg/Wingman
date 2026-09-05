@@ -20,6 +20,8 @@ export * from './admission';
 export * from './person';
 export * from './privacy';
 export * from './meet';
+export * from './channel';
+export * from './safety';
 export * from './rating';
 export * from './guardian';
 export * from './guards';

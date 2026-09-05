@@ -102,9 +102,13 @@ export function redact(
     return level >= required ? l : hide(reasonForLevel(required));
   });
 
-  /* Stamps are public by design — proving something is the point of proving it. */
+  /*
+   * Stamps are public by design — proving something is the point of proving
+   * it. A stamp earned against a stand-in provider proved nothing, so a viewer
+   * never sees it; the owner still does, labelled, on their own screen.
+   */
   const stamps: PublicStamp[] = person.verifications
-    .filter((v) => !v.revokedAt)
+    .filter((v) => !v.revokedAt && !v.mocked)
     .map((v) => ({
       kind: v.kind,
       display: {

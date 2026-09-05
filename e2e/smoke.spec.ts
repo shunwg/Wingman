@@ -5,8 +5,9 @@ test('five tabs are reachable and the board renders people', async ({ page }) =>
   await page.goto('/#/demo');
   await page.waitForURL(/#\/$/);
   await expect(page.getByRole('heading', { name: 'Around you' })).toBeVisible();
-  for (const tab of ['Trip', 'Requests', 'Circles', 'You', 'Discover']) {
-    await page.getByRole('link', { name: tab }).click();
+  for (const tab of ['Trip', 'Inbox', 'Circles', 'You', 'Discover']) {
+    // The Inbox tab's accessible name carries its badge text, so match the start.
+    await page.getByRole('link', { name: new RegExp('^' + tab) }).click();
   }
   await expect(page.locator('.pcard').first()).toBeVisible();
 });

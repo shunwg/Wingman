@@ -3,14 +3,14 @@ import { DesignGallery } from '@design/gallery/DesignGallery';
 import { AppShell } from './AppShell';
 import { BoardScreen } from '@screens/discover/BoardScreen';
 import { PersonScreen } from '@screens/person/PersonScreen';
-import { RequestsScreen } from '@screens/requests/RequestsScreen';
+import { InboxScreen } from '@screens/inbox/InboxScreen';
+import { ChannelScreen } from '@screens/inbox/ChannelScreen';
 import { TripsScreen } from '@screens/trips/TripsScreen';
 import { NewTripScreen } from '@screens/trips/NewTripScreen';
 import { CirclesScreen } from '@screens/circles/CirclesScreen';
 import { SetupScreen } from '@screens/circles/SetupScreen';
 import { CircleScreen } from '@screens/circles/CircleScreen';
 import { JoinCircleScreen } from '@screens/circles/JoinCircleScreen';
-import { MeetScreen } from '@screens/meet/MeetScreen';
 import { VerifyScreen } from '@screens/verify/VerifyScreen';
 import { YouScreen } from '@screens/profile/YouScreen';
 import { EditProfileScreen } from '@screens/profile/EditProfileScreen';
@@ -33,8 +33,8 @@ export interface Route {
   name:
     | 'discover'
     | 'person'
-    | 'requests'
-    | 'meet'
+    | 'inbox'
+    | 'channel'
     | 'trip'
     | 'trip.new'
     | 'circles'
@@ -73,7 +73,10 @@ export function parseRoute(hash: string): Route {
   if (head === 'signin') return { name: 'signin' };
   if (head === 'demo') return { name: 'demo' };
   if (head === 'person' && id) return { name: 'person', id, ...(tripId ? { tripId } : {}) };
-  if (head === 'requests') return { name: 'requests' };
+  if (head === 'inbox' && id) return { name: 'channel', id: parts.slice(1).join('/') };
+  if (head === 'inbox') return { name: 'inbox' };
+  // Earlier names, kept as aliases so old links and screenshots still land.
+  if (head === 'requests') return { name: 'inbox' };
   // `trips` and `board` were the names before the tab bar grew to five. Kept as
   // aliases so a bookmark or a screenshot URL from an earlier build still lands
   // somewhere sensible.
@@ -85,7 +88,7 @@ export function parseRoute(hash: string): Route {
   // The invite link. Deliberately its own top-level route rather than a query
   // string on Circles, so the whole URL is the thing you paste into a message.
   if (head === 'join' && id) return { name: 'join', id };
-  if (head === 'meet' && id) return { name: 'meet', id };
+  if (head === 'meet' && id) return { name: 'channel', id: `meet:${id}` };
   if (head === 'verify') return { name: 'verify' };
   if (head === 'you' && id === 'edit') return { name: 'you.edit' };
   if (head === 'you') return { name: 'you' };
@@ -182,10 +185,16 @@ export function Router() {
           <DemoEntry />
         </AppShell>
       );
-    case 'requests':
+    case 'inbox':
       return (
-        <AppShell route="requests" title="Requests">
-          <RequestsScreen />
+        <AppShell route="inbox" title="Inbox">
+          <InboxScreen onOpen={(to) => navigate(to)} />
+        </AppShell>
+      );
+    case 'channel':
+      return (
+        <AppShell route="inbox">
+          <ChannelScreen channelId={route.id ?? ''} onBack={() => navigate('#/inbox')} />
         </AppShell>
       );
     case 'trip':
@@ -222,12 +231,6 @@ export function Router() {
       return (
         <AppShell route="circles" title="Invitation">
           <JoinCircleScreen code={route.id ?? ''} onDone={() => navigate('#/circles')} />
-        </AppShell>
-      );
-    case 'meet':
-      return (
-        <AppShell route="requests" title="Meeting">
-          <MeetScreen requestId={route.id ?? ''} onBack={() => navigate('#/requests')} />
         </AppShell>
       );
     case 'verify':

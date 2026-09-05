@@ -8,6 +8,7 @@ import type { MeetKind } from '@domain/intent';
 import { useBoard } from '@state/selectors/board';
 import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { useStore } from '@state/store';
+import { PersonMenu } from '@screens/safety/PersonMenu';
 import { addMinutes } from '@domain/time';
 import { asTripId } from '@domain/ids';
 
@@ -102,6 +103,9 @@ export function PersonScreen({
       <div className="person__hero">
         <Avatar spec={p.avatar} shape="photo" size="full" {...(name ? { label: name } : {})} />
         <div className="person__scrim" aria-hidden="true" />
+        <div className="person__menu">
+          <PersonMenu personId={p.id} firstName={name ?? 'them'} onHidden={onBack} />
+        </div>
         <div className="person__heroText">
           <h2 className="person__name display">
             {name ?? <span className="person__withheld">Name shown once you both agree</span>}

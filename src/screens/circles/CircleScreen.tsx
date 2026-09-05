@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Button } from '@design/primitives/Button';
+import { NewGroupSheet } from '@screens/inbox/NewGroupSheet';
 import { Chip, ToggleChip } from '@design/primitives/Chip';
 import { CircleCrest } from '@design/patterns/CircleCrest';
 import { PersonCard } from '@design/patterns/PersonCard';
@@ -32,6 +34,7 @@ export function CircleScreen({ id, onBack }: { id: string; onBack: () => void })
   const leaveCircle = useStore((s) => s.leaveCircle);
   const setDisplay = useStore((s) => s.setMembershipDisplay);
   const members = useCircleMembers(id);
+  const [grouping, setGrouping] = useState(false);
 
   if (!circle) {
     return (
@@ -144,11 +147,24 @@ export function CircleScreen({ id, onBack }: { id: string; onBack: () => void })
       </section>
 
       {mine && (
-        <div className="panel">
-          <Button variant="secondary" size="sm" onClick={() => leaveCircle(String(circle.id))}>
+        <div className="panel panel__row">
+          <Button size="sm" onClick={() => (window.location.hash = `#/inbox/circle:${String(circle.id)}`)}>
+            Open General
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => setGrouping(true)}>
+            Start a group
+          </Button>
+          <Button variant="quiet" size="sm" onClick={() => leaveCircle(String(circle.id))}>
             Leave {circle.shortName}
           </Button>
         </div>
+      )}
+      {grouping && (
+        <NewGroupSheet
+          circleId={String(circle.id)}
+          onClose={() => setGrouping(false)}
+          onOpened={(channelId) => (window.location.hash = `#/inbox/${channelId}`)}
+        />
       )}
     </>
   );

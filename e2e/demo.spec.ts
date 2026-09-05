@@ -6,7 +6,7 @@ test('the demo link seeds Alex with three trips and a request waiting', async ({
   await page.waitForURL(/#\/$/);
   await expect(page.getByRole('heading', { name: 'Around you' })).toBeVisible();
   await expect(page.getByRole('radio').or(page.locator('.segmented__item'))).toHaveCount(4); // All + 3 trips
-  await expect(page.getByText('1 waiting for an answer')).toBeAttached();
+  await expect(page.getByText(/need you/)).toBeAttached();
 });
 
 test('an invitation opened on a fresh install survives the welcome screen', async ({ page }) => {

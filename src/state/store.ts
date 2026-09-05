@@ -2,22 +2,47 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
   AdmissionRule,
+  Channel,
   DenialRecord,
+  GuardianContact,
+  GuardianSession,
   IntentProfile,
-  JourneyStage,
-  MeetMessage,
   MeetRequest,
   MeetRequestStatus,
+  Message,
+  MessageBody,
   Circle,
   MembershipDisplay,
   Person,
   PersonId,
   PrivacyPolicy,
   ProfessionalCard,
+  Rating,
+  SafetyReport,
   Trip,
   VerificationRecord,
 } from '@domain/index';
-import { asCircleId, asMeetRequestId, asUtc } from '@domain/index';
+import {
+  asChannelId,
+  asCircleId,
+  asGuardianSessionId,
+  asMeetId,
+  asMeetRequestId,
+  asMessageId,
+  asRatingId,
+  asUtc,
+  meetChannelId,
+  TEXT_CAP,
+} from '@domain/index';
+import {
+  armGuardian,
+  endGuardian,
+  escalateGuardian,
+  GUARDIAN_PRESETS,
+  type GuardianPresetId,
+} from '@privacy/index';
+import { scriptedReply } from '@data/seed/replies';
+import { SEED_MESSAGES } from '@data/seed/channels';
 import type { ISODateTime } from '@domain/time';
 import { SEED_NOW } from '@data/seed/trips';
 import { layoversFor, MATCH_CONFIG_V1 } from '@matching/index';
@@ -52,9 +77,11 @@ import { migratePersisted } from './persist/migrate';
  */
 
 // v2 → v3: the store starts blank and an `account` slice says how a person
-// came to be here. A v2 blob is by construction the seeded demo and migrates
-// to demo mode with its session intact; v1 and earlier are discarded.
-export const STORE_VERSION = 3;
+// came to be here. v3 → v4: meet messages become messages in channels, and
+// the safety slices (reports, muted, guardian, ratings) appear. A v2 blob is
+// by construction the seeded demo and migrates to demo mode with its session
+// intact; v1 and earlier are discarded.
+export const STORE_VERSION = 4;
 
 /**
  * What the board is currently being filtered to.
@@ -97,13 +124,27 @@ export interface WingmanState {
   myTrips: Trip[];
   requests: MeetRequest[];
   /**
-   * Everything said in a meet room, flat and append-only.
+   * Groups opened on this device. Meet channels are derived from accepted
+   * requests and circle channels from memberships, so neither is stored — a
+   * stored copy of a derived thing is the first place two facts disagree.
+   */
+  channels: Channel[];
+  /**
+   * Everything said, in every channel, flat and append-only.
    *
-   * One list rather than a map keyed by request, because messages are read in
+   * One list rather than a map keyed by channel, because messages are read in
    * time order far more often than they are read per-room, and a flat log makes
    * "what happened, in order" the cheap query rather than the expensive one.
    */
-  messages: MeetMessage[];
+  messages: Message[];
+  /** When you last opened each channel. A fact about the reader; persisted. */
+  readAt: Record<string, ISODateTime>;
+  /** Kept on this device until there is a server to send them to. */
+  reports: SafetyReport[];
+  muted: string[];
+  /** At most one live guardian session — a meet is one thing at a time. */
+  guardian: GuardianSession | null;
+  ratings: Rating[];
   /**
    * Circles opened from inside the app.
    *
@@ -164,9 +205,39 @@ export interface WingmanState {
   leaveCircle: (circleId: string) => void;
   setMembershipDisplay: (circleId: string, display: MembershipDisplay) => void;
 
-  /** One tap: where you have got to. Terminal is attached by the caller. */
-  postStage: (requestId: string, stage: JourneyStage, at?: { terminal?: string; airportIata?: string }) => void;
-  postText: (requestId: string, text: string) => void;
+  /** Say something in a channel. Text is capped by kind; a stage carries its terminal. */
+  post: (channel: Channel, body: MessageBody) => void;
+  /** A group inside a circle, with an explicit member list. */
+  openGroup: (circleId: string, title: string, memberIds: PersonId[]) => Channel;
+  markRead: (channelId: string) => void;
+  muteChannel: (channelId: string) => void;
+  unmuteChannel: (channelId: string) => void;
+
+  /** Report them; hide them too unless told otherwise. Silent either way. */
+  reportPerson: (
+    personId: PersonId,
+    reason: SafetyReport['reason'],
+    note?: string,
+    alsoBlock?: boolean,
+  ) => void;
+  reportMessage: (message: Message, reason: SafetyReport['reason'], note?: string) => void;
+  unblockPerson: (personId: PersonId) => void;
+
+  /** Let someone watch over one meet, for its window and a grace period. */
+  armGuardianFor: (
+    channelId: string,
+    contact: GuardianContact,
+    preset: GuardianPresetId,
+    window: { from: ISODateTime; to: ISODateTime },
+  ) => void;
+  checkOut: () => void;
+  escalate: () => void;
+  /** After a meet: conduct, not quality. */
+  rate: (
+    channelId: string,
+    rateeId: PersonId,
+    input: Pick<Rating, 'showedUp' | 'respectedBoundaries' | 'accurateProfile' | 'wouldMeetAgain' | 'flags'>,
+  ) => void;
 
   sendRequest: (input: Omit<MeetRequest, 'id' | 'status' | 'history' | 'createdAt'>) => MeetRequest;
   advanceRequest: (id: string, to: MeetRequestStatus, by: PersonId | 'system', note?: string) => void;
@@ -188,9 +259,15 @@ const slice = (s: WingmanState): PersistedSlice => ({
   me: s.me,
   myTrips: s.myTrips,
   requests: s.requests,
+  channels: s.channels,
   messages: s.messages,
+  readAt: s.readAt,
   myCircles: s.myCircles,
   seenCounts: s.seenCounts,
+  reports: s.reports,
+  muted: s.muted,
+  guardian: s.guardian,
+  ratings: s.ratings,
   onboarded: s.onboarded,
   account: s.account,
 });
@@ -290,42 +367,142 @@ export const useStore = create<WingmanState>()(
       markSeen: (id) =>
         set((s) => ({ seenCounts: { ...s.seenCounts, [id]: (s.seenCounts[id] ?? 0) + 1 } })),
 
-      postStage: (requestId, stage, at) =>
+      post: (channel, body) =>
+        set((s) => {
+          let b = body;
+          if (b.kind === 'text') {
+            const trimmed = b.text.trim().slice(0, TEXT_CAP[channel.kind]);
+            if (!trimmed) return s;
+            b = { kind: 'text', text: trimmed };
+          }
+          const stamp = Date.parse(String(s.now));
+          const mine: Message = {
+            id: asMessageId('m_' + (s.messages.length + 1) + '_' + stamp),
+            channelId: channel.id,
+            from: s.me.id,
+            at: s.now,
+            body: b,
+          };
+          const out = [...s.messages, mine];
+
+          /*
+           * A scripted reply, so the demo answers back. Deterministic, and
+           * honest: the other party is a seeded person, never a server. Stage
+           * updates get no reply — "Priya is through security" is not a thing
+           * anyone answers.
+           */
+          if (b.kind === 'text' && s.account.mode === 'demo') {
+            // A circle's General has no member list; whoever has spoken there
+            // in the seed stands in.
+            const others = (
+              channel.memberIds.length > 0
+                ? channel.memberIds
+                : [...new Set(SEED_MESSAGES.filter((m) => m.channelId === channel.id).map((m) => m.from))]
+            ).filter((id) => id !== s.me.id);
+            const turn = s.messages.filter(
+              (m) => m.channelId === channel.id && m.from === s.me.id,
+            ).length;
+            const from = others[turn % Math.max(others.length, 1)];
+            if (from) {
+              out.push({
+                id: asMessageId('m_' + (s.messages.length + 2) + '_' + stamp),
+                channelId: channel.id,
+                from,
+                at: s.now,
+                body: { kind: 'text', text: scriptedReply(channel.kind, turn) },
+              });
+            }
+          }
+          return { messages: out, readAt: { ...s.readAt, [String(channel.id)]: s.now } };
+        }),
+
+      openGroup: (circleId, title, memberIds) => {
+        const s = get();
+        const channel: Channel = {
+          id: asChannelId('group:' + circleId + ':' + Date.parse(String(s.now)) + ':' + (s.channels.length + 1)),
+          kind: 'group',
+          title: title.trim().slice(0, 40) || 'Group',
+          memberIds: [...new Set([s.me.id, ...memberIds])],
+          circleId: asCircleId(circleId),
+          createdBy: s.me.id,
+          createdAt: s.now,
+        };
+        set({ channels: [...s.channels, channel] });
+        return channel;
+      },
+
+      markRead: (channelId) => set((s) => ({ readAt: { ...s.readAt, [channelId]: s.now } })),
+
+      muteChannel: (channelId) => set((s) => ({ muted: [...new Set([...s.muted, channelId])] })),
+
+      unmuteChannel: (channelId) => set((s) => ({ muted: s.muted.filter((c) => c !== channelId) })),
+
+      reportPerson: (personId, reason, note, alsoBlock = true) => {
+        const s = get();
+        const report: SafetyReport = {
+          id: 'r_' + (s.reports.length + 1) + '_' + Date.parse(String(s.now)),
+          personId,
+          reason,
+          ...(note?.trim() ? { note: note.trim().slice(0, 240) } : {}),
+          at: s.now,
+        };
+        set({ reports: [...s.reports, report] });
+        if (alsoBlock) get().blockPerson(personId);
+      },
+
+      reportMessage: (message, reason, note) => {
+        const s = get();
+        const report: SafetyReport = {
+          id: 'r_' + (s.reports.length + 1) + '_' + Date.parse(String(s.now)),
+          personId: message.from,
+          channelId: message.channelId,
+          messageId: message.id,
+          reason,
+          ...(note?.trim() ? { note: note.trim().slice(0, 240) } : {}),
+          at: s.now,
+        };
+        set({ reports: [...s.reports, report] });
+      },
+
+      unblockPerson: (personId) =>
+        set((s) => ({ me: { ...s.me, blocked: s.me.blocked.filter((id) => id !== personId) } })),
+
+      armGuardianFor: (channelId, contact, preset, window) => {
+        const s = get();
+        const session = armGuardian({
+          id: asGuardianSessionId('g_' + Date.parse(String(s.now))),
+          meetId: asMeetId(channelId),
+          travellerId: s.me.id,
+          guardian: contact,
+          scope: GUARDIAN_PRESETS[preset].build(window.to),
+          meetWindow: window,
+          // The engine never generates randomness; the store is the impure edge.
+          shareToken: crypto.randomUUID(),
+          now: s.now,
+        });
+        set({ guardian: session });
+      },
+
+      checkOut: () =>
+        set((s) => ({ guardian: s.guardian ? endGuardian(s.guardian, s.now) : null })),
+
+      escalate: () =>
+        set((s) => ({ guardian: s.guardian ? escalateGuardian(s.guardian, s.now) : null })),
+
+      rate: (channelId, rateeId, input) =>
         set((s) => ({
-          messages: [
-            ...s.messages,
+          ratings: [
+            ...s.ratings.filter((r) => String(r.meetId) !== channelId),
             {
-              id: `m_${s.messages.length + 1}_${Date.parse(String(s.now))}`,
-              requestId: asMeetRequestId(requestId),
-              from: s.me.id,
-              at: s.now,
-              body: {
-                kind: 'stage' as const,
-                stage,
-                ...(at?.terminal ? { terminal: at.terminal } : {}),
-                ...(at?.airportIata ? { airportIata: at.airportIata as never } : {}),
-              },
+              id: asRatingId('rt_' + Date.parse(String(s.now))),
+              meetId: asMeetId(channelId),
+              raterId: s.me.id,
+              rateeId,
+              submittedAt: s.now,
+              ...input,
             },
           ],
         })),
-
-      postText: (requestId, text) =>
-        set((s) => {
-          const trimmed = text.trim().slice(0, 240);
-          if (!trimmed) return s;
-          return {
-            messages: [
-              ...s.messages,
-              {
-                id: `m_${s.messages.length + 1}_${Date.parse(String(s.now))}`,
-                requestId: asMeetRequestId(requestId),
-                from: s.me.id,
-                at: s.now,
-                body: { kind: 'text' as const, text: trimmed },
-              },
-            ],
-          };
-        }),
 
       addVerification: (record) =>
         set((s) => ({
@@ -474,6 +651,19 @@ export const useStore = create<WingmanState>()(
                 ? { ...t, outcome: { settledWith: other, at: s.now } }
                 : t,
             ),
+            messages: [
+              ...s.messages,
+              {
+                id: asMessageId('m_' + (s.messages.length + 1) + '_' + Date.parse(String(s.now))),
+                channelId: meetChannelId(accepted.id),
+                from: s.me.id,
+                at: s.now,
+                body: {
+                  kind: 'system',
+                  text: 'You both said yes. Nothing else is shared until you choose to.',
+                },
+              },
+            ],
           };
         }),
 
@@ -523,9 +713,15 @@ export const useStore = create<WingmanState>()(
         me: s.me,
         myTrips: s.myTrips,
         requests: s.requests,
+        channels: s.channels,
         messages: s.messages,
+        readAt: s.readAt,
         myCircles: s.myCircles,
         seenCounts: s.seenCounts,
+        reports: s.reports,
+        muted: s.muted,
+        guardian: s.guardian,
+        ratings: s.ratings,
         onboarded: s.onboarded,
         account: s.account,
         // `filters` is absent on purpose. It is a lens on this session, not a

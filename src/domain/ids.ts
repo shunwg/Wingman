@@ -18,6 +18,8 @@ export type MeetId = Brand<string, 'MeetId'>;
 export type RatingId = Brand<string, 'RatingId'>;
 export type GuardianSessionId = Brand<string, 'GuardianSessionId'>;
 export type VerificationId = Brand<string, 'VerificationId'>;
+export type ChannelId = Brand<string, 'ChannelId'>;
+export type MessageId = Brand<string, 'MessageId'>;
 
 /** IATA airport code, always three uppercase letters. */
 export type IataCode = Brand<string, 'IataCode'>;
@@ -37,6 +39,8 @@ export const asMeetId = (s: string) => s as MeetId;
 export const asRatingId = (s: string) => s as RatingId;
 export const asGuardianSessionId = (s: string) => s as GuardianSessionId;
 export const asVerificationId = (s: string) => s as VerificationId;
+export const asChannelId = (s: string) => s as ChannelId;
+export const asMessageId = (s: string) => s as MessageId;
 export const asCityKey = (s: string) => s as CityKey;
 
 const IATA_RE = /^[A-Z]{3}$/;

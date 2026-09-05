@@ -70,6 +70,11 @@ export interface VerificationRecord {
    * token, never a national identity number. BankID stores nothing here beyond
    * the fact that it succeeded.
    */
+  /**
+   * Earned against a stand-in provider, not a real check. The owner sees it
+   * with a Stand-in chip; a viewer never sees it as a stamp at all.
+   */
+  mocked?: boolean;
   evidence?: { handle?: string; domain?: string; url?: string };
 }
 

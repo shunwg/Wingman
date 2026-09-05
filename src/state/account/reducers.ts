@@ -1,9 +1,13 @@
 import type {
+  Channel,
   Circle,
+  GuardianSession,
   ISODateTime,
-  MeetMessage,
   MeetRequest,
+  Message,
   Person,
+  Rating,
+  SafetyReport,
   Trip,
 } from '@domain/index';
 import { asMeetRequestId, asUtc } from '@domain/index';
@@ -20,9 +24,17 @@ export interface PersistedSlice {
   me: Person;
   myTrips: Trip[];
   requests: MeetRequest[];
-  messages: MeetMessage[];
+  /** Groups opened on this device. Meet and circle channels are derived. */
+  channels: Channel[];
+  messages: Message[];
+  /** When you last opened each channel — a fact about the reader, so it persists. */
+  readAt: Record<string, ISODateTime>;
   myCircles: Circle[];
   seenCounts: Record<string, number>;
+  reports: SafetyReport[];
+  muted: string[];
+  guardian: GuardianSession | null;
+  ratings: Rating[];
   onboarded: boolean;
   account: Account;
 }
@@ -64,9 +76,15 @@ export function blankState(deviceId: string, now: ISODateTime): PersistedSlice {
     me: blankPerson(deviceId, now),
     myTrips: [],
     requests: [],
+    channels: [],
     messages: [],
+    readAt: {},
     myCircles: [],
     seenCounts: {},
+    reports: [],
+    muted: [],
+    guardian: null,
+    ratings: [],
     onboarded: false,
     account: { mode: 'none', deviceId, provider: 'device' },
   };
@@ -78,9 +96,15 @@ export function demoState(deviceId: string, returnTo?: string): PersistedSlice {
     me: ME,
     myTrips: MY_TRIPS,
     requests: [seededInbound()],
+    channels: [],
     messages: [],
+    readAt: {},
     myCircles: [],
     seenCounts: {},
+    reports: [],
+    muted: [],
+    guardian: null,
+    ratings: [],
     onboarded: true,
     account: {
       mode: 'demo',
