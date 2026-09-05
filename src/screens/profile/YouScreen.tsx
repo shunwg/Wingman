@@ -10,6 +10,7 @@ import { PRESET_LIST } from '@privacy/index';
 import { SEED_CIRCLES } from '@data/seed/circles';
 import { useStore } from '@state/store';
 import { WelcomeCards } from '@screens/onboarding/WelcomeCards';
+import { SafetySection } from './SafetySection';
 
 /**
  * You, and who can see you.
@@ -169,6 +170,8 @@ export function YouScreen() {
           </div>
         )}
       </section>
+
+      <SafetySection />
 
       <section className="panel">
         <h3 className="panel__title">About Wingman</h3>

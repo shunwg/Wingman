@@ -2035,3 +2035,8 @@ textarea.field__input {
   z-index: 2;
 }
 .person__menu .menu__button { background: rgb(255 255 255 / 80%); color: var(--ink); }
+
+.panel__subtitle { font-size: var(--text-base); font-weight: 600; margin: var(--sp-2) 0 0; }
+.preview { border: 1px dashed var(--hairline-strong); border-radius: var(--r-card); padding: var(--sp-2); }
+.hiddenlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.hiddenlist__row { display: flex; align-items: center; justify-content: space-between; min-height: 44px; }

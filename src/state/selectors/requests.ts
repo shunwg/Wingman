@@ -24,9 +24,9 @@ export interface RequestsView {
 export function expiresIn(request: MeetRequest, now: string): string | null {
   const mins = minutesBetween(now as never, request.expiresAt);
   if (mins <= 0) return null;
-  if (mins < 60) return `Expires in ${mins} min`;
+  if (mins < 60) return `Expires in ${mins}m`;
   const h = Math.round(mins / 60);
-  return `Expires in ${h} h`;
+  return `Expires in ${h}h`;
 }
 
 export function useRequests(): RequestsView {

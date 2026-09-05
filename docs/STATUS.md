@@ -1,7 +1,7 @@
 # Where the build is
 
 Branch `main`, deployed to https://shunwg.github.io/Wingman/ on every push. `npm run verify`
-is green (typecheck · purity gate · boundaries · dataset · 295 tests · 8 Playwright flows). CI runs `verify`,
+is green (typecheck · purity gate · boundaries · dataset · 307 tests · 10 Playwright flows). CI runs `verify`,
 `lint`, `build` and `e2e` before anything is published.
 
 Plan: `docs/superpowers/plans/2026-09-05-wingman-v4.md` (also the source for every per-stream plan).
@@ -13,7 +13,7 @@ House rules and skill routing: `CLAUDE.md`.
 | Phase | What landed |
 |---|---|
 | 0–2 | Vite/React/TS scaffold, `domain/` contract, 3,270 airports with derived zones, the privacy and matching engines (pure, property-tested), the design system and procedural portraits |
-| 3–4 | The store with a versioned migration chain, the meet-request FSM, and a clickable app: Discover · Trip · Requests · Circles · You |
+| 3–4 | The store with a versioned migration chain, the meet-request FSM, and a clickable app: Discover · Trip · Inbox · Circles · You |
 | v3 | Real portraits for the seed cast, five-tab shell, Circles as a place, stamps (BankID, LinkedIn, Google, Meta, work email — mocked behind one seam), multi-trip boards, trip colours, meet rooms with terminals derived from the flight, circle invites, the deployment memo |
 
 ## v4 streams
@@ -24,7 +24,7 @@ House rules and skill routing: `CLAUDE.md`.
 | 1 | Brand: logo, favicon, icons, manifest, Route glyph | ☐ |
 | 2 | Onboarding, registration, BankID-first verify, first trip, profile edit | ☑ |
 | 3 | Circles: admission by list or domain, logo, badges, roles | ☑ |
-| 4 | Inbox: safety surfaces, then meet / circle / group chat in one list | ☐ |
+| 4 | Inbox: safety surfaces, then meet / circle / group chat in one list | ☑ |
 | 5 | Trips: add / edit / connections / purpose / bundled lookup | ☐ |
 | 6 | Events: organiser dashboard, QR, event board | ☐ |
 | 7 | Discover density + professional depth | ☐ |
@@ -34,9 +34,7 @@ House rules and skill routing: `CLAUDE.md`.
 
 ## Known gaps (the S1 findings)
 
-- Block / report exist only inside the decline sheet; guardian and audience-report engines have no screen (WS4).
-- A circle has no organiser dashboard and no chat yet (WS4, WS6).
-- Request expiry is defined and tested but never runs (WS4).
+- A circle has no organiser dashboard yet (WS6).
 
 ## Things a later session must not undo
 
