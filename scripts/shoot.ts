@@ -44,6 +44,8 @@ const ROUTES: { name: string; hash: string; fresh?: boolean }[] = [
   { name: 'trip', hash: '#/trip' },
   { name: 'trip-new', hash: '#/trip/new' },
   { name: 'circles', hash: '#/circles' },
+  { name: 'circle', hash: '#/circles/gridweek' },
+  { name: 'circles-new', hash: '#/circles/new' },
   { name: 'you', hash: '#/you' },
   { name: 'you-edit', hash: '#/you/edit' },
   { name: 'design', hash: '#/_design' },

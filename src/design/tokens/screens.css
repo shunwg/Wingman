@@ -1800,6 +1800,7 @@ textarea.field__input {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
+  margin-top: var(--sp-1);
 }
 
 .circlerow__go { color: var(--faint); font-size: var(--text-xl); }

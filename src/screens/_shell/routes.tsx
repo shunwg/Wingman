@@ -208,7 +208,7 @@ export function Router() {
       );
     case 'circles.new':
       return (
-        <AppShell route="circles" title="Open a circle">
+        <AppShell route="circles">
           <SetupScreen onDone={() => navigate('#/circles')} />
         </AppShell>
       );

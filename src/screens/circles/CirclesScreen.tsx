@@ -38,18 +38,20 @@ export function CirclesScreen({ onOpen }: { onOpen: (id: string) => void }) {
             {c.runs && ` · ${c.runs.from} → ${c.runs.to}`}
           </span>
           <span className="circlerow__sentence">{admissionSentence(c.admission)}</span>
-        </span>
-        <span className="circlerow__state">
           {m ? (
-            <Chip tone={m.display === 'show_badge' ? 'accent' : 'neutral'}>
-              {m.display === 'show_badge' ? 'Badge shown' : m.display === 'match_only' ? 'Matching' : 'Paused'}
-            </Chip>
+            <span className="circlerow__state">
+              <Chip tone={m.display === 'show_badge' ? 'accent' : 'neutral'}>
+                {m.display === 'show_badge' ? 'Badge shown' : m.display === 'match_only' ? 'Matching only' : 'Paused'}
+              </Chip>
+            </span>
           ) : !live ? (
-            <Chip tone="warn">{today > String(c.runs?.to) ? 'Finished' : 'Not yet'}</Chip>
+            <span className="circlerow__state">
+              <Chip tone="warn">{today > String(c.runs?.to) ? 'Finished' : 'Not yet'}</Chip>
+            </span>
           ) : null}
-          <span className="circlerow__go" aria-hidden="true">
-            ›
-          </span>
+        </span>
+        <span className="circlerow__go" aria-hidden="true">
+          ›
         </span>
       </button>
     );
