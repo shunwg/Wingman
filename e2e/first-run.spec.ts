@@ -37,7 +37,8 @@ test('a fresh install walks from welcome to a board with people', async ({ page 
   await page.getByRole('button', { name: 'List it' }).click();
 
   await page.waitForURL(/#\/$/);
-  await expect(page.getByRole('heading', { name: 'Around you' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Good/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your next journey' })).toBeVisible();
   // Ingrid, Tobias and Elin overlap in Copenhagen on those dates. With one trip
   // there is nothing to disambiguate, so the card carries the overlap, not a tag.
   await expect(page.locator('.pcard').first()).toContainText(/Same city|Copenhagen|Oslo|overlap/);

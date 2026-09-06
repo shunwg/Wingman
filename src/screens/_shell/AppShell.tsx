@@ -21,7 +21,7 @@ export function AppShell({
 }: {
   children: ReactNode;
   route: string;
-  title?: string;
+  title?: ReactNode;
   action?: ReactNode;
   chrome?: 'tabs' | 'none';
 }) {

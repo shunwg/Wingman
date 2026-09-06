@@ -1,4 +1,5 @@
 import type { TravelContextSummary } from '@matching/index';
+import { bucket, bucketLabel } from '@lib/bucket';
 
 /**
  * "Where the people are."
@@ -38,7 +39,7 @@ export function ContextStrip({ context }: { context: TravelContextSummary }) {
     <div className="cstrip">
       {items.map((i) => (
         <div className="cstrip__item" key={i.label}>
-          <span className="cstrip__n mono">{i.n}</span>
+          <span className="cstrip__n mono">{bucketLabel(bucket(i.n))}</span>
           <span className="cstrip__label">{i.label}</span>
         </div>
       ))}

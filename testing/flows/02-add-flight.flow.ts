@@ -45,7 +45,7 @@ test('02 add flight', async ({ page }) => {
   await key(page.getByRole('alert').first(), 'a validation error');
   await shot(page, 'trip-validation-errors');
 
-  await page.goto('/#/');
+  await page.goto('/#/discover');
   await key(page.getByRole('heading', { name: 'Around you' }), 'the board');
   await shot(page, 'board-with-new-trip');
 });

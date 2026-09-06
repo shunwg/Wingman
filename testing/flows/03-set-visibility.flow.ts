@@ -31,7 +31,7 @@ test('03 set visibility', async ({ page }) => {
   await key(pref.getByRole('button', { name: 'Non-binary people', pressed: true }), 'the last option still on');
   await shot(page, 'you-preference-last-refuses');
 
-  await page.goto('/#/');
+  await page.goto('/#/discover');
   await key(page.getByRole('heading', { name: 'Around you' }), 'the board');
   await shot(page, 'board-after-narrowing');
 

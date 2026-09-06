@@ -9,6 +9,7 @@ import { test, expect } from '@playwright/test';
  */
 const ROUTES = [
   '#/',
+  '#/discover',
   '#/inbox',
   '#/trip',
   '#/trip/new',

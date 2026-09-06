@@ -123,7 +123,7 @@ export function PersonScreen({
   return (
     <article className="person">
       <button className="person__back" onClick={onBack} type="button">
-        ← Board
+        ← Back
       </button>
 
       <div className="person__hero person__hero--band">

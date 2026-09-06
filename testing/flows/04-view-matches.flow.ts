@@ -12,6 +12,8 @@ test('04 view matches', async ({ page }) => {
 
   await page.goto('/#/demo');
   await page.waitForURL(/#\/$/);
+  await page.goto('/#/discover');
+  await page.waitForURL(/#\/$/);
   await key(page.getByRole('heading', { name: 'Around you' }), 'the board');
   await shot(page, 'board-cards');
 

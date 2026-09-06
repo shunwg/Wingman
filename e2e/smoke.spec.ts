@@ -4,8 +4,8 @@ test('five tabs are reachable and the board renders people', async ({ page }) =>
   // The demo entry seeds Alex; a fresh context would land on Welcome otherwise.
   await page.goto('/#/demo');
   await page.waitForURL(/#\/$/);
-  await expect(page.getByRole('heading', { name: 'Around you' })).toBeVisible();
-  for (const tab of ['Trip', 'Inbox', 'Circles', 'You', 'Discover']) {
+  await expect(page.getByRole('heading', { name: /^Good/ })).toBeVisible();
+  for (const tab of ['Trips', 'Inbox', 'Circles', 'You', 'Home']) {
     // The Inbox tab's accessible name carries its badge text, so match the start.
     await page.getByRole('link', { name: new RegExp('^' + tab) }).click();
   }

@@ -1,8 +1,10 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { AppShell } from './AppShell';
-import { BoardScreen } from '@screens/discover/BoardScreen';
+import { HomeScreen } from '@screens/home/HomeScreen';
+const BoardScreen = lazy(() => import('@screens/discover/BoardScreen').then((m) => ({ default: m.BoardScreen })));
 import { isSignupStep, type SignupStep } from '@screens/onboarding/steps';
 import { useStore } from '@state/store';
+import { Avatar } from '@design/primitives/Avatar';
 
 const DesignGallery = lazy(() => import('@design/gallery/DesignGallery').then((m) => ({ default: m.DesignGallery })));
 const PersonScreen = lazy(() => import('@screens/person/PersonScreen').then((m) => ({ default: m.PersonScreen })));
@@ -34,6 +36,7 @@ const DemoEntry = lazy(() => import('@screens/onboarding/DemoEntry').then((m) =>
 
 export interface Route {
   name:
+    | 'home'
     | 'discover'
     | 'person'
     | 'inbox'
@@ -78,6 +81,7 @@ export function parseRoute(hash: string): Route {
   if (head === 'signup') return { name: 'signup', step: isSignupStep(id) ? id : 'about' };
   if (head === 'signin') return { name: 'signin' };
   if (head === 'demo') return { name: 'demo' };
+  if (head === 'discover') return { name: 'discover' };
   if (head === 'person' && id) return { name: 'person', id, ...(tripId ? { tripId } : {}) };
   if (head === 'inbox' && id) return { name: 'channel', id: parts.slice(1).join('/') };
   if (head === 'inbox') return { name: 'inbox' };
@@ -101,7 +105,36 @@ export function parseRoute(hash: string): Route {
   if (head === 'verify') return { name: 'verify' };
   if (head === 'you' && id === 'edit') return { name: 'you.edit' };
   if (head === 'you') return { name: 'you' };
-  return { name: 'discover' };
+  return { name: 'home' };
+}
+
+/** Time of day, in the person's own clock — the one place the screen reads it. */
+function greeting(): string {
+  const h = new Date().getHours();
+  const part = h < 5 ? 'evening' : h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
+  return `Good ${part}`;
+}
+
+/** "Good evening, Alex." The name is the whole point of a greeting. */
+function Greeting() {
+  const first = useStore((s) => s.me.firstName || s.me.displayName.split(' ')[0] || '');
+  return (
+    <>
+      {greeting()},
+      <br />
+      {first ? `${first}.` : ''}
+    </>
+  );
+}
+
+/** The avatar is the door to You. Profile is reached, never navigated to. */
+function HomeAvatar() {
+  const me = useStore((s) => s.me);
+  return (
+    <a href="#/you" className="shell__avatar" aria-label="You">
+      <Avatar spec={me.avatar} size="sm" />
+    </a>
+  );
 }
 
 export const navigate = (to: string) => {
@@ -159,7 +192,7 @@ function Routes() {
   useEffect(() => {
     if (onboarded || door || gallery) return;
     if (parseRoute(window.location.hash).name !== route.name) return;
-    if (route.name !== 'discover') setReturnTo(window.location.hash);
+    if (route.name !== 'home') setReturnTo(window.location.hash);
     navigate('#/welcome');
   }, [onboarded, door, gallery, route.name, setReturnTo]);
 
@@ -174,11 +207,11 @@ function Routes() {
 
   if (route.name === 'person' && route.id) {
     return (
-      <AppShell route="discover">
+      <AppShell route="home">
         <PersonScreen
           id={route.id}
           {...(route.tripId ? { tripId: route.tripId } : {})}
-          onBack={() => navigate('#/')}
+          onBack={() => (window.history.length > 1 ? window.history.back() : navigate('#/'))}
         />
       </AppShell>
     );
@@ -293,10 +326,16 @@ function Routes() {
           <YouScreen />
         </AppShell>
       );
+    case 'discover':
+      return (
+        <AppShell route="home" title="Around you">
+          <BoardScreen onOpen={(id) => navigate(`#/person/${id}`)} />
+        </AppShell>
+      );
     default:
       return (
-        <AppShell route="discover" title="Around you">
-          <BoardScreen onOpen={(id) => navigate(`#/person/${id}`)} />
+        <AppShell route="home" title={<Greeting />} action={<HomeAvatar />}>
+          <HomeScreen onOpen={(to) => navigate(to)} />
         </AppShell>
       );
   }
