@@ -47,19 +47,22 @@ export const MATCH_CONFIG_V1: MatchConfig = {
    * bit-identical.
    */
   weights: {
-    overlapStrength: 0.25,
-    intentAlignment: 0.15,
-    temporalSlack: 0.1,
-    topicalAffinity: 0.08,
-    circleProximity: 0.08,
+    overlapStrength: 0.22,
+    // The headline matchmaking signal: what I seek against what they offer,
+    // and the reverse, as a harmonic mean.
+    mutualFit: 0.12,
+    intentAlignment: 0.12,
+    interestAffinity: 0.1,
+    // The window is the thing that expires: a 90-minute layover outranks a week.
+    scarcity: 0.09,
+    reciprocityPrior: 0.09,
+    temporalSlack: 0.08,
+    circleProximity: 0.07,
     // Under the circle cap, so a big circle cannot dominate the board.
     cohort: 0.04,
-    reciprocityPrior: 0.1,
-    // The window is the thing that expires: a 90-minute layover outranks a week.
-    scarcity: 0.1,
-    // Adjacent beats identical: an investor and a founder, not two founders.
-    complementarity: 0.05,
-    fairness: 0.05,
+    // Adjacent beats identical; mostly superseded by mutualFit.
+    complementarity: 0.04,
+    fairness: 0.03,
   },
 
   /** Shown five times and never acted on: stop leading with them. */

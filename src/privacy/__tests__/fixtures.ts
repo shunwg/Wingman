@@ -69,6 +69,10 @@ export function makePerson(overrides: Partial<Omit<Person, 'id'>> & { id: string
       openTo: ['gate_coffee', 'meal', 'business_intro'],
       topics: ['energy', 'cities'],
       languages: ['en', 'no'],
+      interests: [],
+      seeking: [],
+      offering: [],
+      openToAnyone: false,
     },
     links: [
       {

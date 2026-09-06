@@ -7,8 +7,10 @@ import type {
   PrivacyPresetId,
   SocialLink,
   StampKind,
+  TagId,
   VerificationRecord,
 } from '@domain/index';
+import { normaliseTag } from '@domain/tags';
 import { asCircleId, asPersonId, asVerificationId } from '@domain/ids';
 import { asUtc } from '@domain/time';
 import { generateAvatar } from '@design/avatar/generate';
@@ -46,6 +48,9 @@ interface Seed {
   lookingFor: string[];
   topics: string[];
   languages: string[];
+  /** Hand-written; the characterful half. Interests derive from topics. */
+  seeking?: string[];
+  offering?: string[];
   social: number;
   professional: number;
   openTo: MeetKind[];
@@ -516,12 +521,22 @@ function memberships(s: Seed): CircleMembership[] {
   }));
 }
 
+/** Free text → vocabulary, dropping anything that does not resolve. */
+const toTags = (free: readonly string[] = []): TagId[] =>
+  free.map(normaliseTag).filter((x): x is TagId => x !== undefined);
+
 function intent(s: Seed): IntentProfile {
   return {
     appetite: { social: s.social, professional: s.professional },
     openTo: s.openTo,
     topics: s.topics,
     languages: s.languages,
+    // Interests are the topics, resolved; a topic outside the vocabulary
+    // stays in `topics` and still counts as an exact-match bonus.
+    interests: toTags(s.topics),
+    seeking: toTags(s.seeking),
+    offering: toTags(s.offering),
+    openToAnyone: false,
   };
 }
 

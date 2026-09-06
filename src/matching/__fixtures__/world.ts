@@ -170,6 +170,10 @@ export function openPerson(id: string, overrides: Partial<Person> = {}): Person 
       ],
       topics: ['energy', 'cities'],
       languages: ['en'],
+      interests: [],
+      seeking: [],
+      offering: [],
+      openToAnyone: false,
       ...overrides.intent,
     },
   };

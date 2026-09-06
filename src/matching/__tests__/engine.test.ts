@@ -100,6 +100,10 @@ describe('hard filters remove rather than down-rank', () => {
         openTo: ['coworking'],
         topics: [],
         languages: ['en'],
+        interests: [],
+        seeking: [],
+        offering: [],
+        openToAnyone: false,
       },
     });
     const input = world([coworkerOnly]);

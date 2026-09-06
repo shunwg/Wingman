@@ -1,5 +1,5 @@
 import type { FlightSegment, Person, StayWindow, Trip } from '@domain/index';
-import { asCityKey, asIata, asPersonId, asSegmentId, asTripId } from '@domain/ids';
+import { asCityKey, asIata, asPersonId, asSegmentId, asTagId, asTripId } from '@domain/ids';
 import { asISODate, asUtc } from '@domain/time';
 import { MATCH_CONFIG_V1, layoversFor } from '@matching/index';
 import { defaultPolicy } from '@privacy/index';
@@ -152,6 +152,10 @@ export const ME: Person = {
     openTo: ['gate_coffee', 'lounge', 'meal', 'drinks', 'business_intro', 'ride_share', 'coworking'],
     topics: ['energy', 'cities', 'food'],
     languages: ['en', 'no'],
+    interests: ['energy', 'cities', 'food'].map(asTagId),
+    seeking: ['energy-markets', 'infrastructure'].map(asTagId),
+    offering: ['energy-finance', 'markets'].map(asTagId),
+    openToAnyone: false,
   },
   links: [
     {

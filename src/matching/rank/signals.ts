@@ -1,4 +1,4 @@
-import type { MeetKind, Person } from '@domain/index';
+import { tagAffinity, type MeetKind, type Person } from '@domain/index';
 import { jitter } from '@lib/rng';
 import type { MatchConfig, SignalName, TravelOverlap } from '../types';
 import { clamp01, intentAlignment } from '../filters/intent';
@@ -96,12 +96,49 @@ export function intentSignal(ctx: SignalContext): number {
   return intentAlignment(ctx.me.intent, ctx.them.intent, ctx.proposable);
 }
 
-/** Shared topics and languages — a reason to have something to say. */
-export function topicalAffinity(ctx: SignalContext): number {
-  const topics = overlapRatio(ctx.me.intent.topics, ctx.them.intent.topics);
+/**
+ * Shared interests and languages — a reason to have something to say.
+ *
+ * The vocabulary carries the weight; free-text topics survive as an
+ * exact-match bonus for anything the vocabulary does not cover. Reads
+ * `intent.*` only: never gender, avatar, name or photo.
+ */
+export function interestAffinity(ctx: SignalContext): number {
   const langs = shareAny(ctx.me.intent.languages, ctx.them.intent.languages) ? 1 : 0;
-  // A shared language is close to a precondition; shared topics are a bonus.
-  return clamp01(langs * 0.6 + topics * 0.4);
+  const tags = tagAffinity(ctx.me.intent.interests, ctx.them.intent.interests);
+  const free = overlapRatio(ctx.me.intent.topics, ctx.them.intent.topics);
+  return clamp01(langs * 0.35 + tags * 0.5 + free * 0.15);
+}
+
+/**
+ * Two-sided fit: what I am seeking against what they offer, and the reverse.
+ *
+ * The harmonic mean is the point. A lookup is one-directional — "they have
+ * what I want" — and a match is not: it has to work from both chairs, and a
+ * pair that is perfect one way and hopeless the other should score low, not
+ * average. This is the same mean the engine already uses for the stable pick.
+ *
+ * Either side with nothing to say — no seeking, no offering, or the liberal
+ * switch on — is neutral (0.5), never zero. Reads `intent.*` only.
+ */
+export function mutualFit(ctx: SignalContext): number {
+  const a = fitOneWay(ctx.me.intent, ctx.them.intent);
+  const b = fitOneWay(ctx.them.intent, ctx.me.intent);
+  return a + b > 0 ? (2 * a * b) / (a + b) : 0;
+}
+
+/**
+ * How well `wants`'s seeking is met by `gives`'s offering; 0.5 when either is
+ * silent. The liberal switch neutralises a person in *both* roles — not only
+ * what they ask for, but how they are measured against the other's ask —
+ * otherwise a specific request on the far side zeroes the harmonic mean and
+ * the open person is buried, which is the one outcome this switch exists to
+ * prevent.
+ */
+function fitOneWay(wants: Person['intent'], gives: Person['intent']): number {
+  if (wants.openToAnyone || gives.openToAnyone) return 0.5;
+  if (wants.seeking.length === 0 || gives.offering.length === 0) return 0.5;
+  return tagAffinity(wants.seeking, gives.offering);
 }
 
 /**
@@ -205,7 +242,8 @@ export const SIGNALS: Record<SignalName, (ctx: SignalContext) => number> = {
   overlapStrength,
   temporalSlack,
   intentAlignment: intentSignal,
-  topicalAffinity,
+  interestAffinity,
+  mutualFit,
   circleProximity,
   cohort,
   reciprocityPrior,

@@ -11,6 +11,8 @@
  * engine has no field to key on if it wanted to.
  */
 
+import type { TagId } from './ids';
+
 export type IntentAxis = 'social' | 'professional';
 
 /**
@@ -47,10 +49,22 @@ export interface IntentProfile {
   appetite: Record<IntentAxis, number>;
   /** The kinds this person will entertain at all. Empty means invisible. */
   openTo: MeetKind[];
-  /** Free-tag conversation topics — feeds the topical-affinity signal only. */
+  /** Free-text topics. Kept beside the vocabulary; still an exact-match bonus. */
   topics: string[];
   /** ISO 639-1 codes. A shared language is a real compatibility signal. */
   languages: string[];
+  /** What I am into — the interest half, from the vocabulary in `tags.ts`. */
+  interests: TagId[];
+  /** What I want out of a meeting. Matched against the other person's `offering`. */
+  seeking: TagId[];
+  /** What I can give. Adjacent beats identical: an investor and a founder. */
+  offering: TagId[];
+  /**
+   * The liberal switch. Someone open to anyone is scored as neutral on the
+   * two-sided fit, never as zero — otherwise everyone who has not filled the
+   * form in is buried, and the network never starts.
+   */
+  openToAnyone: boolean;
 }
 
 /** Which axis a meet kind primarily serves — used for copy and filtering. */
