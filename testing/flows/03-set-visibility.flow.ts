@@ -44,8 +44,13 @@ test('03 set visibility', async ({ page }) => {
   await page.getByRole('button', { name: /ID-verified only/ }).click();
   await shot(page, 'you-id-verified-only');
 
-  // What a stranger sees.
+  // What a stranger sees: with ID-verified only on, nothing — and it says so.
   await page.getByRole('button', { name: 'An unverified stranger in your city' }).click();
+  await key(page.getByText(/cannot see you/i).first(), 'the hidden-from-stranger state');
+  await shot(page, 'you-preview-stranger-cannot-see-you');
+
+  // And what someone who has proved who they are sees.
+  await page.getByRole('button', { name: 'Someone ID-verified on your flight' }).click();
   await key(page.getByText(/preview/i).first(), 'the preview card');
-  await shot(page, 'you-preview-as-stranger');
+  await shot(page, 'you-preview-as-id-verified');
 });
