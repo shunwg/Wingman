@@ -20,6 +20,8 @@ export type GuardianSessionId = Brand<string, 'GuardianSessionId'>;
 export type VerificationId = Brand<string, 'VerificationId'>;
 export type ChannelId = Brand<string, 'ChannelId'>;
 export type MessageId = Brand<string, 'MessageId'>;
+/** An entry in the interest vocabulary (`domain/tags.ts`), never free text. */
+export type TagId = Brand<string, 'TagId'>;
 
 /** IATA airport code, always three uppercase letters. */
 export type IataCode = Brand<string, 'IataCode'>;
@@ -41,6 +43,7 @@ export const asGuardianSessionId = (s: string) => s as GuardianSessionId;
 export const asVerificationId = (s: string) => s as VerificationId;
 export const asChannelId = (s: string) => s as ChannelId;
 export const asMessageId = (s: string) => s as MessageId;
+export const asTagId = (s: string) => s as TagId;
 export const asCityKey = (s: string) => s as CityKey;
 
 const IATA_RE = /^[A-Z]{3}$/;

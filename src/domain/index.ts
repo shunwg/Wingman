@@ -13,6 +13,7 @@ export * from './flight';
 export * from './trip';
 export * from './tripEntry';
 export * from './intent';
+export * from './tags';
 export * from './avatar';
 export * from './verification';
 export * from './circle';
