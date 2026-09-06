@@ -20,6 +20,7 @@ npm run dev          # http://localhost:5173
 | `npm run verify` | typecheck · pure typecheck (no DOM in the engines) · import boundaries · dataset · all tests |
 | `npm run lint` | the cross-folder rules, the `Date.now()`/`Math.random()` bans, the provider-id ban in screens |
 | `npm run e2e` | Playwright flows against the dev server (starts it for you) |
+| `npm run personas:flows` | the six persona flows → `testing/screenshots/<date>/`; then the personas walk them (`testing/README.md`) |
 | `npm run build` | the production bundle in `dist/` |
 | `npm run shoot` | screenshots of every route → `docs/shots/` (needs `npm run dev` running); `SHOOT_DARK=1` shoots both themes |
 | `npm run build:data` | regenerate the worldwide airport dataset from OurAirports (network) |
@@ -36,6 +37,7 @@ npm run dev          # http://localhost:5173
 | `src/data/` | the airport index, seed cast, copy tables |
 | `scripts/` | data build, boundary checker, screenshots, brand icons, memo print |
 | `e2e/` | Playwright specs |
+| `testing/` | persona flows, personas, the runner prompt; screenshots and reports are generated |
 | `docs/` | `STATUS.md` (where the build is), `reviews/` (feedback and iteration log), `deploy-memo/`, `launch-memo/` (what was built and what is left), `thesis-memo/` (the unicorn path and the case against) — both A4 + reMarkable PDFs, `superpowers/plans/` |
 
 Reviewed 6 September 2026 against two scorecards (`docs/reviews/2026-09-05-feedback.md`): Jobs 9.55 / 10, Thiel 9.5 / 10.
