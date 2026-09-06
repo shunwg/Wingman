@@ -64,9 +64,18 @@ describe('the seeded world', () => {
     // school, has proved who they are and works on what you work on can and
     // should out-rank a weak match who happens to be in seat 42K. What must
     // stay true is that the flight is never buried.
-    const half = Math.ceil(res.candidates.length / 2);
-    const topHalf = new Set(res.candidates.slice(0, half).map((c) => String(c.person.id)));
-    for (const id of ['jonas', 'mira', 'lucas']) expect(topHalf).toContain(id);
+    const ids = res.candidates.map((c) => String(c.person.id));
+    const half = Math.ceil(ids.length / 2);
+    const topHalf = new Set(ids.slice(0, half));
+    // Jonas and Mira share the flight and fit what Alex is looking for.
+    for (const id of ['jonas', 'mira']) expect(topHalf).toContain(id);
+    // Lucas shares the flight and nothing else. Since matching v2 he can be
+    // out-ranked by people who fit — but never buried: no same-flight
+    // person sits in the bottom third.
+    const floor = Math.floor((ids.length * 2) / 3);
+    for (const c of res.candidates) {
+      if (c.overlap.kind === 'same_flight') expect(ids.indexOf(String(c.person.id))).toBeLessThan(floor);
+    }
   });
 
   it('offers only what the overlap can physically support', () => {

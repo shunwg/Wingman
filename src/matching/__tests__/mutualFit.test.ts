@@ -48,8 +48,9 @@ describe('mutualFit', () => {
       { seeking: [t('opera')], offering: [t('energy-finance')] },
     ).mutualFit;
     expect(oneSided).toBeLessThan(twoSided);
-    // The harmonic mean of 1 and 0 is 0, not 0.5.
-    expect(oneSided).toBe(0);
+    // A stated ask that goes unmet ranks below silence — but not at zero.
+    expect(oneSided).toBeLessThan(0.5);
+    expect(oneSided).toBeGreaterThan(0);
   });
 
   it('is neutral, never zero, when a side has said nothing', () => {

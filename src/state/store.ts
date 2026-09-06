@@ -82,8 +82,10 @@ import { migratePersisted } from './persist/migrate';
 // came to be here. v3 → v4: meet messages become messages in channels, and
 // the safety slices (reports, muted, guardian, ratings) appear. A v2 blob is
 // by construction the seeded demo and migrates to demo mode with its session
-// intact; v1 and earlier are discarded.
-export const STORE_VERSION = 4;
+// intact; v1 and earlier are discarded. v4 → v5: the intent profile gains
+// interests, seeking, offering and the open switch, and the women_only
+// preset becomes the meet preference.
+export const STORE_VERSION = 5;
 
 /**
  * What the board is currently being filtered to.

@@ -138,8 +138,13 @@ export function mutualFit(ctx: SignalContext): number {
 function fitOneWay(wants: Person['intent'], gives: Person['intent']): number {
   if (wants.openToAnyone || gives.openToAnyone) return 0.5;
   if (wants.seeking.length === 0 || gives.offering.length === 0) return 0.5;
-  return tagAffinity(wants.seeking, gives.offering);
+  // A mismatch is the absence of a fit, not a contradiction. Floored so a
+  // stated ask that goes unmet ranks below silence, never at zero — someone
+  // on your actual flight with nothing to trade is still on your flight.
+  return MISMATCH_FLOOR + (1 - MISMATCH_FLOOR) * tagAffinity(wants.seeking, gives.offering);
 }
+
+const MISMATCH_FLOOR = 0.2;
 
 /**
  * Shared circles, capped.
