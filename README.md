@@ -36,7 +36,7 @@ npm run dev          # http://localhost:5173
 | `src/data/` | the airport index, seed cast, copy tables |
 | `scripts/` | data build, boundary checker, screenshots, brand icons, memo print |
 | `e2e/` | Playwright specs |
-| `docs/` | `STATUS.md` (where the build is), `reviews/` (feedback and iteration log), `deploy-memo/`, `superpowers/plans/` |
+| `docs/` | `STATUS.md` (where the build is), `reviews/` (feedback and iteration log), `deploy-memo/`, `launch-memo/` (what was built and what is left, A4 + reMarkable PDFs), `superpowers/plans/` |
 
 Reviewed 6 September 2026 against two scorecards (`docs/reviews/2026-09-05-feedback.md`): Jobs 9.55 / 10, Thiel 9.5 / 10.
 

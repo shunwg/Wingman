@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Wingman: what was built, and what is left</title>
+<style>
+  /* ---------------------------------------------------------------
+     Tokens. Light is the complete set; dark redefines tokens ONLY.
+     Wingman's own four hues, doing semantic work here:
+       trust  = already exists in the codebase
+       accent = work you have to do
+       guard  = someone else's dependency (Apple, Criipto, Supabase)
+     --------------------------------------------------------------- */
+  :root {
+    --canvas:      #FBF9F7;
+    --surface:     #FFFFFF;
+    --raised:      #F4EFEA;
+    --ink:         #141110;
+    --muted:       #736A64;
+    --hairline:    #E8E2DC;
+    --accent:      #E2563A;
+    --accent-soft: #FBEAE5;
+    --trust:       #10715C;
+    --trust-soft:  #E2F0EB;
+    --guard:       #3D4EDB;
+    --guard-soft:  #E6E8FB;
+    --shadow:      0 1px 2px rgba(20,17,16,.04), 0 8px 24px -12px rgba(20,17,16,.10);
+
+    --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+    --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, 'Cascadia Mono', 'Cascadia Code', Consolas, 'SF Mono', Menlo, monospace;
+
+    --measure: 68ch;
+    --step--1: clamp(.78rem, .76rem + .1vw, .84rem);
+    --step-0:  clamp(1rem, .97rem + .15vw, 1.08rem);
+    --step-1:  clamp(1.2rem, 1.14rem + .3vw, 1.35rem);
+    --step-2:  clamp(1.5rem, 1.38rem + .6vw, 1.85rem);
+    --step-3:  clamp(2rem, 1.7rem + 1.5vw, 2.9rem);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas:      #141110;
+      --surface:     #1E1A18;
+      --raised:      #262120;
+      --ink:         #F6F2EF;
+      --muted:       #A79C95;
+      --hairline:    #2E2825;
+      --accent:      #FF7355;
+      --accent-soft: #3A211B;
+      --trust:       #3FBF9C;
+      --trust-soft:  #102B25;
+      --guard:       #8A95FF;
+      --guard-soft:  #1E2140;
+      --shadow:      0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --canvas:      #141110;
+    --surface:     #1E1A18;
+    --raised:      #262120;
+    --ink:         #F6F2EF;
+    --muted:       #A79C95;
+    --hairline:    #2E2825;
+    --accent:      #FF7355;
+    --accent-soft: #3A211B;
+    --trust:       #3FBF9C;
+    --trust-soft:  #102B25;
+    --guard:       #8A95FF;
+    --guard-soft:  #1E2140;
+    --shadow:      0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--step-0);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+    padding: 0 1.5rem 6rem;
+  }
+
+  .wrap { max-width: 46rem; margin: 0 auto; }
+
+  /* ---- Type ---- */
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 600; text-wrap: balance; line-height: 1.15; margin: 0; }
+  h1 { font-size: var(--step-3); letter-spacing: -.02em; }
+  h2 { font-size: var(--step-2); letter-spacing: -.01em; }
+  h3 { font-size: var(--step-1); }
+  p { margin: 0; max-width: var(--measure); }
+  a { color: var(--accent); text-underline-offset: .18em; }
+  strong { font-weight: 600; }
+  code, .mono { font-family: var(--font-mono); font-size: .88em; font-variant-numeric: tabular-nums; }
+  code { background: var(--raised); padding: .12em .38em; border-radius: 4px; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  /* ---- Layout ---- */
+  header.masthead {
+    display: flex; flex-direction: column; gap: 1rem;
+    padding: 4.5rem 0 2rem;
+    border-bottom: 2px solid var(--ink);
+  }
+  .standfirst { font-size: var(--step-1); color: var(--muted); line-height: 1.45; max-width: 40ch; }
+  .byline { font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted); display: flex; flex-wrap: wrap; gap: .35rem 1.1rem; }
+
+  section { padding: 3.25rem 0 0; display: flex; flex-direction: column; gap: 1.15rem; }
+  section > h2 { margin-bottom: .15rem; }
+  .lede { color: var(--muted); max-width: var(--measure); }
+
+  /* ---- Table of contents ---- */
+  .toc { display: flex; flex-wrap: wrap; gap: .4rem; padding: 1.5rem 0 0; }
+  .toc a {
+    font-family: var(--font-mono); font-size: var(--step--1);
+    text-decoration: none; color: var(--muted);
+    border: 1px solid var(--hairline); border-radius: 999px;
+    padding: .3rem .7rem; background: var(--surface);
+  }
+  .toc a:hover { color: var(--ink); border-color: var(--ink); }
+
+  /* ---- Cards ---- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 1.15rem 1.25rem;
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: .55rem;
+  }
+  .grid { display: grid; gap: .85rem; }
+  @media (min-width: 44rem) { .grid-3 { grid-template-columns: repeat(3, 1fr); } .grid-2 { grid-template-columns: repeat(2, 1fr); } }
+
+  .card h3 { font-size: var(--step-0); font-family: var(--font-body); font-weight: 600; }
+  .card p { font-size: var(--step--1); color: var(--muted); line-height: 1.55; }
+
+  /* ---- The finding callout: the two things that are wrong ---- */
+  .finding {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-left: 4px solid var(--accent);
+    border-radius: 4px 14px 14px 4px;
+    padding: 1.15rem 1.35rem;
+    display: flex; flex-direction: column; gap: .6rem;
+  }
+  .finding .tag {
+    font-family: var(--font-mono); font-size: var(--step--1);
+    letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+  }
+  .finding h3 { font-size: var(--step-1); }
+
+  /* ---- Ownership chips: who does the work ---- */
+  .chip {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-family: var(--font-mono); font-size: .72rem;
+    letter-spacing: .06em; text-transform: uppercase;
+    padding: .2rem .5rem; border-radius: 999px; white-space: nowrap;
+  }
+  .chip::before { content: ""; width: .45rem; height: .45rem; border-radius: 50%; background: currentColor; }
+  .chip-built { color: var(--trust); background: var(--trust-soft); }
+  .chip-work  { color: var(--accent); background: var(--accent-soft); }
+  .chip-dep   { color: var(--guard); background: var(--guard-soft); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; font-size: var(--step--1); color: var(--muted); }
+
+  /* ---- Tables ---- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--hairline); border-radius: 14px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: var(--step--1); }
+  th, td { text-align: left; padding: .7rem .85rem; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  thead th {
+    font-family: var(--font-mono); font-size: .72rem; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted); font-weight: 500;
+    background: var(--raised);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  td.code { font-family: var(--font-mono); color: var(--muted); white-space: nowrap; }
+
+  /* ---- Phase rail: deployment genuinely is a sequence ---- */
+  .phases { display: flex; flex-direction: column; gap: 0; }
+  .phase {
+    display: grid; grid-template-columns: 3.2rem 1fr; gap: 1rem;
+    padding: 1.05rem 0; border-top: 1px solid var(--hairline);
+  }
+  .phase:last-child { border-bottom: 1px solid var(--hairline); }
+  .phase__no {
+    font-family: var(--font-mono); font-size: var(--step--1);
+    color: var(--muted); padding-top: .15rem; letter-spacing: .04em;
+  }
+  .phase__body { display: flex; flex-direction: column; gap: .45rem; }
+  .phase__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem .7rem; }
+  .phase__title { font-weight: 600; font-size: var(--step-0); }
+  .phase p { font-size: var(--step--1); color: var(--muted); }
+  .phase--critical .phase__no { color: var(--accent); font-weight: 600; }
+
+  /* ---- Code blocks ---- */
+  pre {
+    margin: 0; overflow-x: auto;
+    background: var(--raised); border: 1px solid var(--hairline);
+    border-radius: 12px; padding: 1rem 1.1rem;
+    font-family: var(--font-mono); font-size: .8rem; line-height: 1.65;
+    color: var(--ink);
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .cmt { color: var(--muted); }
+
+  /* ---- Disclosure: App Store items ---- */
+  details {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: 12px; padding: 0;
+  }
+  details + details { margin-top: .6rem; }
+  summary {
+    cursor: pointer; list-style: none; padding: .85rem 1.1rem;
+    display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+    font-weight: 600; font-size: var(--step--1);
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: "+"; margin-left: auto; font-family: var(--font-mono);
+    color: var(--muted); font-weight: 400; font-size: 1.1rem; line-height: 1;
+  }
+  details[open] summary::after { content: "\2212"; }
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 12px; }
+  .details__body { padding: 0 1.1rem 1rem; display: flex; flex-direction: column; gap: .6rem; }
+  .details__body p { font-size: var(--step--1); color: var(--muted); }
+  .guideline { font-family: var(--font-mono); font-size: .72rem; color: var(--muted); }
+
+  /* ---- Cost calculator ---- */
+  .calc { display: flex; flex-direction: column; gap: 1.1rem; }
+  .calc__control { display: flex; flex-direction: column; gap: .5rem; }
+  .calc__readout { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
+  .calc__mau { font-family: var(--font-mono); font-size: var(--step-2); font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); height: 1.6rem; }
+  input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .calc__total {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; padding-top: .8rem; border-top: 2px solid var(--ink);
+    font-family: var(--font-mono);
+  }
+  .calc__total .big { font-size: var(--step-2); font-variant-numeric: tabular-nums; }
+  .assumptions { font-size: var(--step--1); color: var(--muted); }
+
+  ul.plain { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .4rem; }
+  ul.plain li { max-width: var(--measure); }
+  ul.plain li::marker { color: var(--accent); }
+
+  .print-only { display: none; }
+
+  footer.end {
+    margin-top: 4rem; padding-top: 1.5rem;
+    border-top: 1px solid var(--hairline);
+    font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  /* ---- Print: same source, A4 paper ---- */
+  @media print {
+    :root {
+      --canvas: #FFFFFF; --surface: #FFFFFF; --raised: #F6F3F0;
+      --ink: #141110; --muted: #55504C; --hairline: #D8D2CC;
+      --shadow: none;
+    }
+    body { padding: 0; font-size: 10.5pt; }
+    .wrap { max-width: none; }
+    .screen-only { display: none !important; }
+    .print-only { display: revert; }
+    header.masthead { padding-top: 0; }
+    section { padding-top: 1.6rem; break-inside: auto; }
+    h2 { break-after: avoid; }
+    .card, .finding, .phase, details, .tablewrap { break-inside: avoid; }
+    details { border: 0; padding: 0; }
+    details > summary { padding: .3rem 0; }
+    details[open] summary::after, summary::after { content: ""; }
+    /* A closed <details> prints nothing. Force every one open on paper, or the
+       App Store section silently loses five of its six items. */
+    details:not([open]) > .details__body { display: block; }
+    details::details-content { content-visibility: visible; block-size: auto; }
+    .details__body { padding: 0 0 .6rem; }
+    a { color: var(--ink); text-decoration: none; }
+    pre { white-space: pre-wrap; }
+  }
+</style>
+<style>
+  /* Launch-memo additions. The rest of the stylesheet is shared with the
+     deployment memo and injected at build time by scripts/memo/build-launch.mjs. */
+  .kv { display: grid; grid-template-columns: 9rem 1fr; gap: .35rem 1rem; font-size: var(--step--1); }
+  .kv dt { color: var(--muted); font-family: var(--font-mono); }
+  .kv dd { margin: 0; }
+  .task { display: grid; grid-template-columns: 1.6rem 1fr; gap: .6rem; padding: .55rem 0; border-top: 1px solid var(--hairline); font-size: var(--step--1); }
+  .task:last-child { border-bottom: 1px solid var(--hairline); }
+  .task__box { width: 1rem; height: 1rem; border: 1.5px solid var(--muted); border-radius: 3px; margin-top: .2rem; }
+  .task__body { display: flex; flex-direction: column; gap: .2rem; }
+  .task__title { font-weight: 600; color: var(--ink); }
+  .task__meta { font-family: var(--font-mono); font-size: .72rem; color: var(--muted); letter-spacing: .04em; }
+  .task p { color: var(--muted); }
+  .score { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+  .score .big { font-family: var(--font-mono); font-size: var(--step-2); }
+  .score .lbl { font-size: var(--step--1); color: var(--muted); }
+  @media print { .task { break-inside: avoid; } }
+</style>
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">Wingman · Launch memo</p>
+    <h1>What was built, and what is left to go live</h1>
+    <p class="standfirst">Two days took a seeded demo to a product a stranger can register on. This is the record of that, and the full list of what stands between the current build and real people using it.</p>
+    <div class="byline">
+      <span>6 September 2026</span>
+      <span>for Shun Gong, Tide Capital</span>
+      <span>build 05a1871 · main</span>
+      <span>shunwg.github.io/Wingman</span>
+    </div>
+  </header>
+
+  <section id="summary">
+    <h2>In three sentences</h2>
+    <p>Wingman now has doors (welcome, sign-up, BankID-first verification, a first trip), a commercial unit (circles with admission by email ending or pasted list, marks, badges, an organiser dashboard, a QR invite, and a board for members with no flight), one inbox for every conversation with hide, report, mute and a guardian on every surface, and a matching engine that ranks on conduct and complementarity and never on looks. It scored 9.55 with a Jobs-style scorecard and 9.5 with a Thiel-style one, and every gate is green in CI. Everything still lives on the person's own device: the work left is a backend, real logins, real identity providers, a domain, the legal paperwork, and the native shell for the App Store.</p>
+    <div class="score">
+      <div><div class="big">338</div><div class="lbl">unit and property tests</div></div>
+      <div><div class="big">16</div><div class="lbl">Playwright flows</div></div>
+      <div><div class="big">9.55</div><div class="lbl">Jobs scorecard</div></div>
+      <div><div class="big">9.5</div><div class="lbl">Thiel scorecard</div></div>
+      <div><div class="big">448 KB</div><div class="lbl">entry bundle (was 1,078)</div></div>
+    </div>
+  </section>
+
+  <section id="done">
+    <h2>What was done, 5–6 September</h2>
+    <p class="lede">Eleven work streams, each merged to <code>main</code> only after typecheck, the purity gate, the import-boundary check, all tests and the end-to-end flows passed. Commits are on GitHub; the plans are under <code>docs/superpowers/plans/</code>.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Stream</th><th>What landed</th></tr></thead>
+        <tbody>
+          <tr><td>0 · Hygiene</td><td>The v2 prototype removed (125 KB of loose JS, a 3.3 MB build folder). One alias source, Playwright scaffold, CI that runs verify + lint + build + e2e before every deploy, the feedback file.</td></tr>
+          <tr><td>1 · Brand</td><td>The mark: two routes converging on one ember dot. Favicon, app icons, web manifest, a Route glyph replacing the airplane.</td></tr>
+          <tr><td>2 · Onboarding</td><td>Welcome with three cards, five-step sign-up (about, work, privacy, verify, trip), sign-in, the <code>#/demo</code> link. Privacy defaults to "verified people only". BankID is the recommended row, chosen by kind, never required. An invitation opened on a fresh install survives the sign-up and lands back on itself.</td></tr>
+          <tr><td>3 · Circles</td><td>Admission by email ending, by a pasted list (stored as salted SHA-256 hashes, never addresses), by link, or any combination. Uploaded marks, badges (Organiser, Speaker, Sponsor), roles, invite codes. A member joining a list circle proves the address with the email stamp; the circle never learns it.</td></tr>
+          <tr><td>4 · Inbox</td><td>Meets, circle channels and groups in one list sorted by what needs you. Hide, report and mute on every person and message. Guardian session in the meet room with presets. The other person's terminal appears only after their first update. Requests expire on read. Mocked stamps are invisible to viewers.</td></tr>
+          <tr><td>5 · Trips</td><td>Add, edit, connections, purpose, per-trip visibility. Type a flight number and the bundled schedule fills the form; unknown flights fall back to manual entry without losing what was typed.</td></tr>
+          <tr><td>6 · Events</td><td>Organiser dashboard with bucketed counts, announcements pinned to General, badge assignment, track channels. QR and short code on the invite. An event board for a delegate with no flight. A one-page pitch for organisers.</td></tr>
+          <tr><td>7 · Discover</td><td>Cards or rows, industry filter, a saved list, a custom line on the request, the contact card with a saved vCard once you are meeting, the profile led by the sentence rather than the portrait.</td></tr>
+          <tr><td>8 · Matching v2</td><td>Reciprocity from conduct only; scarcity, complementarity and cohort signals; a Gale–Shapley stable pick shown as "Most compatible". A test still proves that permuting avatar, photo, gender and name leaves every score bit-identical.</td></tr>
+          <tr><td>9 · The loop</td><td>Two scoring rounds. Fixes: the one animated moment (accepting a meet; 1,400 ms; once), press states everywhere, lazy-loaded routes, every em-dash flourish out of the copy, text contrast lifted to 4.6:1, a route walk proving no dead ends, incoming requests showing the sender's stamps, the receipt leading with the usable window.</td></tr>
+          <tr><td>10 · Wrap</td><td>STATUS, README, curated screenshots in both themes, the deployment memo's appendix, this memo.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Deferred on purpose, with reasons in the feedback log: hiding yourself from your own firm's domain (a new privacy rule that needs its own property tests), and loading the 465 KB city table on demand.</p>
+  </section>
+
+  <section id="live">
+    <h2>What "live" means</h2>
+    <p class="lede">Three thresholds, in order. Each is a real product for a real audience; none requires the next.</p>
+    <div class="grid grid-3">
+      <div class="card"><h3>A · Web beta</h3><p>A real domain, real accounts, data on a server, one pilot circle. No app store. Reachable in roughly eight weeks of focused work. This is where the first organiser sale happens.</p></div>
+      <div class="card"><h3>B · TestFlight</h3><p>The same app inside a native shell, on invited iPhones. Push notifications become possible. Adds three to four weeks on top of A, and a Mac.</p></div>
+      <div class="card"><h3>C · App Store</h3><p>Public listing. Apple's review is the long pole: moderation commitments, Sign in with Apple, account deletion, age rating. Budget four weeks of review cycles after B.</p></div>
+    </div>
+  </section>
+
+  <section id="tasks">
+    <h2>Everything left, by area</h2>
+    <p class="lede">Chips say who does the work. <span class="chip chip-built">built</span> exists in the code behind a seam and needs wiring; <span class="chip chip-work">work</span> is engineering; <span class="chip chip-dep">dependency</span> is someone else's account, approval or invoice. Effort is one engineer, honest.</p>
+
+    <h3>1 · Accounts and login</h3>
+    <p>Today an account is a device. The seam is <code>account.provider</code>: it reads <code>'device'</code> and becomes <code>'supabase'</code>; nothing else in the app switches on it.</p>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Supabase project and Auth</div><div class="task__meta">work · 2 days · <span class="chip chip-dep">Supabase Pro $25/mo</span></div><p>Create the project in the EU region (Frankfurt). Turn on email magic-link and OTP. This one provider also powers work-email verification and circle admission, so it is the first login to ship.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Sign in with Apple</div><div class="task__meta">work · 1 day · <span class="chip chip-dep">Apple Developer $99/yr</span></div><p>Mandatory the moment Google or any third-party login is offered (App Store guideline 4.8), and the cheapest way to satisfy it. Steps: enrol in the Developer Program (a company enrolment needs a D-U-N-S number, allow two weeks; a personal one is same-day), create an App ID with the Sign in with Apple capability, a Services ID for the web, and a private key; paste the three into Supabase's Apple provider. Apple hides the user's email behind a relay unless they opt out; the app already treats email as a verification input, not an identity, so this is fine.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Google login</div><div class="task__meta">work · half a day · <span class="chip chip-dep">Google Cloud, free</span></div><p>A Google Cloud project, an OAuth consent screen (external, with the privacy policy URL, so the domain and the policy come first), and a web client ID with Supabase's callback URL. The same client serves the Google stamp, so do this once and reuse it.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Account deletion and export</div><div class="task__meta">work · 1 day</div><p>One Edge Function that cascades the delete, revokes the session and removes guardian sessions and location pings. Required by App Store 5.1.1(v) and by GDPR; the "Sign out and start over" button already exists as the place it goes.</p></div></div>
+
+    <h3>2 · Data on a server</h3>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Schema and row-level security</div><div class="task__meta">work · 2 weeks</div><p>Tables for persons, trips, requests, meets, messages, channels, circles, memberships, stamps, reports, ratings, guardian sessions. RLS policies mirror the two-rule privacy model that today runs in the browser: a row is readable only when both audience rules pass in both directions. The engines are pure TypeScript with no DOM dependency, so the same code runs in an Edge Function unchanged; the browser copy stays as the instant preview.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Server-side matching and the board</div><div class="task__meta">work · 1 week · <span class="chip chip-built">engine</span></div><p>Candidates are computed on read, never stored (rule 2). One function: take the viewer, the mutually visible pool, return redacted cards. The stable pick then runs over the real pool rather than one viewer's list.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Realtime inbox</div><div class="task__meta">work · 3 days</div><p>Supabase Realtime on messages and requests. The inbox already derives rows from state, so it is a subscription, not a rewrite. Scripted demo replies are removed at the same time.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Migration of the local store</div><div class="task__meta">work · 2 days · <span class="chip chip-built">migrate chain</span></div><p>Version 5 of the persisted store: a device account becomes a server account on first login, uploading trips and profile once. Nobody who used the beta loses a trip.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Photo uploads</div><div class="task__meta">work · 1 day</div><p>Supabase Storage bucket, 256 px square, already resized client-side. Uploads bring image moderation into scope (see Safety).</p></div></div>
+
+    <h3>3 · Identity stamps</h3>
+    <p>Every provider is already mocked behind one contract in <code>src/stamps/providers/</code>; <code>stamps/registry.ts</code> selects mock or real on an environment variable. Each real one is a file and a registry line. The time goes to their approval processes.</p>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Work email (OTP)</div><div class="task__meta">work · 1 day · <span class="chip chip-built">email-domain.ts</span></div><p>Supabase Auth OTP to the address; the domain of a verified address becomes the stamp. Cheapest and most valuable: it is the gate for circle admission and therefore for the whole school and conference motion. Ship first.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">BankID (Norway) via Criipto</div><div class="task__meta">work · 3 days · <span class="chip chip-dep">Criipto ~€99/mo + €0.35/verification, contract, 1–2 weeks</span></div><p>Nobody integrates BankID directly; a broker does. Criipto is self-serve with a test environment; Signicat is enterprise and quoted. Needs a Norwegian organisation number and a signed agreement. The deep-link return trip into the app is the fiddly part on iOS. The stamp is charged once per person, so it stays opt-in.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">LinkedIn</div><div class="task__meta">work · 1 day · <span class="chip chip-dep">LinkedIn Developer app, approval days to weeks</span></div><p>"Sign In with LinkedIn using OpenID Connect" gives name, photo and email; the profile URL for the contact card needs the app to be associated with a company page. Create the app, request the product, wait.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Google</div><div class="task__meta">work · half a day</div><p>Same client as the login; a stamp is just a verified Google identity.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Instagram and Facebook</div><div class="task__meta">work · 2 days · <span class="chip chip-dep">Meta app review, 2–6 weeks, slowest of all</span></div><p>Meta requires a business verification and an app review with a screencast. Recommendation: leave both out of the first release and keep the mocked rows hidden; the trust story stands on BankID, work email and LinkedIn.</p></div></div>
+
+    <h3>4 · Flights and places</h3>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Live flight schedules</div><div class="task__meta">work · 2 days · <span class="chip chip-dep">AeroDataBox or FlightAware AeroAPI, ~$10–220/mo by volume</span></div><p>An Edge Function holds the key and proxies the provider; the client's degrade chain (live → cache → stale → bundled → synthetic → manual) is built and does not change shape. Without a key the app already works worldwide from the bundled table.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Guardian delivery</div><div class="task__meta">work · 1 day · <span class="chip chip-dep">Twilio, pennies</span></div><p>The "tell someone where you are" link is minted today; sending it as an SMS or email is a Twilio or Resend call from an Edge Function. The capability URL dies when the session ends, as designed.</p></div></div>
+
+    <h3>5 · Domain, hosting, notifications</h3>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">A domain</div><div class="task__meta">decision · 1 hour · <span class="chip chip-dep">registrar, ~$20–60/yr</span></div><p>Needed before the OAuth consent screens, the privacy policy and the App Store listing can be filled in. Everything today is served under <code>/Wingman/</code> on GitHub Pages; hash routing means the move is a DNS change and one build flag.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Vercel and environments</div><div class="task__meta">work · half a day · <span class="chip chip-dep">Vercel Pro $20/mo</span></div><p>Production and a preview per branch. Secrets live in Vercel and Supabase, never in <code>VITE_*</code> variables, which ship to the browser.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Transactional email</div><div class="task__meta">work · half a day · <span class="chip chip-dep">Resend or Postmark, free tier</span></div><p>OTP codes, circle invitations, "someone said yes". Custom domain with SPF and DKIM so the codes do not land in spam.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Push notifications</div><div class="task__meta">work · 3 days · needs the native shell</div><p>Web push covers Android and desktop browsers; iOS push needs the app installed from the store or TestFlight. The in-app activity dot is the honest substitute until then.</p></div></div>
+
+    <h3>6 · Legal and compliance</h3>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Privacy policy and terms</div><div class="task__meta">work · 2 days, a lawyer's afternoon</div><p>Location, identity documents and a social graph make this a high-risk processing activity under GDPR; a Data Protection Impact Assessment is expected, and the two-rule privacy model plus bucketed counts are exactly the mitigations it wants to see written down. Datatilsynet is the supervisory authority. Both documents are required by the OAuth consent screens and the App Store before anything else can proceed.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Data processing agreements</div><div class="task__meta">practical · 1 day</div><p>Sign the standard DPAs with Supabase, Vercel, Criipto, the flight-data provider and the email provider. Keep the list in the policy's sub-processor section.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Age gate and store rating</div><div class="task__meta">work · half a day</div><p>18+. A checkbox at sign-up, and the 17+ rating on the listing. No date of birth is stored; the stamps contract forbids it.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Apple Privacy Nutrition Labels and the review notes</div><div class="task__meta">practical · 1 day</div><p>List precise location (guardian), identifiers, contacts, photos, and user content. Provide a demo account and the <code>#/demo</code> path in the review notes. Screenshots and description must lead with the social and professional use; the first-run screen already says what the app is.</p></div></div>
+
+    <h3>7 · Safety operations</h3>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Moderation queue and a named person</div><div class="task__meta">practical · ongoing · <span class="chip chip-built">reports</span></div><p>Reports are already written with reason, note and target. On a server they become a queue. Apple's guideline 1.2 requires a timely response by a person; at pilot scale that is minutes a day, but someone has to own it before it is promised in the listing.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Image moderation</div><div class="task__meta">work · 1 day · <span class="chip chip-dep">Hive or AWS Rekognition, ~$50/mo at 10k MAU</span></div><p>Runs on every uploaded photo before it is visible. Same queue as the reports.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Abuse runbook</div><div class="task__meta">practical · half a day</div><p>What happens on a report with a safety flag: suspend, notify, preserve evidence, when to involve police. Write it before the first real report, not after.</p></div></div>
+
+    <h3>8 · The native shell</h3>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Capacitor, iOS and Android</div><div class="task__meta">work · 1 week · <span class="chip chip-dep">a Mac or a macOS CI runner; Google Play $25 once</span></div><p>The web app inside a native shell. Purpose strings for location and camera, deep links for the BankID return trip, universal links so invitations open the app. No Windows path exists to an iOS build: buy a Mac or rent a runner (GitHub-hosted macOS or Codemagic) in week one.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">TestFlight, then review</div><div class="task__meta">practical · 3–6 weeks of cycles</div><p>Certificates, an App Store Connect record, the listing, the labels, and the first submission. Expect one rejection; the usual ones are 1.2 (moderation), 4.8 (Sign in with Apple), 5.1.1 (deletion). All three are addressed above.</p></div></div>
+
+    <h3>9 · Commercial</h3>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">One pilot circle</div><div class="task__meta">practical · now</div><p>A school or a conference with a date. The organiser's ten minutes (create, paste the list, QR, pin a welcome, open a track) are built and tested end to end; what is missing is a real room to run them in. This is the single most useful thing to do before any engineering above.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Pricing and invoicing</div><div class="task__meta">work · 2 days · <span class="chip chip-dep">Stripe</span></div><p>Per event for conferences, per seat per year for schools; travellers free; no ads. Stripe Checkout on the organiser page; the "Free while in beta" chip on the invite screen comes off.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Sponsor report export</div><div class="task__meta">work · 1 day · <span class="chip chip-built">bucketed counts</span></div><p>A PDF of the admin screen's numbers, bucketed as they are on screen. Never an exact figure on a small circle.</p></div></div>
+
+    <h3>10 · Operations</h3>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">Error tracking, analytics, uptime, backups</div><div class="task__meta">work · 1 day · <span class="chip chip-dep">Sentry, Plausible, free tiers</span></div><p>Privacy-preserving analytics only (no cookies, no third-party identifiers); the local, bucketed event counts already in the app are the model. Point-in-time recovery on the database. A staging project that mirrors production.</p></div></div>
+    <div class="task"><div class="task__box"></div><div class="task__body"><div class="task__title">RLS load test</div><div class="task__meta">work · 1 day</div><p>The policy runs per row on every read. Fine at pilot scale; the first thing that breaks at ten thousand people. Test it while the schema is cheap to change.</p></div></div>
+  </section>
+
+  <section id="order">
+    <h2>The order</h2>
+    <div class="phases">
+      <div class="phase phase--critical"><div class="phase__no">Week 0</div><div class="phase__body"><div class="phase__head"><span class="phase__title">Decisions and accounts</span></div><p>Domain. Apple Developer enrolment (company needs D-U-N-S: start now). Google Cloud project. Supabase project. Criipto test account. LinkedIn Developer app (start the approval). A pilot organiser with a date. Who moderates.</p></div></div>
+      <div class="phase"><div class="phase__no">Weeks 1–2</div><div class="phase__body"><div class="phase__head"><span class="phase__title">Accounts</span></div><p>Supabase Auth with email OTP, Sign in with Apple, Google. Privacy policy and terms drafted, because the consent screens need their URL.</p></div></div>
+      <div class="phase"><div class="phase__no">Weeks 3–5</div><div class="phase__body"><div class="phase__head"><span class="phase__title">Data</span></div><p>Schema, RLS, the store migration, server-side matching, realtime inbox, photo uploads, image moderation, account deletion.</p></div></div>
+      <div class="phase"><div class="phase__no">Weeks 6–7</div><div class="phase__body"><div class="phase__head"><span class="phase__title">Stamps and flights</span></div><p>Work email live. LinkedIn and Google stamps. BankID in Criipto's test environment. Flight-data proxy. Guardian delivery.</p></div></div>
+      <div class="phase phase--critical"><div class="phase__no">Week 8</div><div class="phase__body"><div class="phase__head"><span class="phase__title">Web beta · threshold A</span></div><p>Real domain, one pilot circle, moderation owned. Sell the second circle.</p></div></div>
+      <div class="phase"><div class="phase__no">Weeks 9–12</div><div class="phase__body"><div class="phase__head"><span class="phase__title">Native shell · threshold B</span></div><p>Capacitor, deep links, push, TestFlight with the pilot's delegates.</p></div></div>
+      <div class="phase"><div class="phase__no">Weeks 13–16</div><div class="phase__body"><div class="phase__head"><span class="phase__title">App Store · threshold C</span></div><p>Listing, labels, review notes, submission, one rejection, resubmission. BankID switched to production when a customer asks for it by name.</p></div></div>
+    </div>
+  </section>
+
+  <section id="decisions">
+    <h2>Decisions only you can make</h2>
+    <ul class="plain">
+      <li><strong>The domain name.</strong> Everything downstream is filled in with it.</li>
+      <li><strong>Apple enrolment as a person or as Tide Capital / a new company.</strong> Company needs a D-U-N-S number and two weeks; it is also the name on the listing.</li>
+      <li><strong>Meta stamps in the first release, or not.</strong> Recommendation: not.</li>
+      <li><strong>When BankID goes to production.</strong> It is more than half the monthly bill and nothing needs it until an organiser asks.</li>
+      <li><strong>Who moderates.</strong> A named person, before the listing promises a timely response.</li>
+      <li><strong>The first pilot.</strong> One school or one conference, with a date on the calendar.</li>
+    </ul>
+  </section>
+
+  <section id="money">
+    <h2>What it costs</h2>
+    <p class="lede">From the deployment memo's calculator, unchanged: at pilot scale roughly $176 a month all in, $63 without BankID; at 10,000 monthly actives about $289; at 100,000 about $1,285. One-off: Apple $99 a year, Google Play $25, a domain, a Mac or a CI runner, and a lawyer's afternoon. The engineering above is roughly twelve to sixteen weeks for one person who knows the codebase.</p>
+  </section>
+
+  <footer class="end">
+    Wingman · launch memo · 6 September 2026 · prepared for Shun Gong, Tide Capital · companion to the deployment roadmap of 16 August
+  </footer>
+</div>
+
+</html>
