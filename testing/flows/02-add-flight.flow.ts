@@ -27,7 +27,7 @@ test('02 add flight', async ({ page }) => {
   await shot(page, 'trip-purpose-work');
   await page.getByRole('button', { name: 'List this trip' }).click();
   await page.waitForURL(/#\/trip$/);
-  await key(page.getByText('SK1461'), 'the listed trip');
+  await key(page.getByText('SK1461').first(), 'the listed trip');
   await shot(page, 'trip-listed');
 
   // Deviation: a second trip with a nonsense flight number and a past date.

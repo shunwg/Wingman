@@ -141,11 +141,13 @@
 .record__n { font-size: var(--text-xl); font-weight: 600; }
 .record__label { font-size: var(--text-xs); color: var(--muted); }
 
-/* A screen arrives, it does not appear. 180ms, opacity and eight pixels — the
-   relationship between two screens, not a flourish. Reduced motion keeps the
-   opacity and drops the movement (tokens.css). */
-@keyframes screen-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.shell__main { animation: screen-in var(--dur-screen) var(--ease-out) both; }
+/* A screen arrives, it does not appear. 180ms of opacity — and opacity only:
+   a transform on <main> would make it the containing block for every fixed
+   sheet inside it, and a *filling* opacity animation keeps <main> in its own
+   stacking context, which puts the tab bar over the sheet's buttons. Fill
+   backwards only, so once it has played nothing is left behind. */
+@keyframes screen-in { from { opacity: 0; } to { opacity: 1; } }
+.shell__main { animation: screen-in var(--dur-screen) var(--ease-out) backwards; }
 
 /* ── Tab bar ─────────────────────────────────────────────────────────────── */
 
