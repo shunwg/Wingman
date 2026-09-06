@@ -24,3 +24,7 @@ dist/
 # were copied into src/assets/people/ and its navigation informed the shell;
 # the code itself is not ours and is not part of this repo's history.
 /References/
+
+# Persona test output; the flows, personas and prompt are committed
+/testing/screenshots/
+/testing/reports/
