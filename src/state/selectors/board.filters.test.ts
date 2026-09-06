@@ -34,6 +34,32 @@ describe('applyBoardFilters', () => {
   });
 });
 
+describe('the lens', () => {
+  const withOverlap = (id: string, kind: string, conference = false) =>
+    cand(id, 'Energy', {
+      overlap: { kind } as never,
+      person: {
+        id: asPersonId(id),
+        professional: { industry: 'Energy' },
+        circles: conference ? [{ circleId: 'gridweek', kind: 'conference', shortName: 'GW', crestSeed: 'x' }] : [],
+      } as never,
+    });
+  const list = [
+    withOverlap('f', 'same_flight'),
+    withOverlap('l', 'shared_layover'),
+    withOverlap('w', 'same_airport_window', true),
+    withOverlap('c', 'same_city_night', true),
+  ];
+  it('same flight, same airport, same event narrow by why-now; for you keeps all', () => {
+    const ids = (lens: 'all' | 'same_flight' | 'same_airport' | 'same_event') =>
+      applyBoardFilters(list, { ...NO_FILTERS, lens }, genderOf).map((c) => String(c.person.id));
+    expect(ids('all')).toEqual(['f', 'l', 'w', 'c']);
+    expect(ids('same_flight')).toEqual(['f']);
+    expect(ids('same_airport')).toEqual(['l', 'w']);
+    expect(ids('same_event')).toEqual(['w', 'c']);
+  });
+});
+
 describe('industriesOn', () => {
   it('counts what the ladder released, most common first, capped', () => {
     const list = [cand('a', 'Energy'), cand('b', 'Software'), cand('c', 'Energy'), cand('d'), cand('e', 'Law')];

@@ -56,6 +56,8 @@ export interface Board {
   hiddenByFilters: number;
   /** Industries on the unfiltered board, for the chips. */
   industries: { name: string; n: number }[];
+  /** Survivor counts per trip, for the timeline. Bucketed before they are shown. */
+  perTrip: Record<string, MatchResult['context']>;
 }
 
 function baseInput(
@@ -130,6 +132,12 @@ export function applyBoardFilters(
 ): BoardCandidate[] {
   return candidates.filter((c) => {
     if (filters.tripId !== 'all' && c.viaTripId !== filters.tripId) return false;
+
+    // The lens: why now. Same flight and same airport are overlap kinds; same
+    // event is a conference badge the person chose to show.
+    if (filters.lens === 'same_flight' && c.overlap.kind !== 'same_flight') return false;
+    if (filters.lens === 'same_airport' && c.overlap.kind !== 'shared_layover' && c.overlap.kind !== 'same_airport_window') return false;
+    if (filters.lens === 'same_event' && !c.person.circles.some((x) => x.kind === 'conference')) return false;
     if (filters.savedOnly && !saved.includes(String(c.person.id))) return false;
     if (filters.industry !== 'any' && industryOf(c) !== filters.industry) return false;
 
@@ -198,10 +206,12 @@ export function useBoard(): Board {
     const merged: BoardCandidate[] = [];
     let suppressed = EMPTY_SUPPRESSED;
     const context = { onYourFlight: 0, inYourLayover: 0, inYourCity: 0, overlappingDates: 0 };
+    const perTrip: Board['perTrip'] = {};
 
     for (const trip of openTrips) {
       const result = findCandidates(baseInput(me, trip, String(now), seenCounts, requests));
       const myDest = trip.stays.find((s) => s.destination)?.destination;
+      perTrip[String(trip.id)] = result.context;
 
       context.onYourFlight += result.context.onYourFlight;
       context.inYourLayover += result.context.inYourLayover;
@@ -254,6 +264,7 @@ export function useBoard(): Board {
       settledTrips,
       hiddenByFilters: merged.length - filtered.length,
       industries: industriesOn(merged),
+      perTrip,
     };
   }, [me, myTrips, now, seenCounts, requests, filters, myCircles, saved]);
 }

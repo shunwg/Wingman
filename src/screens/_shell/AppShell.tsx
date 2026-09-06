@@ -34,7 +34,7 @@ export function AppShell({
             {action}
           </header>
         )}
-        <main className="shell__main" id="main">
+        <main className="shell__main" id="main" key={route}>
           {children}
         </main>
         {chrome === 'tabs' && <TabBar route={route} />}

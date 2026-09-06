@@ -8,10 +8,13 @@ import { StampBadge } from '@design/patterns/StampBadge';
 import type { Gender, PrivacyPresetId } from '@domain/index';
 import { PRESET_LIST } from '@privacy/index';
 import { SEED_CIRCLES } from '@data/seed/circles';
+import { providerById } from '@stamps/index';
 import { useStore } from '@state/store';
 import { MeetPreference } from './MeetPreference';
 import { WelcomeCards } from '@screens/onboarding/WelcomeCards';
 import { SafetySection } from './SafetySection';
+
+const cityLabel = (key: string) => key.split('-')[0]!.replace(/\b\w/g, (m) => m.toUpperCase());
 
 /**
  * You, and who can see you.
@@ -40,6 +43,13 @@ export function YouScreen() {
     });
   };
 
+  const stats = [
+    { n: useStore.getState().myTrips.length, label: 'Trips' },
+    { n: me.reputation.meetsCompleted, label: 'People met' },
+    { n: me.memberships.filter((m) => [...myCircles, ...SEED_CIRCLES].find((c) => String(c.id) === String(m.circleId))?.kind === 'conference').length, label: 'Events' },
+    { n: me.memberships.length, label: 'Circles' },
+  ];
+
   const circleName = (id: string) =>
     [...myCircles, ...SEED_CIRCLES].find((c) => String(c.id) === id)?.name ?? id;
 
@@ -50,30 +60,55 @@ export function YouScreen() {
         <div>
           <h2 className="youhead__name display">{me.displayName || 'Your name'}</h2>
           <p className="youhead__headline">{me.headline || 'One sentence goes here.'}</p>
-          <div className="youhead__stamps">
-            {me.verifications.map((v) => (
-              <StampBadge
-                key={String(v.id)}
-                stamp={{
-                  kind: v.kind,
-                  display: {
-                    label: v.providerId,
-                    iconKey: v.kind,
-                    tone: v.kind === 'government_eid' ? 'trust' : 'social',
-                    explainer: '',
-                    publicLabel: '',
-                  },
-                  ...(v.evidence?.handle ? { handle: v.evidence.handle } : {}),
-                }}
-              />
-            ))}
-          </div>
+          {me.professional.industry && (
+            <p className="youhead__tags">
+              {[me.professional.title, me.professional.industry, me.homeCity ? cityLabel(String(me.homeCity)) : undefined].filter(Boolean).join(' · ')}
+            </p>
+          )}
           <div className="panel__row">
             <Button size="sm" variant="secondary" onClick={() => (window.location.hash = '#/you/edit')}>
               Edit your card
             </Button>
           </div>
         </div>
+      </section>
+
+      <ul className="record" aria-label="Your record">
+        {stats.map((s) => (
+          <li key={s.label} className="record__item">
+            <span className="record__n mono">{s.n}</span>
+            <span className="record__label">{s.label}</span>
+          </li>
+        ))}
+      </ul>
+
+      <section className="panel">
+        <h3 className="panel__title">Verified</h3>
+        {me.verifications.length === 0 ? (
+          <p className="panel__note">Nothing yet. A stamp is what lets people who chose "verified only" see you.</p>
+        ) : (
+          <div className="youhead__stamps">
+            {me.verifications.map((v) => {
+              const provider = providerById(v.providerId);
+              return (
+                <StampBadge
+                  key={String(v.id)}
+                  stamp={{
+                    kind: v.kind,
+                    display: provider?.display ?? {
+                      label: v.providerId,
+                      iconKey: v.kind,
+                      tone: v.kind === 'government_eid' ? 'trust' : 'social',
+                      explainer: '',
+                      publicLabel: '',
+                    },
+                    ...(v.evidence?.handle ? { handle: v.evidence.handle } : {}),
+                  }}
+                />
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <section className="panel">

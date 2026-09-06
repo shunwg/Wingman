@@ -17,7 +17,7 @@ test('a known flight number fills the form from the schedule', async ({ page }) 
   await page.getByRole('button', { name: 'Work' }).click();
   await page.getByRole('button', { name: 'List this trip' }).click();
   await page.waitForURL(/#\/trip$/);
-  await expect(page.getByText('SK1461')).toBeVisible();
+  await expect(page.getByText('SK1461').first()).toBeVisible();
   await expect(page.getByText('Work', { exact: true })).toBeVisible();
 
   // Edit keeps the id and the values.

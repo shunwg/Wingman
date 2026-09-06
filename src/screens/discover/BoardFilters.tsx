@@ -2,7 +2,14 @@ import type { Trip } from '@domain/index';
 import { tripCode } from '@domain/trip';
 import { tripHueClass } from '@design/tokens/tripHue';
 import { useCircles } from '@state/selectors/circles';
-import { NO_FILTERS, useStore } from '@state/store';
+import { NO_FILTERS, useStore, type BoardLens } from '@state/store';
+
+const LENSES: { id: BoardLens; label: string }[] = [
+  { id: 'all', label: 'For you' },
+  { id: 'same_flight', label: 'Same flight' },
+  { id: 'same_airport', label: 'Same airport' },
+  { id: 'same_event', label: 'Same event' },
+];
 
 /**
  * Narrowing the board.
@@ -37,6 +44,7 @@ export function BoardFilters({
   const myCircles = circles.filter((c) => me.memberships.some((m) => String(m.circleId) === String(c.id)));
 
   const dirty =
+    filters.lens !== 'all' ||
     filters.tripId !== 'all' ||
     filters.circleId !== 'any' ||
     filters.womenOnly ||
@@ -46,6 +54,19 @@ export function BoardFilters({
 
   return (
     <div className="filters filters--sticky">
+      <div className="lens" role="group" aria-label="Why now">
+        {LENSES.map((l) => (
+          <button
+            key={l.id}
+            type="button"
+            className={`lens__item ${filters.lens === l.id ? 'is-on' : ''}`}
+            aria-pressed={filters.lens === l.id}
+            onClick={() => setFilters({ lens: l.id })}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
       <div className="filters__top">
         {openTrips.length > 1 ? (
           <div className="segmented" role="group" aria-label="Which trip">

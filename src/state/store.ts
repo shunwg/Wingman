@@ -99,7 +99,11 @@ export const STORE_VERSION = 5;
  * Deliberately not persisted. Reopening the app to a board silently narrowed by
  * a filter set last week is indistinguishable from a broken product.
  */
+export type BoardLens = 'all' | 'same_flight' | 'same_airport' | 'same_event';
+
 export interface BoardFilters {
+  /** For you, same flight, same airport, same event. The first row on Discover. */
+  lens: BoardLens;
   /** A specific trip, or every open one. */
   tripId: string | 'all';
   circleId: string | 'any';
@@ -114,6 +118,7 @@ export interface BoardFilters {
 }
 
 export const NO_FILTERS: BoardFilters = {
+  lens: 'all',
   tripId: 'all',
   circleId: 'any',
   womenOnly: false,

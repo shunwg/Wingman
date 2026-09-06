@@ -256,8 +256,8 @@ function Routes() {
       );
     case 'trip':
       return (
-        <AppShell route="trip" title="Your trip">
-          <TripsScreen />
+        <AppShell route="trip" title="Trips">
+          <TripsScreen onOpen={(to) => navigate(to)} />
         </AppShell>
       );
     case 'trip.new':

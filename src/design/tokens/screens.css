@@ -95,6 +95,58 @@
 .moment { display: flex; flex-direction: column; gap: var(--sp-3); animation: moment-in 480ms var(--ease-out) both; }
 .moment .pcard { animation: moment-in 560ms var(--ease-out) 120ms both; }
 
+/* ── Timeline ────────────────────────────────────────────────────────────── */
+
+.timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; width: 100%; }
+.timeline__row { display: grid; grid-template-columns: 14px 1fr; gap: var(--sp-3); align-items: start; }
+.timeline__dot {
+  width: 10px; height: 10px; margin: 6px 2px; border-radius: var(--r-pill);
+  background: var(--surface); border: 2px solid var(--trip-colour, var(--accent));
+}
+.timeline__line { width: 2px; min-height: 100%; margin: 0 6px; background: var(--hairline-strong); justify-self: center; align-self: stretch; }
+.timeline__row--leg .timeline__line, .timeline__row--layover .timeline__line { background: var(--trip-colour, var(--hairline-strong)); opacity: 0.55; }
+.timeline__body { display: flex; flex-direction: column; gap: 2px; padding-bottom: var(--sp-3); min-width: 0; }
+.timeline__row--stop .timeline__body { padding-bottom: var(--sp-2); }
+.timeline__stop { display: flex; align-items: baseline; gap: var(--sp-2); }
+.timeline__code { font-size: var(--text-lg); font-weight: 700; letter-spacing: 0.02em; }
+.timeline__city { color: var(--muted); font-size: var(--text-sm); flex: 1; min-width: 0; }
+.timeline__time { font-size: var(--text-sm); }
+.timeline__label { font-size: var(--text-sm); }
+.timeline__row--layover .timeline__label { font-weight: 600; }
+.timeline__note { font-size: var(--text-xs); color: var(--muted); }
+.timeline__events { display: flex; flex-direction: column; gap: var(--sp-1); padding-top: var(--sp-1); }
+.timeline__event {
+  border: 0; background: var(--accent-wash); color: var(--accent); font: inherit; font-size: var(--text-sm); font-weight: 600;
+  padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); text-align: left; cursor: pointer;
+}
+
+/* ── The lens: why now ───────────────────────────────────────────────────── */
+
+.lens { display: flex; gap: var(--sp-2); overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * var(--sp-screen)); padding: 0 var(--sp-screen) var(--sp-1); }
+.lens::-webkit-scrollbar { display: none; }
+.lens__item {
+  flex: none; min-height: 36px; padding: 0 var(--sp-4); border-radius: var(--r-pill);
+  border: 1px solid var(--hairline-strong); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: var(--text-sm); font-weight: 500; cursor: pointer;
+  transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-press) ease;
+}
+.lens__item:active { transform: scale(0.97); }
+.lens__item.is-on { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+
+/* ── You: the record ─────────────────────────────────────────────────────── */
+
+.youhead__tags { color: var(--muted); font-size: var(--text-sm); margin: 2px 0 var(--sp-2); }
+.record { list-style: none; margin: 0; padding: var(--sp-3) 0; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+.record__item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.record__n { font-size: var(--text-xl); font-weight: 600; }
+.record__label { font-size: var(--text-xs); color: var(--muted); }
+
+/* A screen arrives, it does not appear. 180ms, opacity and eight pixels — the
+   relationship between two screens, not a flourish. Reduced motion keeps the
+   opacity and drops the movement (tokens.css). */
+@keyframes screen-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.shell__main { animation: screen-in var(--dur-screen) var(--ease-out) both; }
+
 /* ── Tab bar ─────────────────────────────────────────────────────────────── */
 
 .tabbar {
