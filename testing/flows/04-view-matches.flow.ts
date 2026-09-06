@@ -17,9 +17,9 @@ test('04 view matches', async ({ page }) => {
   await shot(page, 'board-cards');
 
   // The lens: why now.
-  await page.getByRole('button', { name: 'Same flight' }).click();
+  await page.getByRole('group', { name: 'Why now' }).getByRole('button', { name: 'Same flight' }).click();
   await shot(page, 'board-lens-same-flight');
-  await page.getByRole('button', { name: 'For you' }).click();
+  await page.getByRole('group', { name: 'Why now' }).getByRole('button', { name: 'For you' }).click();
 
   await page.getByRole('button', { name: 'Rows' }).click();
   await key(page.locator('.pcard--row').first(), 'rows');
