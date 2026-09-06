@@ -103,7 +103,7 @@ export function renderAvatarSVG(spec: AvatarSpec, opts: RenderOptions = {}): str
   </linearGradient></defs>
   <rect width="100" height="100" fill="url(#${gradId})"/>
   <text x="50" y="50" text-anchor="middle" dominant-baseline="central"
-        font-family="Fraunces, Georgia, serif" font-size="42" font-weight="600"
+        font-family="ui-rounded, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="42" font-weight="600"
         fill="${p.onBg}">${escapeText(spec.initial)}</text>
 </svg>`;
   }

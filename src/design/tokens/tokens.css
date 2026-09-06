@@ -11,9 +11,14 @@
  * stamp and state carries an icon and a label, so the design survives both
  * colour blindness and a monochrome screenshot.
  *
- * Type is the platform's. On an iPhone that is SF Pro; the interface should
- * read as native, and hierarchy comes from weight, size and space rather than
- * from a display face. A monospace is kept for flight codes and times only.
+ * Type is the platform's, still. Body text is SF Pro Text, plain system
+ * stack, zero font requests. Display type reaches one step further, into
+ * `ui-rounded` — a real CSS Fonts Level 4 generic, not a webfont — which
+ * resolves to SF Pro Rounded on Apple platforms: the same friendly-premium
+ * register Apple's own Health, Fitness and Podcasts use, softer terminals
+ * than the geometric default, and a genuine second voice for headlines
+ * without ever leaving the platform font or costing a network round trip.
+ * A monospace is kept for flight codes and times only.
  */
 
 :root {
@@ -71,8 +76,8 @@
     -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto,
     Helvetica, Arial, sans-serif;
   --font-display:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, 'Segoe UI', Roboto,
-    Helvetica, Arial, sans-serif;
+    ui-rounded, -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui,
+    'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
   --text-xs: 0.75rem;
@@ -298,10 +303,13 @@ textarea {
 /* Titles. The same family as everything else, set heavier and tighter — the
    iOS large-title idiom rather than a second typeface. */
 .display {
+  /* Rounded terminals need a little more room than a geometric sans at the
+     same weight/tracking, or they blur into each other — pulled back one
+     notch from the old 700/-0.022em to keep the rounded face legible. */
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 650;
   line-height: var(--leading-tight);
-  letter-spacing: -0.022em;
+  letter-spacing: -0.016em;
 }
 
 .visually-hidden {

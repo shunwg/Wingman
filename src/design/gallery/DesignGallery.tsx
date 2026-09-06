@@ -104,8 +104,9 @@ export function DesignGallery() {
       <section className="gallery__section">
         <h2 className="gallery__h2 display">Type</h2>
         <p className="gallery__note">
-          Fraunces for display, Inter for interface, JetBrains Mono for anything that is a fact —
-          flight numbers, times, money, codes.
+          SF Pro Rounded (`ui-rounded`) for display, SF Pro Text for interface, SF Mono for
+          anything that is a fact — flight numbers, times, money, codes. All three are the
+          platform's own faces; nothing here is a webfont.
         </p>
         <p className="display" style={{ fontSize: 'var(--text-3xl)' }}>
           Meet people worth meeting

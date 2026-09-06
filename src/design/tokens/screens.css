@@ -345,18 +345,13 @@
   background: var(--scrim-photo);
 }
 
-.person__heroText {
-  position: absolute;
-  left: var(--sp-4);
-  right: var(--sp-4);
-  bottom: var(--sp-4);
-  color: var(--on-photo);
-}
-
-.person__name {
-  font-size: var(--text-3xl);
-  color: var(--on-photo);
-}
+/* No text ever overlays `.person__hero` in the current layout — the name
+   lives in `.person__body` below (see `.person__id .person__name`), off the
+   photo. An earlier "name over photo" treatment lived here as `.heroText` /
+   a bare `.person__name`; removed rather than left dead, since it was always
+   overridden by the compound selector below wherever it actually rendered.
+   Bringing that treatment back is a real design decision, not a CSS revert —
+   see v7 plan, Stream 2. */
 
 .person__withheld {
   font-family: var(--font-body);
@@ -2282,7 +2277,11 @@ textarea.field__input {
   margin-top: calc(-1 * var(--sp-2));
 }
 
-.person__hero--band { aspect-ratio: 4 / 3; max-height: 220px; }
+/* Grown back toward the un-modified `.person__hero` ratio (4/5) with a taller
+   cap — this is the one screen a photo can afford real presence on, since it
+   is one profile opened deliberately, never a scanned list. The page already
+   scrolls, so a taller hero costs nothing below the fold. */
+.person__hero--band { aspect-ratio: 4 / 5; max-height: 340px; }
 .person__actions { display: flex; gap: var(--sp-2); }
 .ask__custom { margin-top: var(--sp-2); resize: none; }
 

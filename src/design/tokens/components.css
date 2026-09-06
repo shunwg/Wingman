@@ -25,6 +25,35 @@
   height: 100%;
 }
 
+/* The card-identity shape: a rounded square, not a circle-icon, big enough at
+   68px to read as a photograph rather than a badge. */
+.avatar--chip {
+  border-radius: var(--r-photo);
+  position: relative;
+  z-index: 1;
+}
+
+/* A soft glow in the person's own duotone sits behind the chip — the same
+   colours their generated portrait would use, so a real photo and a
+   generated one land in the same considered frame. Wrapper, not the image
+   itself, so the blur never softens the photo. */
+.avatar-chip {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.avatar-chip::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: calc(var(--r-photo) + 7px);
+  background: linear-gradient(135deg, var(--chip-from), var(--chip-to));
+  opacity: 0.4;
+  filter: blur(9px);
+  z-index: 0;
+}
+
 .avatar svg,
 img.avatar {
   width: 100%;
@@ -381,6 +410,12 @@ button.pcard:active {
 .pcard--row {
   gap: var(--sp-2);
   padding: var(--sp-3);
+}
+
+/* The one-person moment — not the board. See `PersonCard`'s `elevated` prop. */
+.pcard--elevated {
+  border-color: transparent;
+  box-shadow: var(--shadow-lift);
 }
 
 .pcard--row .pcard__headline {

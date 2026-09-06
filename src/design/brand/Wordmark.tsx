@@ -2,9 +2,9 @@ import type { CSSProperties } from 'react';
 import { Logo, type LogoTone } from './Logo';
 
 /**
- * The mark and the name together. Fraunces for the name because that is the
- * display face everywhere else; nothing bespoke, so the wordmark never drifts
- * from the headings it sits above.
+ * The mark and the name together. The name carries `.display` — the same
+ * rounded display face as every heading — so the wordmark never drifts from
+ * the type it sits above.
  */
 export function Wordmark({
   size = 28,

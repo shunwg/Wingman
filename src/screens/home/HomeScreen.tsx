@@ -121,6 +121,7 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
               <PersonCard
                 person={match.person}
                 context={match.receipt.headline}
+                elevated
                 onClick={() => onOpen(`#/person/${String(match.person.id)}/${match.viaTripId}`)}
                 footer={
                   <div className="pcard__footer">

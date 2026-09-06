@@ -18,12 +18,13 @@ import { CircleCrest } from './CircleCrest';
  * invites you to judge faces, and no amount of professional copy underneath
  * undoes what the layout already said.
  *
- * So the photograph is now identity rather than content — 56px, beside the
- * name, the size of a face you glance at to recognise someone rather than one
- * you assess. The largest thing on the card is the person's own sentence. Below
- * it sits what they do and what they are working on. You decide whether to
- * cross a terminal for someone based on what they said and what they are
- * building, and the layout should make that the path of least resistance.
+ * So the photograph is now identity rather than content — a rounded-square
+ * chip beside the name, big enough to read as a photograph, still nowhere
+ * near the size of a face you'd assess. The largest thing on the card is the
+ * person's own sentence. Below it sits what they do and what they are
+ * working on. You decide whether to cross a terminal for someone based on
+ * what they said and what they are building, and the layout should make
+ * that the path of least resistance.
  *
  * Everyone still gets a photo. It is just no longer the argument.
  *
@@ -62,6 +63,13 @@ export interface PersonCardProps {
   onClick?: () => void;
   /** `feed` is the full card; `row` is the compact list form. */
   layout?: 'feed' | 'row';
+  /**
+   * Lifts the card with `--shadow-lift` instead of the flat hairline every
+   * other card uses. Reserve this for the one-person moment — Home's "people
+   * worth meeting" — never for a list the reader scans quickly; a lifted
+   * board full of cards reads as noise, not consideration.
+   */
+  elevated?: boolean;
 }
 
 const HIDDEN_NAME = 'Name shown once you both agree';
@@ -74,6 +82,7 @@ export function PersonCard({
   footer,
   onClick,
   layout = 'feed',
+  elevated = false,
 }: PersonCardProps) {
   const name = isRedacted(person.displayName) ? null : person.displayName;
   const headline = isRedacted(person.headline) ? null : person.headline;
@@ -95,7 +104,7 @@ export function PersonCard({
 
   return (
     <Wrapper
-      className={`pcard pcard--${layout}`}
+      className={`pcard pcard--${layout} ${elevated ? 'pcard--elevated' : ''}`}
       {...(onClick ? { type: 'button' as const, onClick } : {})}
     >
       {tripCode && (
@@ -107,7 +116,7 @@ export function PersonCard({
       )}
 
       <header className="pcard__id">
-        <Avatar spec={person.avatar} size="md" {...(name ? { label: name } : {})} />
+        <Avatar spec={person.avatar} size="chip" shape="chip" {...(name ? { label: name } : {})} />
 
         <div className="pcard__idtext">
           <h3 className={`pcard__name ${name ? '' : 'pcard__name--withheld'}`}>
