@@ -19,11 +19,11 @@ const OUT =
 
 const VIEWPORTS = process.env.SHOOT_ALL
   ? [
-      { name: 'mobile', width: 390, height: 844 },
+      { name: 'mobile', width: 402, height: 874 },
       { name: 'tablet', width: 768, height: 1024 },
       { name: 'desktop', width: 1440, height: 900 },
     ]
-  : [{ name: 'mobile', width: 390, height: 844 }];
+  : [{ name: 'mobile', width: 402, height: 874 }];
 
 const THEMES = (process.env.SHOOT_ALL || process.env.SHOOT_DARK ? ['light', 'dark'] : ['light']) as ('light' | 'dark')[];
 

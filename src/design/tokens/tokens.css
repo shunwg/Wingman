@@ -5,105 +5,113 @@
  * Nothing outside src/design may write a literal colour — restyling the whole
  * product should mean editing this file and nothing else.
  *
- * Four hues total: ink, an ember accent, a trust green, a guardian indigo.
+ * Four hues total: navy ink, one restrained Wingman blue, a muted trust green,
+ * a muted amber for warnings. The guardian state lives inside the blue family.
  * Restraint is the point. Colour is never the only indicator either — every
  * stamp and state carries an icon and a label, so the design survives both
  * colour blindness and a monochrome screenshot.
+ *
+ * Type is the platform's. On an iPhone that is SF Pro; the interface should
+ * read as native, and hierarchy comes from weight, size and space rather than
+ * from a display face. A monospace is kept for flight codes and times only.
  */
 
 :root {
-  /* ── Surface ─────────────────────────────────────────────────────────── */
-  --canvas: #fbf9f7;
+  /* ── Surface. Warm, very light; never clinical white everywhere. ─────── */
+  --canvas: #faf8f5;
   --surface: #ffffff;
-  --surface-sunk: #f4f0ec;
-  --hairline: #e8e2dc;
-  --hairline-strong: #d8cfc6;
+  --surface-sunk: #f2efea;
+  --hairline: #e8e3dc;
+  --hairline-strong: #d6cfc6;
 
-  /* ── Text. Both clear 4.5:1 on canvas and surface. ───────────────────── */
-  --ink: #141110;
-  --muted: #736a64;
-  --faint: #7b706a;
+  /* ── Text. All clear 4.5:1 on canvas and surface. ────────────────────── */
+  --ink: #0f1b33;
+  --muted: #525b70;
+  --faint: #6b7286;
   --on-accent: #ffffff;
+  /* Text laid over a photograph. Fixed in both themes by design. */
+  --on-photo: #ffffff;
+  --scrim: rgb(0 0 0 / 42%);
+  --scrim-photo: linear-gradient(to top, rgb(0 0 0 / 70%) 0%, rgb(0 0 0 / 0%) 55%);
 
   /* ── The four hues ───────────────────────────────────────────────────── */
-  --accent: #e2563a;
-  --accent-press: #c8462c;
-  --accent-wash: #fdefeb;
-  --trust: #10715c;
-  --trust-wash: #e6f2ee;
-  --guard: #3d4edb;
-  --guard-wash: #ecedfd;
-  --warn: #9a5b00;
-  --warn-wash: #fdf1e0;
+  --accent: #1f4e9c;
+  --accent-press: #183f80;
+  --accent-wash: #e8effa;
+  --trust: #1b7a4e;
+  --trust-wash: #e6f3ec;
+  --guard: #3b63b8;
+  --guard-wash: #eaf0fa;
+  --warn: #9a6300;
+  --warn-wash: #fbf2e0;
 
   /* ── Trip colours ────────────────────────────────────────────────────────
    *
    * A fifth axis, and deliberately outside "the four hues" above rather than
-   * an exception to them. Those four are *semantic*: ember means act, trust
-   * means proved, guard means safety. These mean nothing at all on their own —
+   * an exception to them. Those four are *semantic*: blue means act, trust
+   * means proved, amber means careful. These mean nothing at all on their own —
    * they are wayfinding, like a metro line. Their whole job is that the ticket
-   * in your Trip tab and the tag on a person's card are recognisably the same
-   * journey at a glance.
-   *
-   * Chosen to sit away from the semantic four in hue, so a trip stripe is
-   * never mistaken for a verification state: no oranges (ember), no blue-violet
-   * (guardian), and the green is olive rather than the deep teal of trust.
-   *
-   * Colour is never the only indicator here either. Every place one of these
-   * appears, the flight code appears with it — someone who cannot separate the
-   * violet trip from the rose one still reads SQ317 and SK1465.
+   * in your Trips tab and the tag on a person's card are recognisably the same
+   * journey at a glance. Muted on purpose; the flight code always appears
+   * beside them, so colour is never the only indicator.
    */
-  --trip-0: #7c4da0;
-  --trip-0-wash: #f4eefa;
-  --trip-1: #a97316;
-  --trip-1-wash: #fbf1e0;
-  --trip-2: #0e7490;
-  --trip-2-wash: #e6f4f8;
-  --trip-3: #b8446a;
-  --trip-3-wash: #fceef2;
-  --trip-4: #5f7326;
-  --trip-4-wash: #f1f5e4;
+  --trip-0: #6f5a9e;
+  --trip-0-wash: #f1edf7;
+  --trip-1: #9a7a2e;
+  --trip-1-wash: #f8f2e3;
+  --trip-2: #2f7a8c;
+  --trip-2-wash: #e7f2f5;
+  --trip-3: #a45772;
+  --trip-3-wash: #f8edf1;
+  --trip-4: #6a7a3a;
+  --trip-4-wash: #f0f4e7;
 
   /* ── Type ────────────────────────────────────────────────────────────── */
-  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
-  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-body:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-display:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.375rem;
-  --text-2xl: 1.75rem;
-  --text-3xl: 2.25rem;
-  --text-4xl: 3rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+  --text-4xl: 2.5rem;
 
   --leading-tight: 1.15;
   --leading-snug: 1.35;
-  --leading-body: 1.6;
+  --leading-body: 1.5;
 
-  /* ── Space, on an 8pt grid ───────────────────────────────────────────── */
+  /* ── Space, on an 8pt grid. 20px is the screen's horizontal padding. ─── */
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
   --sp-4: 16px;
-  --sp-5: 24px;
-  --sp-6: 32px;
-  --sp-7: 48px;
-  --sp-8: 64px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 48px;
+  --sp-screen: 20px;
 
   /* ── Form ────────────────────────────────────────────────────────────── */
-  --r-sm: 10px;
-  --r-md: 16px;
-  --r-photo: 20px;
-  --r-card: 24px;
-  --r-sheet: 28px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-photo: 14px;
+  --r-card: 16px;
+  --r-sheet: 24px;
   --r-pill: 999px;
 
   /* Shadows are used sparingly — a hairline does most of the separating. */
-  --shadow-card: 0 1px 2px rgb(20 17 16 / 4%), 0 8px 24px -16px rgb(20 17 16 / 18%);
-  --shadow-lift: 0 2px 4px rgb(20 17 16 / 6%), 0 16px 40px -20px rgb(20 17 16 / 28%);
-  --shadow-sheet: 0 -8px 40px -12px rgb(20 17 16 / 22%);
+  --shadow-card: 0 1px 2px rgb(15 27 51 / 4%), 0 6px 20px -14px rgb(15 27 51 / 14%);
+  --shadow-lift: 0 2px 4px rgb(15 27 51 / 6%), 0 14px 36px -18px rgb(15 27 51 / 22%);
+  --shadow-sheet: 0 -8px 40px -12px rgb(15 27 51 / 20%);
+  --shadow-raise: 0 1px 2px rgb(15 27 51 / 8%);
 
   /* ── Motion ──────────────────────────────────────────────────────────── */
   /* The built-in CSS easings are too weak to read as intentional. */
@@ -115,6 +123,7 @@
      user is watching most closely, and makes the whole interface feel slow. */
   --dur-press: 130ms;
   --dur-tooltip: 160ms;
+  --dur-screen: 180ms;
   --dur-sheet: 220ms;
   --dur-dialog: 260ms;
   /* The one place we spend real time — accepting a request. Rare by design. */
@@ -124,47 +133,53 @@
   --z-dialog: 40;
   --z-toast: 50;
 
+  /* iPhone 17 Pro, portrait. The frame, the screenshots and the tests agree. */
+  --frame-width: 402px;
+  --tabbar-height: 49px;
+
   color-scheme: light;
 }
 
-/* System preference, unless the user has explicitly chosen light. */
+/* System preference, unless the user has explicitly chosen light. The values
+   are repeated verbatim in the explicit block below: CSS cannot share a rule
+   between a media query and an attribute selector, so edit both. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --canvas: #141110;
-    --surface: #1e1a18;
-    --surface-sunk: #100d0c;
-    --hairline: #2e2825;
-    --hairline-strong: #423a35;
+    --canvas: #0e1220;
+    --surface: #171c2c;
+    --surface-sunk: #0a0d18;
+    --hairline: #262c3d;
+    --hairline-strong: #353d52;
 
-    --ink: #f6f2ef;
-    --muted: #a79c95;
-    --faint: #8f847d;
+    --ink: #f3f5f9;
+    --muted: #a6adc0;
+    --faint: #8c93a6;
 
-    --accent: #ff7355;
-    --accent-press: #e65c40;
-    --accent-wash: #2c1a15;
-    --trust: #3fbf9c;
-    --trust-wash: #10241f;
-    --guard: #8a95ff;
+    --accent: #6e9be8;
+    --accent-press: #5a88d8;
+    --accent-wash: #1b2a47;
+    --trust: #4fbf8a;
+    --trust-wash: #10291d;
+    --guard: #8aa6e8;
+    --guard-wash: #1a2440;
+    --warn: #e0ae5a;
+    --warn-wash: #2b2110;
 
-    /* Wayfinding hues, lifted for a dark ground — see the light block. */
-    --trip-0: #c49ae0;
-    --trip-0-wash: #2b1f36;
-    --trip-1: #e0b063;
-    --trip-1-wash: #33270f;
-    --trip-2: #5fbcd6;
-    --trip-2-wash: #102c36;
-    --trip-3: #ef8bab;
-    --trip-3-wash: #341823;
-    --trip-4: #a8bf6a;
-    --trip-4-wash: #232b12;
-    --guard-wash: #1a1c32;
-    --warn: #e0a458;
-    --warn-wash: #2a1f0f;
+    --trip-0: #b9a3dc;
+    --trip-0-wash: #251d36;
+    --trip-1: #d6b467;
+    --trip-1-wash: #2e2610;
+    --trip-2: #6dbdd0;
+    --trip-2-wash: #10292f;
+    --trip-3: #e08faa;
+    --trip-3-wash: #301823;
+    --trip-4: #a9bd73;
+    --trip-4-wash: #202812;
 
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px -16px rgb(0 0 0 / 70%);
-    --shadow-lift: 0 2px 4px rgb(0 0 0 / 45%), 0 16px 40px -20px rgb(0 0 0 / 80%);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 6px 20px -14px rgb(0 0 0 / 70%);
+    --shadow-lift: 0 2px 4px rgb(0 0 0 / 45%), 0 14px 36px -18px rgb(0 0 0 / 80%);
     --shadow-sheet: 0 -8px 40px -12px rgb(0 0 0 / 70%);
+    --shadow-raise: 0 1px 2px rgb(0 0 0 / 50%);
 
     color-scheme: dark;
   }
@@ -174,41 +189,41 @@
    directions — otherwise a user who picks light on a dark-mode device gets
    their choice silently ignored. */
 :root[data-theme='dark'] {
-  --canvas: #141110;
-  --surface: #1e1a18;
-  --surface-sunk: #100d0c;
-  --hairline: #2e2825;
-  --hairline-strong: #423a35;
+  --canvas: #0e1220;
+  --surface: #171c2c;
+  --surface-sunk: #0a0d18;
+  --hairline: #262c3d;
+  --hairline-strong: #353d52;
 
-  --ink: #f6f2ef;
-  --muted: #a79c95;
-  --faint: #8f847d;
+  --ink: #f3f5f9;
+  --muted: #a6adc0;
+  --faint: #8c93a6;
 
-  --accent: #ff7355;
-  --accent-press: #e65c40;
-  --accent-wash: #2c1a15;
-  --trust: #3fbf9c;
-  --trust-wash: #10241f;
-  --guard: #8a95ff;
+  --accent: #6e9be8;
+  --accent-press: #5a88d8;
+  --accent-wash: #1b2a47;
+  --trust: #4fbf8a;
+  --trust-wash: #10291d;
+  --guard: #8aa6e8;
+  --guard-wash: #1a2440;
+  --warn: #e0ae5a;
+  --warn-wash: #2b2110;
 
-  /* Wayfinding hues, lifted for a dark ground — see the light block. */
-  --trip-0: #c49ae0;
-  --trip-0-wash: #2b1f36;
-  --trip-1: #e0b063;
-  --trip-1-wash: #33270f;
-  --trip-2: #5fbcd6;
-  --trip-2-wash: #102c36;
-  --trip-3: #ef8bab;
-  --trip-3-wash: #341823;
-  --trip-4: #a8bf6a;
-  --trip-4-wash: #232b12;
-  --guard-wash: #1a1c32;
-  --warn: #e0a458;
-  --warn-wash: #2a1f0f;
+  --trip-0: #b9a3dc;
+  --trip-0-wash: #251d36;
+  --trip-1: #d6b467;
+  --trip-1-wash: #2e2610;
+  --trip-2: #6dbdd0;
+  --trip-2-wash: #10292f;
+  --trip-3: #e08faa;
+  --trip-3-wash: #301823;
+  --trip-4: #a9bd73;
+  --trip-4-wash: #202812;
 
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px -16px rgb(0 0 0 / 70%);
-  --shadow-lift: 0 2px 4px rgb(0 0 0 / 45%), 0 16px 40px -20px rgb(0 0 0 / 80%);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 40%), 0 6px 20px -14px rgb(0 0 0 / 70%);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 45%), 0 14px 36px -18px rgb(0 0 0 / 80%);
   --shadow-sheet: 0 -8px 40px -12px rgb(0 0 0 / 70%);
+  --shadow-raise: 0 1px 2px rgb(0 0 0 / 50%);
 
   color-scheme: dark;
 }
@@ -280,11 +295,13 @@ textarea {
   letter-spacing: -0.01em;
 }
 
+/* Titles. The same family as everything else, set heavier and tighter — the
+   iOS large-title idiom rather than a second typeface. */
 .display {
   font-family: var(--font-display);
-  font-optical-sizing: auto;
+  font-weight: 700;
   line-height: var(--leading-tight);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.022em;
 }
 
 .visually-hidden {

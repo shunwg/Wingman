@@ -4,8 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#fbf9f7" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#141110" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#faf8f5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e1220" media="(prefers-color-scheme: dark)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Wingman" />
     <title>Wingman</title>
     <!-- Vite rebases these absolute URLs with `base` at build time, so the same
          file serves both localhost and the /Wingman/ project site. -->
@@ -19,12 +22,8 @@
       name="description"
       content="Meet people worth meeting, around the way you already travel."
     />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
-      rel="stylesheet"
-    />
+    <!-- No webfont. The interface uses the platform face (SF Pro on iPhone),
+         so the first paint does not wait on a font request. -->
   </head>
   <body>
     <div id="root"></div>

@@ -114,11 +114,16 @@ Domains: `product · style · typography · color · landing · chart · ux · r
 
 ## Design system
 
-Light-first, warm, photo-led, generous. Four hues total: ink, ember accent, trust green,
-guardian indigo. Colour is never the only indicator — every stamp and state carries an
-icon and a label as well.
+Light-first, warm, photo-led, restrained. Four hues total: navy ink, one Wingman blue
+accent, muted trust green, muted amber. Guardian states use the blue family. Colour is
+never the only indicator — every stamp and state carries an icon and a label as well.
 
-- **Type:** Fraunces (display) · Inter (UI) · JetBrains Mono (flights, times, money).
+- **Device:** iPhone 17 Pro portrait, 402 × 874 CSS px, real safe areas. The frame,
+  `scripts/shoot.ts` and Playwright all use it. Nothing stretches to fill height.
+- **Type:** the platform font (SF Pro on iPhone via `-apple-system`); `.display` is the
+  same family set heavier and tighter, the iOS large-title idiom. A monospace only for
+  flight codes and times. No webfont request.
+- **Space:** 20px screen padding (`--sp-screen`), 8px base rhythm. Generous, not empty.
 - **Motion:** custom easing curves only, never `ease-in` on UI, nothing over 300ms
   except the one signature moment, `scale(0.97)` on every press, never enter from
   `scale(0)`. `prefers-reduced-motion` removes movement and keeps opacity.

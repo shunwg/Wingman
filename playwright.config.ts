@@ -1,6 +1,18 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
+ * iPhone 17 Pro, portrait. Playwright's descriptors stop at older models; the
+ * viewport is what matters for layout, and it is the one the CSS frame and the
+ * screenshot script target too.
+ */
+const iphone17pro = {
+  ...devices['iPhone 13'],
+  viewport: { width: 402, height: 874 },
+  deviceScaleFactor: 3,
+  browserName: 'chromium' as const,
+};
+
+/**
  * End-to-end flows against the dev server.
  *
  * Mobile first, because that is where the app is used; the desktop project
@@ -21,7 +33,7 @@ export default defineConfig({
     {
       name: 'mobile',
       testDir: 'e2e',
-      use: { ...devices['iPhone 13'], browserName: 'chromium' },
+      use: iphone17pro,
       testIgnore: /.*desktop\.spec\.ts/,
     },
     {
@@ -36,7 +48,7 @@ export default defineConfig({
       name: 'personas',
       testDir: 'testing/flows',
       testMatch: /.*\.flow\.ts/,
-      use: { ...devices['iPhone 13'], browserName: 'chromium' },
+      use: iphone17pro,
     },
   ],
   webServer: {

@@ -18,12 +18,15 @@
   /* A large phone, held in one hand. Wider than this and the photo cards stop
      being the whole view, which is the only reason the board reads the way it
      does. On desktop it centres rather than stretching. */
-  max-width: 430px;
+  max-width: var(--frame-width);
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--canvas);
   border-inline: 1px solid var(--hairline);
+  /* The status bar. On the device this is the notch/island height; in a
+     desktop browser it is zero and the header's own padding carries it. */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .shell__header {
@@ -31,7 +34,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--sp-3);
-  padding: var(--sp-6) var(--sp-4) var(--sp-3);
+  padding: var(--sp-4) var(--sp-screen) var(--sp-2);
 }
 
 .shell__title {
@@ -40,9 +43,9 @@
 
 .shell__main {
   flex: 1;
-  padding: 0 var(--sp-4);
+  padding: 0 var(--sp-screen);
   /* Room for the tab bar plus the home indicator on a notched phone. */
-  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--tabbar-height) + var(--sp-6) + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: var(--sp-4);
@@ -54,7 +57,7 @@
   position: fixed;
   bottom: 0;
   width: 100%;
-  max-width: 430px;
+  max-width: var(--frame-width);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
@@ -69,9 +72,9 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: var(--sp-2) 0 var(--sp-3);
-  /* 44px minimum, even though the icon is 22px. */
-  min-height: 56px;
+  padding: 6px 0 4px;
+  /* The iOS tab bar is 49pt; the label sits inside it. */
+  min-height: var(--tabbar-height);
   justify-content: center;
   color: var(--muted);
   text-decoration: none;
@@ -241,7 +244,7 @@
 .person__scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgb(0 0 0 / 74%) 0%, rgb(0 0 0 / 0%) 46%);
+  background: var(--scrim-photo);
 }
 
 .person__heroText {
@@ -249,12 +252,12 @@
   left: var(--sp-4);
   right: var(--sp-4);
   bottom: var(--sp-4);
-  color: #fff;
+  color: var(--on-photo);
 }
 
 .person__name {
   font-size: var(--text-3xl);
-  color: #fff;
+  color: var(--on-photo);
 }
 
 .person__withheld {
@@ -485,7 +488,7 @@
 .sheet__scrim {
   position: absolute;
   inset: 0;
-  background: rgb(0 0 0 / 42%);
+  background: var(--scrim);
 }
 
 .sheet__panel {
@@ -1045,7 +1048,7 @@
   background: var(--surface);
   color: var(--ink);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 7%);
+  box-shadow: var(--shadow-raise);
 }
 
 /* Selected or not, the dot stays its journey's colour — that is what makes the
@@ -1648,13 +1651,14 @@ textarea.field__input {
 .welcome {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  gap: var(--sp-4);
 }
 
 .welcome__hero {
   position: relative;
-  margin: calc(-1 * var(--sp-4)) calc(-1 * var(--sp-4)) 0;
+  margin: calc(-1 * env(safe-area-inset-top, 0px)) calc(-1 * var(--sp-screen)) 0;
   aspect-ratio: 4 / 3;
+  max-height: 300px;
   overflow: hidden;
   background: var(--ink);
 }
@@ -1671,15 +1675,15 @@ textarea.field__input {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, rgb(0 0 0 / 5%), rgb(0 0 0 / 0%) 40%, var(--canvas));
+  background: linear-gradient(to bottom, transparent 55%, var(--canvas));
 }
 
 .welcome__mark {
   position: absolute;
   top: calc(var(--sp-6) + env(safe-area-inset-top, 0px));
   left: var(--sp-4);
-  color: #fff;
-  text-shadow: 0 1px 8px rgb(0 0 0 / 35%);
+  color: var(--on-photo);
+  text-shadow: 0 1px 8px var(--scrim);
 }
 
 .welcome__cards {
@@ -2088,7 +2092,7 @@ textarea.field__input {
   right: var(--sp-2);
   z-index: 2;
 }
-.person__menu .menu__button { background: rgb(255 255 255 / 80%); color: var(--ink); }
+.person__menu .menu__button { background: color-mix(in srgb, var(--surface) 82%, transparent); color: var(--ink); }
 
 .panel__subtitle { font-size: var(--text-base); font-weight: 600; margin: var(--sp-2) 0 0; }
 .preview { border: 1px dashed var(--hairline-strong); border-radius: var(--r-card); padding: var(--sp-2); }
@@ -2123,7 +2127,7 @@ textarea.field__input {
   background: var(--surface-sunk);
   border-radius: var(--r-card);
 }
-.qrwrap { display: grid; place-items: center; padding: var(--sp-3); background: #fff; border-radius: var(--r-card); border: 1px solid var(--hairline); }
+.qrwrap { display: grid; place-items: center; padding: var(--sp-3); background: var(--on-photo); border-radius: var(--r-card); border: 1px solid var(--hairline); }
 .qr { display: block; max-width: 100%; height: auto; }
 .badgelinks { display: flex; flex-direction: column; gap: var(--sp-2); }
 .badgelink { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--sp-2); }
