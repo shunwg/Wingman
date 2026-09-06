@@ -15,6 +15,7 @@ import type {
   MembershipDisplay,
   Person,
   PersonId,
+  Gender,
   PrivacyPolicy,
   ProfessionalCard,
   Rating,
@@ -40,6 +41,7 @@ import {
   escalateGuardian,
   GUARDIAN_PRESETS,
   type GuardianPresetId,
+  withMeetPreference,
 } from '@privacy/index';
 import { scriptedReply } from '@data/seed/replies';
 import { SEED_MESSAGES } from '@data/seed/channels';
@@ -192,6 +194,8 @@ export interface WingmanState {
   /** Add a trip typed by hand. Attaches layovers the way the seed does. */
   addTrip: (trip: Trip) => void;
   setPrivacy: (patch: Partial<PrivacyPolicy>) => void;
+  /** Who you want to meet. Symmetric by construction: writes both halves. */
+  setMeetPreference: (genders: Gender[] | 'any') => void;
   upsertTrip: (trip: Trip) => void;
   removeTrip: (tripId: string) => void;
   setFilters: (patch: Partial<BoardFilters>) => void;
@@ -357,6 +361,9 @@ export const useStore = create<WingmanState>()(
 
       setPrivacy: (patch) =>
         set((s) => ({ me: { ...s.me, privacy: { ...s.me.privacy, ...patch } } })),
+
+      setMeetPreference: (genders) =>
+        set((s) => ({ me: { ...s.me, privacy: withMeetPreference(s.me.privacy, genders) } })),
 
       upsertTrip: (trip) =>
         set((s) => ({

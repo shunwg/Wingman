@@ -28,6 +28,9 @@ export {
   isAsymmetric,
   defaultPolicy,
   defaultAudienceRule,
+  withMeetPreference,
+  meetPreference,
+  isSelfSilencing,
 } from './presets';
 export { policyCopy, COPY_KEYS } from './copy';
 export { AUDIENCE_RULES, SEEKING_RULES, ALL_RULES } from './rules/registry';

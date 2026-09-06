@@ -1,4 +1,4 @@
-import type { AudienceRule, CircleId, PrivacyPolicy, PrivacyPresetId } from '@domain/index';
+import type { AudienceRule, CircleId, Gender, PrivacyPolicy, PrivacyPresetId } from '@domain/index';
 import { ASSURANCE } from '@domain/verification';
 
 /**
@@ -138,6 +138,48 @@ export function applyPresets(
   }
 
   return { audience, seeking };
+}
+
+/**
+ * Who you want to meet — written to both halves in one move.
+ *
+ * This is the one place a gender list enters the stored policy by hand, and
+ * it is deliberately impossible to write only one half through it. The
+ * preference is symmetric: choose to meet only women, and only women see
+ * you. Presets still fold over it (`applyPresets` intersects gender lists),
+ * so `women_only` on top of a wider preference narrows it, never widens it.
+ *
+ * `undisclosed` and `nonbinary` are ordinary members of the set. A new
+ * account is `undisclosed`, so a list that leaves it out hides most of the
+ * network from the chooser and the chooser from it — the screen says so.
+ */
+export function withMeetPreference(policy: PrivacyPolicy, genders: Gender[] | 'any'): PrivacyPolicy {
+  const list = genders === 'any' ? 'any' : [...new Set(genders)];
+  return {
+    ...policy,
+    audience: { ...policy.audience, genders: list },
+    seeking: { ...policy.seeking, genders: list },
+  };
+}
+
+/** The stored preference, before presets. The screen reads this back. */
+export function meetPreference(policy: PrivacyPolicy): Gender[] | 'any' {
+  return policy.seeking.genders;
+}
+
+/**
+ * True when the compiled gender rule admits nobody.
+ *
+ * A preference of `['man']` under the `women_only` preset intersects to an
+ * empty list, and an empty list denies everyone — correctly. Silently
+ * widening a restriction is the wrong failure direction for a privacy rule,
+ * so `mergeHalf` is left alone and the screen warns instead.
+ */
+export function isSelfSilencing(audience: AudienceRule, seeking: AudienceRule): boolean {
+  return (
+    (audience.genders !== 'any' && audience.genders.length === 0) ||
+    (seeking.genders !== 'any' && seeking.genders.length === 0)
+  );
 }
 
 /**

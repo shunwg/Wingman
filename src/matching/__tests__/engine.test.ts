@@ -217,6 +217,31 @@ describe('ranking', () => {
     expect(permuted.signals).toEqual(base.signals);
   });
 
+  /**
+   * The negative control. A ranking that ignored everything would pass the
+   * invariance test above; this proves it still reads what a person wants.
+   */
+  it('does notice what a candidate is seeking and offering', () => {
+    const plain = openPerson('a');
+    const wanting: Person = {
+      ...plain,
+      intent: {
+        ...plain.intent,
+        seeking: ['energy-finance' as never],
+        offering: ['energy-markets' as never],
+      },
+    };
+    const input = world([wanting]);
+    input.me = {
+      ...input.me,
+      intent: { ...input.me.intent, seeking: ['energy-markets' as never], offering: ['energy-finance' as never] },
+    };
+    const base = findCandidates(world([plain])).candidates[0]!;
+    const fit = findCandidates(input).candidates[0]!;
+    expect(fit.score).not.toBe(base.score);
+    expect(fit.signals.mutualFit).toBeGreaterThan(base.signals.mutualFit);
+  });
+
   it('ranks a shared flight above merely sharing a city', () => {
     const me = openPerson('me');
     const flightMate = openPerson('flight');
