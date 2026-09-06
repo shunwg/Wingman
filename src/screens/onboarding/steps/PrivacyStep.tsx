@@ -2,16 +2,16 @@ import { Button } from '@design/primitives/Button';
 import { OptionRow } from '@design/primitives/OptionRow';
 import type { Gender, PrivacyPresetId } from '@domain/index';
 import { PRESET_LIST } from '@privacy/index';
+import { MeetPreference } from '@screens/profile/MeetPreference';
 import { useStore } from '@state/store';
 
 /**
  * Who can see you — decided before the board exists.
  *
- * Not skippable. The presets are the ones from You, in an order that puts the
- * one most likely to matter first: women-only leads for a woman, and is off
- * until she says so. Verified-only is on by default for everyone; the next
- * step explains the exchange. No counts appear here — an audience figure on
- * a screen someone has not chosen yet is a nudge, not information.
+ * Not skippable. Who you are, who you want to meet, and then the presets
+ * from You. Verified-only is on by default for everyone; the next step
+ * explains the exchange. No counts appear here — an audience figure on a
+ * screen someone has not chosen yet is a nudge, not information.
  */
 
 const GENDERS: { id: Gender; label: string }[] = [
@@ -29,14 +29,6 @@ export function PrivacyStep({ onNext }: { onNext: () => void }) {
 
   const toggle = (id: PrivacyPresetId) =>
     setPrivacy({ presets: presets.includes(id) ? presets.filter((p) => p !== id) : [...presets, id] });
-
-  const ordered = [...PRESET_LIST].sort((a, b) => {
-    if (gender === 'woman') {
-      if (a.id === 'women_only') return -1;
-      if (b.id === 'women_only') return 1;
-    }
-    return 0;
-  });
 
   const note = (id: PrivacyPresetId) => {
     if (id === 'id_verified_only') return 'Needs the ID stamp from the next step.';
@@ -63,14 +55,19 @@ export function PrivacyStep({ onNext }: { onNext: () => void }) {
           ))}
         </div>
         <p className="panel__note">
-          Used only to make the women-only setting work. Never shown on your card, never a
-          matching signal. BankID does not tell us your gender, and we do not ask it to.
+          Used only to make the next choice work, in both directions. Never shown on your card,
+          never a matching signal. BankID does not tell us your gender, and we do not ask it to.
         </p>
       </div>
 
       <div className="panel__stack">
+        <span className="field__label">Who you want to meet</span>
+        <MeetPreference compact />
+      </div>
+
+      <div className="panel__stack">
         <span className="field__label">Who can see you</span>
-        {ordered.map((p) => (
+        {PRESET_LIST.map((p) => (
           <OptionRow
             key={p.id}
             label={p.label}

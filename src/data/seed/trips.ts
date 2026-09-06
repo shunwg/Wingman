@@ -150,7 +150,7 @@ export const ME: Person = {
   intent: {
     appetite: { social: 0.7, professional: 0.8 },
     openTo: ['gate_coffee', 'lounge', 'meal', 'drinks', 'business_intro', 'ride_share', 'coworking'],
-    topics: ['energy', 'cities', 'food'],
+    topics: [],
     languages: ['en', 'no'],
     interests: ['energy', 'cities', 'food'].map(asTagId),
     seeking: ['energy-markets', 'infrastructure'].map(asTagId),

@@ -9,6 +9,7 @@ import type { Gender, PrivacyPresetId } from '@domain/index';
 import { PRESET_LIST } from '@privacy/index';
 import { SEED_CIRCLES } from '@data/seed/circles';
 import { useStore } from '@state/store';
+import { MeetPreference } from './MeetPreference';
 import { WelcomeCards } from '@screens/onboarding/WelcomeCards';
 import { SafetySection } from './SafetySection';
 
@@ -91,8 +92,8 @@ export function YouScreen() {
       <section className="panel">
         <h3 className="panel__title">You are</h3>
         <p className="panel__note">
-          Used only to make the women-only setting work. It is never shown on your card, and it is
-          never a matching signal.
+          Used only to make the next choice work, in both directions. It is never shown on your
+          card, and it is never a matching signal.
         </p>
         <div className="panel__row">
           {(['woman', 'man', 'nonbinary', 'undisclosed'] as Gender[]).map((g) => (
@@ -101,6 +102,11 @@ export function YouScreen() {
             </ToggleChip>
           ))}
         </div>
+      </section>
+
+      <section className="panel">
+        <h3 className="panel__title">Who you want to meet</h3>
+        <MeetPreference />
       </section>
 
       <section className="panel">

@@ -529,10 +529,10 @@ function intent(s: Seed): IntentProfile {
   return {
     appetite: { social: s.social, professional: s.professional },
     openTo: s.openTo,
-    topics: s.topics,
+    // A topic the vocabulary knows becomes an interest; only the rest stays
+    // free text, so nothing is counted twice.
+    topics: s.topics.filter((t) => normaliseTag(t) === undefined),
     languages: s.languages,
-    // Interests are the topics, resolved; a topic outside the vocabulary
-    // stays in `topics` and still counts as an exact-match bonus.
     interests: toTags(s.topics),
     seeking: toTags(s.seeking),
     offering: toTags(s.offering),

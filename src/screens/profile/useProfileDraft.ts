@@ -1,4 +1,4 @@
-import type { IntentAxis, IntentProfile, MeetKind, ProfessionalCard } from '@domain/index';
+import type { IntentAxis, IntentProfile, MeetKind, ProfessionalCard, TagId } from '@domain/index';
 import { useStore } from '@state/store';
 
 /**
@@ -24,7 +24,20 @@ export type Posture = 'social' | 'leisure' | 'both' | 'work';
 export interface WorkDraft extends ProfessionalCard {
   openTo: MeetKind[];
   posture: Posture;
+  interests: TagId[];
+  seeking: TagId[];
+  offering: TagId[];
+  openToAnyone: boolean;
+  /** Free text the vocabulary does not have. */
+  topics: string[];
 }
+
+/**
+ * Caps on the three lists. A ranking decision: an uncapped list makes any
+ * overlap-shaped signal trivially maximal for whoever ticks everything.
+ */
+export const CAPS = { interests: 12, seeking: 6, offering: 6 } as const;
+export const LOOKING_FOR_MAX = 3;
 
 export const HEADLINE_MIN = 8;
 export const HEADLINE_MAX = 80;
@@ -60,6 +73,8 @@ export function appetiteToPosture(a: Record<IntentAxis, number>): Posture {
 export const firstNameOf = (displayName: string): string =>
   displayName.trim().split(/\s+/)[0] ?? '';
 
+const uniq = <T,>(xs: readonly T[]): T[] => [...new Set(xs)];
+
 /** The store's `me`, read into the two drafts. */
 export function useProfileDrafts(): { profile: ProfileDraft; work: WorkDraft } {
   const me = useStore((s) => s.me);
@@ -74,8 +89,14 @@ export function useProfileDrafts(): { profile: ProfileDraft; work: WorkDraft } {
     },
     work: {
       ...me.professional,
+      lookingFor: [...me.professional.lookingFor],
       openTo: [...me.intent.openTo],
       posture: appetiteToPosture(me.intent.appetite),
+      interests: [...me.intent.interests],
+      seeking: [...me.intent.seeking],
+      offering: [...me.intent.offering],
+      openToAnyone: me.intent.openToAnyone,
+      topics: [...me.intent.topics],
     },
   };
 }
@@ -100,15 +121,23 @@ export function useSaveProfile() {
       setPhoto(d.photoUrl ?? null);
     },
     saveWork(w: WorkDraft) {
-      const { openTo, posture, ...card } = w;
+      const { openTo, posture, interests, seeking, offering, openToAnyone, topics, ...card } = w;
       setProfessional({
         title: card.title.trim(),
         company: card.company.trim(),
         industry: card.industry.trim(),
         workingOn: card.workingOn.trim(),
-        lookingFor: card.lookingFor.map((s) => s.trim()).filter(Boolean),
+        // Every line survives. An earlier version wrote index 0 only.
+        lookingFor: card.lookingFor.map((s) => s.trim()).filter(Boolean).slice(0, LOOKING_FOR_MAX),
       });
-      const intent: Partial<IntentProfile> = { appetite: postureToAppetite(posture) };
+      const intent: Partial<IntentProfile> = {
+        appetite: postureToAppetite(posture),
+        interests: uniq(interests).slice(0, CAPS.interests),
+        seeking: uniq(seeking).slice(0, CAPS.seeking),
+        offering: uniq(offering).slice(0, CAPS.offering),
+        openToAnyone,
+        topics: uniq(topics.map((t) => t.trim()).filter(Boolean)),
+      };
       // Never write an empty list: an empty openTo makes a person invisible.
       if (openTo.length > 0) intent.openTo = openTo;
       setIntent(intent);

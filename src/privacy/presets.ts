@@ -32,6 +32,13 @@ interface PresetSpec {
   explainer: string;
   audience: Half;
   seeking: Half;
+  /**
+   * Offered as a row on You and the privacy step. `women_only` is not: the
+   * "who you want to meet" control expresses it, and two live gender
+   * controls could intersect to an empty list. It stays compiled for anyone
+   * who already carries it and for the tests that set it directly.
+   */
+  surfaced: boolean;
 }
 
 export const PRESETS: Record<PrivacyPresetId, PresetSpec> = {
@@ -41,6 +48,7 @@ export const PRESETS: Record<PrivacyPresetId, PresetSpec> = {
     explainer: 'Only women can see you, and you will only see women. Both directions.',
     audience: { genders: ['woman'] },
     seeking: { genders: ['woman'] },
+    surfaced: false,
   },
   verified_only: {
     id: 'verified_only',
@@ -49,6 +57,7 @@ export const PRESETS: Record<PrivacyPresetId, PresetSpec> = {
       'Only people who have verified at least one account can see you, and you will only see them.',
     audience: { minAssurance: ASSURANCE.social },
     seeking: { minAssurance: ASSURANCE.social },
+    surfaced: true,
   },
   id_verified_only: {
     id: 'id_verified_only',
@@ -57,6 +66,7 @@ export const PRESETS: Record<PrivacyPresetId, PresetSpec> = {
       'Only people who have proved a legal identity — BankID or equivalent — can see you, and you will only see them. The strictest setting.',
     audience: { minAssurance: ASSURANCE.identity },
     seeking: { minAssurance: ASSURANCE.identity },
+    surfaced: true,
   },
   professional_only: {
     id: 'professional_only',
@@ -64,6 +74,7 @@ export const PRESETS: Record<PrivacyPresetId, PresetSpec> = {
     explainer: 'You appear only to people open to professional meets, and you only see them.',
     audience: { intents: ['professional'] },
     seeking: { intents: ['professional'] },
+    surfaced: true,
   },
   circles_only: {
     id: 'circles_only',
@@ -72,10 +83,14 @@ export const PRESETS: Record<PrivacyPresetId, PresetSpec> = {
       'Only members of circles you belong to can see you, and you will only see fellow members.',
     audience: { circles: 'any' }, // replaced with the real circle list at compile time
     seeking: { circles: 'any' },
+    surfaced: true,
   },
 };
 
-export const PRESET_LIST: PresetSpec[] = Object.values(PRESETS);
+/** Every preset, for tests and migration. */
+export const PRESET_ALL: PresetSpec[] = Object.values(PRESETS);
+/** The presets a screen offers. */
+export const PRESET_LIST: PresetSpec[] = PRESET_ALL.filter((p) => p.surfaced);
 
 /** The most restrictive value wins when several presets touch the same field. */
 function mergeHalf(base: AudienceRule, half: Half, ownCircleIds: string[]): AudienceRule {

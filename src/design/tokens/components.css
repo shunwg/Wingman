@@ -559,3 +559,19 @@ button.pcard:active {
   gap: var(--sp-4);
   max-width: 420px;
 }
+
+/* ── Tag picker ─────────────────────────────────────────────────────────── */
+.tagpicker { display: flex; flex-direction: column; gap: var(--sp-2); }
+.tagpicker__row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.tagpicker__groups { display: flex; flex-direction: column; gap: var(--sp-4); }
+.tagpicker__group { display: flex; flex-direction: column; gap: var(--sp-2); }
+.tagpicker__grouptitle {
+  margin: 0;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.tagpicker__count,
+.tagpicker__empty { margin: 0; font-size: var(--text-sm); color: var(--muted); }
+.chip--toggle:disabled { opacity: 0.45; cursor: not-allowed; }

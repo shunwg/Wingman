@@ -24,6 +24,7 @@ export {
 export {
   PRESETS,
   PRESET_LIST,
+  PRESET_ALL,
   applyPresets,
   isAsymmetric,
   defaultPolicy,

@@ -1,39 +1,26 @@
 import { useId } from 'react';
 import { ToggleChip } from '@design/primitives/Chip';
 import { Field } from '@design/primitives/Field';
-import type { MeetKind } from '@domain/index';
+import { TAGS, type MeetKind } from '@domain/index';
 import { MEET_KIND_LABEL, MEET_KIND_ORDER } from '@data/copy/meetKinds';
-import type { Posture, WorkDraft } from './useProfileDraft';
+import { InterestFields } from './InterestFields';
+import { LOOKING_FOR_MAX, type Posture, type WorkDraft } from './useProfileDraft';
 
 /**
- * The professional card, and what you are open to.
+ * The professional card, what you are open to, and what you are into.
  *
- * "Working on" and "looking for" are sentences, not tags — the seed cast is
- * looking for "a customs broker who answers the phone", and a taxonomy would
- * flatten exactly the thing that makes a card worth reading. The industry
- * field offers suggestions and accepts anything.
+ * "Working on" and "looking for" stay sentences — the seed cast is looking
+ * for "a customs broker who answers the phone", and a taxonomy would flatten
+ * exactly the thing that makes a card worth reading. The machine-readable
+ * half lives in `InterestFields` below; the two are halves of one intention,
+ * not duplicates. The industry list is the vocabulary's, so the suggestions
+ * and the matcher cannot drift apart.
  *
  * Open-to cannot be emptied: an empty list makes a person invisible, and the
  * last chip refuses to be turned off rather than letting that happen quietly.
  */
 
-const INDUSTRIES = [
-  'Energy',
-  'Software',
-  'Infrastructure finance',
-  'Strategy consulting',
-  'Law',
-  'Architecture',
-  'Public health',
-  'Journalism',
-  'Logistics',
-  'Education',
-  'Media',
-  'Product design',
-  'Marine science',
-  'Energy trading',
-  'Music',
-];
+const INDUSTRIES = TAGS.filter((t) => t.group === 'industry').map((t) => t.label);
 
 const POSTURES: { id: Posture; label: string; note: string }[] = [
   { id: 'social', label: 'Mostly social', note: 'Coffee, a meal, a walk.' },
@@ -55,6 +42,14 @@ export function WorkFields({
     const on = draft.openTo.includes(k);
     if (on && draft.openTo.length === 1) return; // never empty
     set('openTo', on ? draft.openTo.filter((x) => x !== k) : [...draft.openTo, k]);
+  };
+
+  // Always at least one row to type into; never more than the cap.
+  const looking = draft.lookingFor.length === 0 ? [''] : draft.lookingFor;
+  const setLooking = (i: number, v: string) => {
+    const next = [...looking];
+    next[i] = v;
+    set('lookingFor', next);
   };
 
   return (
@@ -112,20 +107,46 @@ export function WorkFields({
         />
       </Field>
 
-      <Field
-        label="Looking for"
-        hint="A person, not a category. Shown once someone asks to meet."
-        htmlFor={`${id}-looking`}
-      >
-        <input
-          id={`${id}-looking`}
-          className="field__input"
-          placeholder="a customs broker who answers the phone"
-          maxLength={100}
-          value={draft.lookingFor[0] ?? ''}
-          onChange={(e) => set('lookingFor', e.target.value ? [e.target.value] : [])}
-        />
-      </Field>
+      <div className="panel__stack">
+        {looking.map((line, i) => (
+          <Field
+            key={i}
+            label={i === 0 ? 'Looking for' : `Looking for, line ${i + 1}`}
+            hint={i === looking.length - 1 ? 'A person, not a category. Shown once someone asks to meet.' : undefined}
+            htmlFor={`${id}-looking-${i}`}
+          >
+            <div className="panel__row">
+              <input
+                id={`${id}-looking-${i}`}
+                className="field__input"
+                placeholder={i === 0 ? 'a customs broker who answers the phone' : ''}
+                maxLength={100}
+                value={line}
+                onChange={(e) => setLooking(i, e.target.value)}
+              />
+              {looking.length > 1 && (
+                <button
+                  type="button"
+                  className="btn btn--quiet btn--sm"
+                  aria-label={`Remove line ${i + 1}`}
+                  onClick={() => set('lookingFor', looking.filter((_, j) => j !== i))}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          </Field>
+        ))}
+        {looking.length < LOOKING_FOR_MAX && looking[looking.length - 1]?.trim() && (
+          <button
+            type="button"
+            className="btn btn--quiet btn--sm"
+            onClick={() => set('lookingFor', [...looking, ''])}
+          >
+            Add another
+          </button>
+        )}
+      </div>
 
       <div className="panel__stack">
         <span className="field__label">Open to</span>
@@ -155,6 +176,8 @@ export function WorkFields({
         </div>
         <p className="panel__note">{POSTURES.find((p) => p.id === draft.posture)?.note}</p>
       </div>
+
+      <InterestFields draft={draft} onChange={onChange} />
     </div>
   );
 }

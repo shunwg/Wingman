@@ -6,7 +6,7 @@ import { CircleCrest } from '@design/patterns/CircleCrest';
 import { Ticket } from '@design/icons/Ticket';
 import { ShieldCheck } from '@design/icons/ShieldCheck';
 import { PersonMark } from '@design/icons/PersonMark';
-import { meetChannelId, type MeetRequest } from '@domain/index';
+import { isRedacted, meetChannelId, type MeetRequest } from '@domain/index';
 import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { StampBadge } from '@design/patterns/StampBadge';
 import { markArriving } from './arrive';
@@ -77,6 +77,9 @@ export function InboxScreen({ onOpen }: { onOpen: (hash: string) => void }) {
                     {MEET_KIND_LABEL[r.proposal.kind]}
                     {card && typeof card.headline === 'string' && card.headline ? ` · ${card.headline}` : ''}
                   </p>
+                  {card && !isRedacted(card.professional) && Array.isArray(card.professional.lookingFor) && card.professional.lookingFor.length > 0 && (
+                    <p className="strip__receipt">Looking for {card.professional.lookingFor.join(' · ')}</p>
+                  )}
                   <p className="strip__msg">&ldquo;{r.message}&rdquo;</p>
                 </div>
                 <div className="strip__actions">
