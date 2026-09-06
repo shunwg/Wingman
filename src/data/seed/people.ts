@@ -108,7 +108,7 @@ const SEEDS: Seed[] = [
     languages: ['en', 'no'],
     social: 0.5,
     professional: 0.9,
-    openTo: ['gate_coffee', 'business_intro', 'meal', 'coworking'],
+    openTo: ['gate_coffee', 'business_intro', 'meal', 'coworking', 'ride_share'],
     stamps: ['bankid', 'linkedin', 'work_email'],
     handles: { linkedin: 'jonasokeke' },
     circles: [

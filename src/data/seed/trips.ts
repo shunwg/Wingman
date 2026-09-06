@@ -149,7 +149,11 @@ export const ME: Person = {
   },
   intent: {
     appetite: { social: 0.7, professional: 0.8 },
-    openTo: ['gate_coffee', 'lounge', 'meal', 'drinks', 'business_intro', 'ride_share', 'coworking'],
+    // ride_share sits second, not sixth: for a flight-sharing, taxi-splitting
+    // weekend-commuter audience it is a top preference, not an afterthought,
+    // and `proposableKinds` (matching/filters/intent.ts) surfaces the first
+    // three of this list that are also feasible — order here is real content.
+    openTo: ['gate_coffee', 'ride_share', 'lounge', 'meal', 'drinks', 'business_intro', 'coworking'],
     topics: [],
     languages: ['en', 'no'],
     interests: ['energy', 'cities', 'food'].map(asTagId),
