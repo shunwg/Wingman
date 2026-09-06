@@ -232,14 +232,14 @@ export function YouScreen() {
           </Button>
         ) : (
           <Button variant="secondary" full onClick={() => setConfirmOut(true)}>
-            Sign out and start over
+            Delete my profile
           </Button>
         )}
       </div>
 
       <Sheet
         open={confirmOut}
-        title="Start over?"
+        title="Delete your profile?"
         onClose={() => setConfirmOut(false)}
         actions={
           <>
@@ -254,7 +254,7 @@ export function YouScreen() {
                 window.location.hash = '#/welcome';
               }}
             >
-              Sign out
+              Delete
             </Button>
           </>
         }

@@ -1,7 +1,7 @@
 import { PersonCard } from '@design/patterns/PersonCard';
 import { Chip } from '@design/primitives/Chip';
 import { Button } from '@design/primitives/Button';
-import { bucketLabel } from '@lib/bucket';
+import { bucketLabel, bucketPhrase } from '@lib/bucket';
 import { tripCode } from '@domain/trip';
 import { tripHueClass } from '@design/tokens/tripHue';
 import { useBoard, useRelaxations, type BoardCandidate } from '@state/selectors/board';
@@ -132,7 +132,7 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
           </h2>
           <p className="empty__body">
             {board.hiddenByFilters > 0
-              ? `${board.hiddenByFilters} ${board.hiddenByFilters === 1 ? 'person is' : 'people are'} hidden by the filters above.`
+              ? `${bucketPhrase(board.hiddenByFilters)} hidden by the filters above.`
               : 'Nobody overlapping yet. Your trip stays listed, and anyone who books onto it will show up here.'}
           </p>
           {board.hiddenByFilters > 0 && (
@@ -161,8 +161,7 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
         <>
           {board.hiddenByFilters > 0 && (
             <p className="filters__hidden">
-              {board.hiddenByFilters} more {board.hiddenByFilters === 1 ? 'person' : 'people'}{' '}
-              hidden by your filters.
+              {bucketPhrase(board.hiddenByFilters)} hidden by your filters.
             </p>
           )}
 
@@ -204,14 +203,10 @@ function CardFooter({ candidate }: { candidate: BoardCandidate }) {
       </p>
       {candidate.destinationKm !== undefined && (
         <p className="pcard__why">
-          {/* Rounded, and never below 1km. A precise distance between two
-              stated destinations is a good deal more locating than either
-              destination alone. */}
-          Heading{' '}
-          {candidate.destinationKm < 1
-            ? 'the same way as you'
-            : `about ${Math.round(candidate.destinationKm)}km from you`}
-          .
+          {/* A direction, never a distance. "About 3km from you" is a coarse
+              location disclosed before anyone has said yes; "the same way" is
+              not. Anything further than the widest radius chip is left unsaid. */}
+          {candidate.destinationKm < 5 ? 'Heading the same way as you.' : 'Heading the same city, a different part.'}
         </p>
       )}
       {/* What is physically possible given the overlap — information, not

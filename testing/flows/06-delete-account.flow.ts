@@ -5,7 +5,7 @@ import { flowShots } from './_shot';
  * 06 · Delete the account.
  *
  * An App Store requirement, so it is its own flow. Today the account is the
- * device, and "Sign out and start over" wipes it; when a server arrives this
+ * device, and "Delete my profile" wipes it; when a server arrives this
  * becomes a server call and the flow is already here to catch the change.
  * The deviation: press "Keep my profile" first and confirm nothing was lost.
  */
@@ -25,11 +25,11 @@ test('06 delete account', async ({ page }) => {
   await page.waitForURL(/#\/$/);
 
   await page.goto('/#/you');
-  await key(page.getByRole('button', { name: 'Sign out and start over' }), 'the You screen');
+  await key(page.getByRole('button', { name: 'Delete my profile' }), 'the You screen');
   await shot(page, 'you-signed-in');
 
-  await page.getByRole('button', { name: 'Sign out and start over' }).click();
-  await key(page.getByRole('dialog', { name: 'Start over?' }), 'the confirm sheet');
+  await page.getByRole('button', { name: 'Delete my profile' }).click();
+  await key(page.getByRole('dialog', { name: 'Delete your profile?' }), 'the confirm sheet');
   await shot(page, 'delete-confirm-sheet');
 
   // Deviation: change your mind.
@@ -37,8 +37,8 @@ test('06 delete account', async ({ page }) => {
   await key(page.getByText('Delete Me'), 'the profile still here');
   await shot(page, 'delete-cancelled-profile-intact');
 
-  await page.getByRole('button', { name: 'Sign out and start over' }).click();
-  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete my profile' }).click();
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
   await page.waitForURL(/#\/welcome/);
   await key(page.getByRole('button', { name: 'Create my profile' }), 'the welcome screen');
   await shot(page, 'delete-done-welcome');
@@ -46,5 +46,6 @@ test('06 delete account', async ({ page }) => {
   // Nothing survives a reload.
   await page.reload();
   await page.waitForURL(/#\/welcome/);
+  await key(page.getByRole('button', { name: 'Create my profile' }), 'the welcome screen, after a reload');
   await shot(page, 'delete-done-after-reload');
 });

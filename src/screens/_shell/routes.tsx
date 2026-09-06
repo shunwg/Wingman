@@ -21,7 +21,7 @@ const JoinCircleScreen = lazy(() => import('@screens/circles/JoinCircleScreen').
 const VerifyScreen = lazy(() => import('@screens/verify/VerifyScreen').then((m) => ({ default: m.VerifyScreen })));
 const YouScreen = lazy(() => import('@screens/profile/YouScreen').then((m) => ({ default: m.YouScreen })));
 const EditProfileScreen = lazy(() => import('@screens/profile/EditProfileScreen').then((m) => ({ default: m.EditProfileScreen })));
-const WelcomeScreen = lazy(() => import('@screens/onboarding/WelcomeScreen').then((m) => ({ default: m.WelcomeScreen })));
+import { WelcomeScreen } from '@screens/onboarding/WelcomeScreen';
 const SignupScreen = lazy(() => import('@screens/onboarding/SignupScreen').then((m) => ({ default: m.SignupScreen })));
 const SigninScreen = lazy(() => import('@screens/onboarding/SigninScreen').then((m) => ({ default: m.SigninScreen })));
 const DemoEntry = lazy(() => import('@screens/onboarding/DemoEntry').then((m) => ({ default: m.DemoEntry })));

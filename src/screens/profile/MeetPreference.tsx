@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Chip } from '@design/primitives/Chip';
 import { OptionRow } from '@design/primitives/OptionRow';
 import type { Gender } from '@domain/index';
@@ -36,9 +37,14 @@ export function MeetPreference({ compact }: { compact?: boolean }) {
   const chosen: Gender[] = stored === 'any' ? ALL : stored;
   const narrowed = stored !== 'any' && chosen.length < ALL.length;
 
+  const [refused, setRefused] = useState(false);
   const toggle = (g: Gender) => {
     const on = chosen.includes(g);
-    if (on && chosen.length === 1) return; // never empty
+    if (on && chosen.length === 1) {
+      setRefused(true);
+      return; // never empty
+    }
+    setRefused(false);
     const next = on ? chosen.filter((x) => x !== g) : [...chosen, g];
     setMeetPreference(next.length === ALL.length ? 'any' : next);
   };
@@ -59,6 +65,11 @@ export function MeetPreference({ compact }: { compact?: boolean }) {
           />
         ))}
       </div>
+      {refused && (
+        <p className="panel__note" role="status">
+          One has to stay on. Untick a different one, or leave it at everyone.
+        </p>
+      )}
       <p className="panel__note">
         {narrowed
           ? 'Works both ways. The people you do not see cannot see you either.'
