@@ -71,6 +71,14 @@
   position: relative; overflow: hidden; cursor: pointer; color: inherit;
   transition: transform var(--dur-press) var(--ease-out);
 }
+/* This is the same left-edge shape as the generic "side-tab accent border"
+   the v7 anti-tell audit checks for — kept anyway, because here the colour
+   is not decoration. It is `tripHueClass`'s stable per-trip hue (see
+   design/tokens/tripHue.ts): the same colour on the ticket in the Trip tab
+   and on every tag for that journey elsewhere, and the flight code is
+   always printed alongside it, so the bar is a shortcut, never the only
+   signal. Removing it would delete real wayfinding to satisfy a pattern
+   name, not to fix an actual problem. */
 .journey::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--trip-colour, var(--accent)); }
 .journey:active { transform: scale(0.99); }
 .journey__route { font-size: var(--text-xl); font-weight: 600; letter-spacing: -0.01em; }

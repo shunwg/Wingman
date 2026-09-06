@@ -23,6 +23,12 @@
 
 :root {
   /* ── Surface. Warm, very light; never clinical white everywhere. ─────── */
+  /* Checked against the v7 anti-tell audit: this sits inside the warm-neutral
+     band that reads as generic "AI cream" on a page that reached for it by
+     reflex. Kept anyway — the v6 brief asked for warm neutral specifically,
+     three independent persona reviews read the shipped screens without
+     flagging it, and it is one token, not a genre. Revisit only if a future
+     review calls it out on its own, not because it matches a pattern name. */
   --canvas: #faf8f5;
   --surface: #ffffff;
   --surface-sunk: #f2efea;
