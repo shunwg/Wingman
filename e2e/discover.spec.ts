@@ -31,9 +31,10 @@ test('rows, an industry, a saved person, and a custom line', async ({ page }) =>
   // Ask in your own words. A live request takes them off the board — correctly.
   await page.locator('.pcard').first().click();
   await page.waitForURL(/#\/person\//);
+  await page.getByRole('button', { name: 'Say hello' }).click();
   await page.getByRole('button', { name: 'Coffee at the gate' }).first().click();
   await page.getByLabel('In your own words').fill('Saw you are working on interconnectors. Fifteen minutes?');
-  await page.getByRole('button', { name: 'Send request' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Say hello' }).click();
   await expect(page.getByText('Request sent.')).toBeVisible();
 
   await page.goto('/#/inbox');

@@ -168,6 +168,12 @@ export interface StageUpdate {
 export type MeetMessageBody =
   | { kind: 'stage'; stage: JourneyStage; terminal?: string; airportIata?: IataCode }
   /**
+   * A suggested meeting: what, when, and where in words. The room's whole
+   * purpose is to produce one of these; the other side adds it to a calendar
+   * or answers with another. The place is a label, never coordinates.
+   */
+  | { kind: 'proposal'; meetKind: MeetKind; window: TimeWindow; placeLabel: string }
+  /**
    * Free text, capped short.
    *
    * Present because arranging where exactly to stand needs words, and absent as

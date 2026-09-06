@@ -4,6 +4,7 @@ import { circleChannelId, meetChannelId } from '@domain/index';
 import { SEED_CHANNELS, SEED_MESSAGES } from '@data/seed/channels';
 import { personById } from '@data/seed/people';
 import { STAGE_COPY } from '@data/copy/stages';
+import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { useStore } from '../store';
 import { allCircles } from './circles';
 import { useRequests } from './requests';
@@ -94,6 +95,7 @@ export function lastLine(m: Message | undefined, meId: PersonId): string {
   if (!m) return 'Nothing yet.';
   if (m.body.kind === 'text') return m.body.text;
   if (m.body.kind === 'system') return m.body.text;
+  if (m.body.kind === 'proposal') return `Suggested ${MEET_KIND_LABEL[m.body.meetKind].toLowerCase()} at ${m.body.placeLabel}`;
   const who = m.from === meId ? undefined : personById(String(m.from))?.firstName;
   const copy = STAGE_COPY[m.body.stage];
   return m.from === meId ? copy.mine : `${who ?? 'They'} ${copy.theirs}`;

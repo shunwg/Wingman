@@ -39,7 +39,7 @@ describe('Router gate', () => {
     });
     window.location.hash = '#/';
     render(<Router />);
-    await screen.findByRole('heading', { name: 'Around you' });
+    await screen.findByRole('heading', { name: /^Good/ });
     expect(window.location.hash).toBe('#/');
   });
 

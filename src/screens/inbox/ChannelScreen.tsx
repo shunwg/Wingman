@@ -16,6 +16,9 @@ import { ReportSheet } from '@screens/safety/ReportSheet';
 import { GuardianSheet } from '@screens/safety/GuardianSheet';
 import { AfterMeetSheet } from '@screens/safety/AfterMeetSheet';
 import { takeArriving } from './arrive';
+import { ProposeSheet, type ProposalDraft } from './ProposeSheet';
+import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
+import { buildIcs } from '@lib/ics';
 
 /**
  * One conversation — a meet room, a circle's General, or a group.
@@ -40,6 +43,7 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
   const [reporting, setReporting] = useState<Message | null>(null);
   const [guarding, setGuarding] = useState(false);
   const [afterMeet, setAfterMeet] = useState(false);
+  const [proposing, setProposing] = useState(false);
   const log = useRef<HTMLOListElement>(null);
   // Taken once, on the first render of a room you have just said yes to.
   const arrive = useRef(takeArriving(channelId)).current;
@@ -131,6 +135,11 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
             </div>
           ) : (
             <div className="room__guardian">
+              {view.request && (
+                <Button size="sm" variant="secondary" onClick={() => setProposing(true)}>
+                  Suggest a time
+                </Button>
+              )}
               <Button size="sm" variant="quiet" onClick={() => setGuarding(true)}>
                 Tell someone where you are
               </Button>
@@ -231,6 +240,54 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
                   </li>
                 );
               }
+              if (m.body.kind === 'proposal') {
+                const b = m.body;
+                const who = isMine ? 'You' : authorName(String(m.from), String(me.id), me.firstName);
+                const title = MEET_KIND_LABEL[b.meetKind];
+                return (
+                  <li key={String(m.id)} className={`msg msg--proposal ${isMine ? 'msg--mine' : ''}`}>
+                    <div className="proposal">
+                      <p className="proposal__who">{who} suggested</p>
+                      <p className="proposal__title">{title}</p>
+                      <p className="proposal__meta mono">
+                        {b.placeLabel} · {clock(String(b.window.from))}–{clock(String(b.window.to))}
+                      </p>
+                      <div className="proposal__actions">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            const ics = buildIcs(
+                              {
+                                uid: `${String(m.id)}@wingman`,
+                                title: `${title} with ${isMine && theirs ? theirs.firstName : who === 'You' ? 'them' : who}`,
+                                start: String(b.window.from),
+                                end: String(b.window.to),
+                                location: b.placeLabel,
+                                description: 'Arranged through Wingman',
+                              },
+                              String(now),
+                            );
+                            const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'wingman-meet.ics';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                        >
+                          Add to calendar
+                        </Button>
+                        {!isMine && (
+                          <Button size="sm" variant="quiet" onClick={() => setProposing(true)}>
+                            Propose another time
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <time className="msg__time mono">{clock(String(m.at))}</time>
+                  </li>
+                );
+              }
               if (m.body.kind === 'stage') {
                 const copy = STAGE_COPY[m.body.stage];
                 const who = authorName(String(m.from), String(me.id), me.firstName);
@@ -311,6 +368,18 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
           channelId={channelId}
           window={view.request.proposal.window}
           onClose={() => setGuarding(false)}
+        />
+      )}
+      {proposing && view.request && (
+        <ProposeSheet
+          request={view.request}
+          defaultPlace={mine?.terminal ? `${mine.airportIata ?? ''} ${mine.terminal}`.trim() : ''}
+          clock={clock}
+          onClose={() => setProposing(false)}
+          onPost={(d: ProposalDraft) => {
+            post(channel, { kind: 'proposal', ...d });
+            setProposing(false);
+          }}
         />
       )}
       {afterMeet && theirs && (

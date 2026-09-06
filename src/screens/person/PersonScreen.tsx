@@ -1,38 +1,25 @@
 import { useState } from 'react';
 import { Avatar } from '@design/primitives/Avatar';
 import { Button } from '@design/primitives/Button';
-import { Chip, ToggleChip } from '@design/primitives/Chip';
+import { Chip } from '@design/primitives/Chip';
 import { StampBadge } from '@design/patterns/StampBadge';
 import { isRedacted } from '@domain/person';
 import type { MeetKind } from '@domain/intent';
 import { useBoard } from '@state/selectors/board';
-import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { useStore } from '@state/store';
 import { PersonMenu } from '@screens/safety/PersonMenu';
 import { addMinutes } from '@domain/time';
 import { asTripId } from '@domain/ids';
+import { HelloSheet } from './HelloSheet';
 
 /**
- * One person, and the decision to ask.
+ * One person, and the decision to say hello.
  *
  * Everything here comes from the board's already-redacted candidate — the
  * screen never fetches a `Person`, so there is no path by which it could render
- * a field the ladder withheld.
- *
- * The request itself is deliberately constrained: pick a kind that the overlap
- * physically supports, pick from templated openers, send. Nobody has to compose
- * a first message to a stranger from a jet bridge, and nobody can overshare by
- * accident in one.
+ * a field the ladder withheld. The profile is rich but restrained: who they
+ * are, why you should care, what has been proved, then one action.
  */
-
-
-const OPENERS = [
-  'Same flight. Fancy a coffee before boarding?',
-  'Happy to share the ride into town if you are heading that way.',
-  'In town the same nights. Dinner, if you are free?',
-  'Would be good to talk shop for twenty minutes.',
-];
-
 export function PersonScreen({
   id,
   tripId,
@@ -53,13 +40,11 @@ export function PersonScreen({
   const sendRequest = useStore((s) => s.sendRequest);
   const me = useStore((s) => s.me);
   const now = useStore((s) => s.now);
-
-  const [kind, setKind] = useState<MeetKind | null>(null);
-  const [opener, setOpener] = useState(OPENERS[0]!);
-  const [custom, setCustom] = useState('');
-  const [sent, setSent] = useState(false);
   const saved = useStore((s) => s.saved);
   const toggleSaved = useStore((s) => s.toggleSaved);
+
+  const [asking, setAsking] = useState(false);
+  const [sent, setSent] = useState(false);
 
   // Sending a request takes them off the board — the engine does not re-surface
   // someone with a live request — so the note has to survive their disappearance.
@@ -72,7 +57,7 @@ export function PersonScreen({
           close. No reason, and nothing to read into it.
         </p>
         <Button variant="secondary" onClick={onBack}>
-          Back to the board
+          Back
         </Button>
       </div>
     );
@@ -86,7 +71,7 @@ export function PersonScreen({
           They may have changed their plans, their privacy settings, or already answered.
         </p>
         <Button variant="secondary" onClick={onBack}>
-          Back to the board
+          Back
         </Button>
       </div>
     );
@@ -96,13 +81,13 @@ export function PersonScreen({
   const name = isRedacted(p.displayName) ? null : p.displayName;
   const headline = isRedacted(p.headline) ? null : p.headline;
   const professional = isRedacted(p.professional) ? null : p.professional;
-  const chosen = kind ?? candidate.proposableKinds[0]!;
+  const firstName = name ? name.split(' ')[0]! : 'them';
 
   const sharedCircle = candidate.person.circles.find((c) =>
     me.memberships.some((m) => String(m.circleId) === String(c.circleId)),
   )?.circleId;
 
-  const send = () => {
+  const send = (kind: MeetKind, message: string) => {
     const window = { from: now, to: addMinutes(now, 90) };
     sendRequest({
       fromPersonId: me.id,
@@ -113,10 +98,11 @@ export function PersonScreen({
       // A shared live circle is the organiser's report, so it is recorded here.
       ...(sharedCircle ? { circleId: sharedCircle } : {}),
       overlapRef: overlapRefOf(candidate.overlap),
-      proposal: { kind: chosen, window },
-      message: custom.trim() ? custom.trim().slice(0, 240) : opener,
+      proposal: { kind, window },
+      message,
       expiresAt: addMinutes(now, 60 * 24),
     });
+    setAsking(false);
     setSent(true);
   };
 
@@ -130,62 +116,70 @@ export function PersonScreen({
         <Avatar spec={p.avatar} shape="photo" size="full" {...(name ? { label: name } : {})} />
         <div className="person__scrim" aria-hidden="true" />
         <div className="person__menu">
-          <PersonMenu personId={p.id} firstName={name ?? 'them'} onHidden={onBack} />
-        </div>
-        <div className="person__heroText">
-          <h2 className="person__name display">
-            {name ?? <span className="person__withheld">Name shown once you both agree</span>}
-          </h2>
-          <p className="person__ctx mono">{candidate.receipt.headline}</p>
+          <PersonMenu personId={p.id} firstName={firstName} onHidden={onBack} />
         </div>
       </div>
 
       <div className="person__body">
-        {p.stamps.length > 0 && (
-          <div className="person__stamps">
-            {p.stamps.map((s, i) => (
-              <StampBadge key={`${s.kind}-${s.handle ?? i}`} stamp={s} />
-            ))}
-          </div>
-        )}
-
-        {headline && <p className="person__headline">{headline}</p>}
-        <div className="person__actions">
-          <Button size="sm" variant={saved.includes(p.id) ? 'secondary' : 'quiet'} onClick={() => toggleSaved(p.id)}>
-            {saved.includes(p.id) ? 'Saved for later' : 'Save for later'}
-          </Button>
+        <div className="person__id">
+          <h2 className="person__name display">
+            {name ?? <span className="person__withheld">Name shown once you both agree</span>}
+            {p.stamps.some((s) => s.display.tone === 'trust') && (
+              <span className="person__tick" aria-label="Verified" title="Verified">✓</span>
+            )}
+          </h2>
+          {professional && (professional.title || professional.industry) && (
+            <p className="person__role">
+              {[professional.title, professional.industry].filter(Boolean).join(' · ')}
+            </p>
+          )}
+          <p className="person__ctx mono">{candidate.receipt.headline}</p>
         </div>
 
-        {professional && (
-          <p className="person__work">
-            {[professional.title, professional.industry].filter(Boolean).join(' · ')}
-            {professional.workingOn ? `. ${professional.workingOn}` : ''}
-          </p>
-        )}
+        {headline && <p className="person__headline">{headline}</p>}
 
-        {p.circles.length > 0 && (
-          <div className="pcard__chips">
-            {p.circles.map((c) => (
-              <Chip key={String(c.circleId)}>{c.shortName || String(c.circleId)}</Chip>
-            ))}
-          </div>
-        )}
-
-        {/* Why they are here, in facts. The score exists but is never shown. */}
-        <section className="receipt">
-          <h3 className="receipt__title">Why you are seeing this</h3>
-          {/* J5: a sentence, not a table. Nobody reads label/value rows at a gate. */}
-          <p className="receipt__facts">
+        {/* Why meet? In facts. The score exists but is never shown. */}
+        <section className="why">
+          <h3 className="why__title">Why meet?</h3>
+          <p className="why__body">
             {candidate.receipt.lines.map((l) => (
               <span key={l.label} className={`receipt__fact${l.mono ? ' mono' : ''}`}>
                 {l.value}
               </span>
             ))}
           </p>
-          {candidate.receipt.suggestion && (
-            <p className="receipt__suggestion">{candidate.receipt.suggestion}</p>
+          {candidate.receipt.suggestion && <p className="why__suggestion">{candidate.receipt.suggestion}</p>}
+          {candidate.proposableKinds.length > 0 && (
+            <div className="pcard__chips">
+              {candidate.proposableKinds.slice(0, 3).map((k) => (
+                <Chip key={k} tone="neutral">
+                  {KIND_LABEL[k] ?? k}
+                </Chip>
+              ))}
+            </div>
           )}
         </section>
+
+        {professional?.workingOn && (
+          <section className="why">
+            <h3 className="why__title">Working on</h3>
+            <p className="why__body">{professional.workingOn}</p>
+          </section>
+        )}
+
+        {(p.stamps.length > 0 || p.circles.length > 0) && (
+          <section className="why">
+            <h3 className="why__title">Verified</h3>
+            <div className="person__stamps">
+              {p.stamps.map((s, i) => (
+                <StampBadge key={`${s.kind}-${s.handle ?? i}`} stamp={s} />
+              ))}
+              {p.circles.map((c) => (
+                <Chip key={String(c.circleId)} tone="neutral">{c.shortName || String(c.circleId)}</Chip>
+              ))}
+            </div>
+          </section>
+        )}
 
         {sent ? (
           <div className="sentnote">
@@ -196,48 +190,39 @@ export function PersonScreen({
             </p>
           </div>
         ) : (
-          <section className="ask">
-            <h3 className="ask__title">Ask to meet</h3>
-            <p className="ask__note">Only what your overlap actually allows time for.</p>
-            <div className="ask__kinds">
-              {candidate.proposableKinds.map((k) => (
-                <ToggleChip key={k} selected={chosen === k} onClick={() => setKind(k)}>
-                  {MEET_KIND_LABEL[k]}
-                </ToggleChip>
-              ))}
-            </div>
-
-            <h4 className="ask__sub">Say something</h4>
-            <div className="ask__openers">
-              {OPENERS.map((o) => (
-                <ToggleChip key={o} selected={opener === o && !custom.trim()} onClick={() => { setOpener(o); setCustom(''); }}>
-                  {o}
-                </ToggleChip>
-              ))}
-            </div>
-            <textarea
-              className="field__input ask__custom"
-              rows={2}
-              maxLength={240}
-              placeholder="Or in your own words. Why them, in a sentence."
-              aria-label="In your own words"
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-            />
-
-            <Button full size="lg" onClick={send}>
-              Send request
+          <div className="person__cta">
+            <Button full size="lg" onClick={() => setAsking(true)}>
+              Say hello
             </Button>
-            <p className="ask__fineprint">
-              They can say no, and you will not be told why. Your name and links stay hidden until
-              you both agree.
-            </p>
-          </section>
+            <Button size="sm" variant={saved.includes(p.id) ? 'secondary' : 'quiet'} onClick={() => toggleSaved(p.id)}>
+              {saved.includes(p.id) ? 'Saved for later' : 'Save for later'}
+            </Button>
+          </div>
         )}
       </div>
+
+      {asking && (
+        <HelloSheet
+          firstName={firstName}
+          kinds={candidate.proposableKinds}
+          onClose={() => setAsking(false)}
+          onSend={send}
+        />
+      )}
     </article>
   );
 }
+
+const KIND_LABEL: Record<string, string> = {
+  gate_coffee: 'Coffee at the gate',
+  lounge: 'Lounge',
+  terminal_walk: 'Walk the terminal',
+  ride_share: 'Share the ride in',
+  meal: 'A meal',
+  drinks: 'A drink',
+  business_intro: 'An introduction',
+  coworking: 'Cowork',
+};
 
 function overlapRefOf(o: ReturnType<typeof useBoard>['candidates'][number]['overlap']) {
   switch (o.kind) {

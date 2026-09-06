@@ -36,6 +36,6 @@ test('04 view matches', async ({ page }) => {
 
   await page.locator('.pcard').first().click();
   await page.waitForURL(/#\/person\//);
-  await key(page.getByRole('button', { name: 'Send request' }), 'a person');
+  await key(page.getByRole('button', { name: 'Say hello' }), 'a person');
   await shot(page, 'person');
 });
