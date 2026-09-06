@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Unicorn or bollocks</title>
+<style>
+  /* ---------------------------------------------------------------
+     Tokens. Light is the complete set; dark redefines tokens ONLY.
+     Wingman's own four hues, doing semantic work here:
+       trust  = already exists in the codebase
+       accent = work you have to do
+       guard  = someone else's dependency (Apple, Criipto, Supabase)
+     --------------------------------------------------------------- */
+  :root {
+    --canvas:      #FBF9F7;
+    --surface:     #FFFFFF;
+    --raised:      #F4EFEA;
+    --ink:         #141110;
+    --muted:       #736A64;
+    --hairline:    #E8E2DC;
+    --accent:      #E2563A;
+    --accent-soft: #FBEAE5;
+    --trust:       #10715C;
+    --trust-soft:  #E2F0EB;
+    --guard:       #3D4EDB;
+    --guard-soft:  #E6E8FB;
+    --shadow:      0 1px 2px rgba(20,17,16,.04), 0 8px 24px -12px rgba(20,17,16,.10);
+
+    --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+    --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, 'Cascadia Mono', 'Cascadia Code', Consolas, 'SF Mono', Menlo, monospace;
+
+    --measure: 68ch;
+    --step--1: clamp(.78rem, .76rem + .1vw, .84rem);
+    --step-0:  clamp(1rem, .97rem + .15vw, 1.08rem);
+    --step-1:  clamp(1.2rem, 1.14rem + .3vw, 1.35rem);
+    --step-2:  clamp(1.5rem, 1.38rem + .6vw, 1.85rem);
+    --step-3:  clamp(2rem, 1.7rem + 1.5vw, 2.9rem);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas:      #141110;
+      --surface:     #1E1A18;
+      --raised:      #262120;
+      --ink:         #F6F2EF;
+      --muted:       #A79C95;
+      --hairline:    #2E2825;
+      --accent:      #FF7355;
+      --accent-soft: #3A211B;
+      --trust:       #3FBF9C;
+      --trust-soft:  #102B25;
+      --guard:       #8A95FF;
+      --guard-soft:  #1E2140;
+      --shadow:      0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --canvas:      #141110;
+    --surface:     #1E1A18;
+    --raised:      #262120;
+    --ink:         #F6F2EF;
+    --muted:       #A79C95;
+    --hairline:    #2E2825;
+    --accent:      #FF7355;
+    --accent-soft: #3A211B;
+    --trust:       #3FBF9C;
+    --trust-soft:  #102B25;
+    --guard:       #8A95FF;
+    --guard-soft:  #1E2140;
+    --shadow:      0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--step-0);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+    padding: 0 1.5rem 6rem;
+  }
+
+  .wrap { max-width: 46rem; margin: 0 auto; }
+
+  /* ---- Type ---- */
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 600; text-wrap: balance; line-height: 1.15; margin: 0; }
+  h1 { font-size: var(--step-3); letter-spacing: -.02em; }
+  h2 { font-size: var(--step-2); letter-spacing: -.01em; }
+  h3 { font-size: var(--step-1); }
+  p { margin: 0; max-width: var(--measure); }
+  a { color: var(--accent); text-underline-offset: .18em; }
+  strong { font-weight: 600; }
+  code, .mono { font-family: var(--font-mono); font-size: .88em; font-variant-numeric: tabular-nums; }
+  code { background: var(--raised); padding: .12em .38em; border-radius: 4px; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  /* ---- Layout ---- */
+  header.masthead {
+    display: flex; flex-direction: column; gap: 1rem;
+    padding: 4.5rem 0 2rem;
+    border-bottom: 2px solid var(--ink);
+  }
+  .standfirst { font-size: var(--step-1); color: var(--muted); line-height: 1.45; max-width: 40ch; }
+  .byline { font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted); display: flex; flex-wrap: wrap; gap: .35rem 1.1rem; }
+
+  section { padding: 3.25rem 0 0; display: flex; flex-direction: column; gap: 1.15rem; }
+  section > h2 { margin-bottom: .15rem; }
+  .lede { color: var(--muted); max-width: var(--measure); }
+
+  /* ---- Table of contents ---- */
+  .toc { display: flex; flex-wrap: wrap; gap: .4rem; padding: 1.5rem 0 0; }
+  .toc a {
+    font-family: var(--font-mono); font-size: var(--step--1);
+    text-decoration: none; color: var(--muted);
+    border: 1px solid var(--hairline); border-radius: 999px;
+    padding: .3rem .7rem; background: var(--surface);
+  }
+  .toc a:hover { color: var(--ink); border-color: var(--ink); }
+
+  /* ---- Cards ---- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 1.15rem 1.25rem;
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: .55rem;
+  }
+  .grid { display: grid; gap: .85rem; }
+  @media (min-width: 44rem) { .grid-3 { grid-template-columns: repeat(3, 1fr); } .grid-2 { grid-template-columns: repeat(2, 1fr); } }
+
+  .card h3 { font-size: var(--step-0); font-family: var(--font-body); font-weight: 600; }
+  .card p { font-size: var(--step--1); color: var(--muted); line-height: 1.55; }
+
+  /* ---- The finding callout: the two things that are wrong ---- */
+  .finding {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-left: 4px solid var(--accent);
+    border-radius: 4px 14px 14px 4px;
+    padding: 1.15rem 1.35rem;
+    display: flex; flex-direction: column; gap: .6rem;
+  }
+  .finding .tag {
+    font-family: var(--font-mono); font-size: var(--step--1);
+    letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+  }
+  .finding h3 { font-size: var(--step-1); }
+
+  /* ---- Ownership chips: who does the work ---- */
+  .chip {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-family: var(--font-mono); font-size: .72rem;
+    letter-spacing: .06em; text-transform: uppercase;
+    padding: .2rem .5rem; border-radius: 999px; white-space: nowrap;
+  }
+  .chip::before { content: ""; width: .45rem; height: .45rem; border-radius: 50%; background: currentColor; }
+  .chip-built { color: var(--trust); background: var(--trust-soft); }
+  .chip-work  { color: var(--accent); background: var(--accent-soft); }
+  .chip-dep   { color: var(--guard); background: var(--guard-soft); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; font-size: var(--step--1); color: var(--muted); }
+
+  /* ---- Tables ---- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--hairline); border-radius: 14px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: var(--step--1); }
+  th, td { text-align: left; padding: .7rem .85rem; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  thead th {
+    font-family: var(--font-mono); font-size: .72rem; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted); font-weight: 500;
+    background: var(--raised);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  td.code { font-family: var(--font-mono); color: var(--muted); white-space: nowrap; }
+
+  /* ---- Phase rail: deployment genuinely is a sequence ---- */
+  .phases { display: flex; flex-direction: column; gap: 0; }
+  .phase {
+    display: grid; grid-template-columns: 3.2rem 1fr; gap: 1rem;
+    padding: 1.05rem 0; border-top: 1px solid var(--hairline);
+  }
+  .phase:last-child { border-bottom: 1px solid var(--hairline); }
+  .phase__no {
+    font-family: var(--font-mono); font-size: var(--step--1);
+    color: var(--muted); padding-top: .15rem; letter-spacing: .04em;
+  }
+  .phase__body { display: flex; flex-direction: column; gap: .45rem; }
+  .phase__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem .7rem; }
+  .phase__title { font-weight: 600; font-size: var(--step-0); }
+  .phase p { font-size: var(--step--1); color: var(--muted); }
+  .phase--critical .phase__no { color: var(--accent); font-weight: 600; }
+
+  /* ---- Code blocks ---- */
+  pre {
+    margin: 0; overflow-x: auto;
+    background: var(--raised); border: 1px solid var(--hairline);
+    border-radius: 12px; padding: 1rem 1.1rem;
+    font-family: var(--font-mono); font-size: .8rem; line-height: 1.65;
+    color: var(--ink);
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .cmt { color: var(--muted); }
+
+  /* ---- Disclosure: App Store items ---- */
+  details {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: 12px; padding: 0;
+  }
+  details + details { margin-top: .6rem; }
+  summary {
+    cursor: pointer; list-style: none; padding: .85rem 1.1rem;
+    display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+    font-weight: 600; font-size: var(--step--1);
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: "+"; margin-left: auto; font-family: var(--font-mono);
+    color: var(--muted); font-weight: 400; font-size: 1.1rem; line-height: 1;
+  }
+  details[open] summary::after { content: "\2212"; }
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 12px; }
+  .details__body { padding: 0 1.1rem 1rem; display: flex; flex-direction: column; gap: .6rem; }
+  .details__body p { font-size: var(--step--1); color: var(--muted); }
+  .guideline { font-family: var(--font-mono); font-size: .72rem; color: var(--muted); }
+
+  /* ---- Cost calculator ---- */
+  .calc { display: flex; flex-direction: column; gap: 1.1rem; }
+  .calc__control { display: flex; flex-direction: column; gap: .5rem; }
+  .calc__readout { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
+  .calc__mau { font-family: var(--font-mono); font-size: var(--step-2); font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); height: 1.6rem; }
+  input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .calc__total {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; padding-top: .8rem; border-top: 2px solid var(--ink);
+    font-family: var(--font-mono);
+  }
+  .calc__total .big { font-size: var(--step-2); font-variant-numeric: tabular-nums; }
+  .assumptions { font-size: var(--step--1); color: var(--muted); }
+
+  ul.plain { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .4rem; }
+  ul.plain li { max-width: var(--measure); }
+  ul.plain li::marker { color: var(--accent); }
+
+  .print-only { display: none; }
+
+  footer.end {
+    margin-top: 4rem; padding-top: 1.5rem;
+    border-top: 1px solid var(--hairline);
+    font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  /* ---- Print: same source, A4 paper ---- */
+  @media print {
+    :root {
+      --canvas: #FFFFFF; --surface: #FFFFFF; --raised: #F6F3F0;
+      --ink: #141110; --muted: #55504C; --hairline: #D8D2CC;
+      --shadow: none;
+    }
+    body { padding: 0; font-size: 10.5pt; }
+    .wrap { max-width: none; }
+    .screen-only { display: none !important; }
+    .print-only { display: revert; }
+    header.masthead { padding-top: 0; }
+    section { padding-top: 1.6rem; break-inside: auto; }
+    h2 { break-after: avoid; }
+    .card, .finding, .phase, details, .tablewrap { break-inside: avoid; }
+    details { border: 0; padding: 0; }
+    details > summary { padding: .3rem 0; }
+    details[open] summary::after, summary::after { content: ""; }
+    /* A closed <details> prints nothing. Force every one open on paper, or the
+       App Store section silently loses five of its six items. */
+    details:not([open]) > .details__body { display: block; }
+    details::details-content { content-visibility: visible; block-size: auto; }
+    .details__body { padding: 0 0 .6rem; }
+    a { color: var(--ink); text-decoration: none; }
+    pre { white-space: pre-wrap; }
+  }
+</style>
+<style>
+  /* Local to this memo. The rest of the stylesheet is shared with the
+     deployment and launch memos and injected at build time. */
+  .score { display: flex; gap: 1.6rem; flex-wrap: wrap; padding: .4rem 0; }
+  .score .big { font-family: var(--font-mono); font-size: var(--step-2); font-variant-numeric: tabular-nums; }
+  .score .lbl { font-size: var(--step--1); color: var(--muted); max-width: 16ch; }
+  .against { counter-reset: item; display: flex; flex-direction: column; gap: 0; }
+  .against > article {
+    display: grid; grid-template-columns: 2.2rem 1fr; gap: 1rem;
+    padding: 1.15rem 0; border-top: 1px solid var(--hairline);
+  }
+  .against > article:last-child { border-bottom: 1px solid var(--hairline); }
+  .against .no {
+    font-family: var(--font-mono); font-size: var(--step--1);
+    color: var(--accent); font-weight: 600; padding-top: .18rem;
+  }
+  .against .body { display: flex; flex-direction: column; gap: .5rem; }
+  .against h4 {
+    margin: 0; font-size: var(--step-0); font-weight: 600;
+    font-family: var(--font-body); line-height: 1.35; text-wrap: balance;
+  }
+  .against p { font-size: var(--step--1); color: var(--muted); line-height: 1.6; }
+  .against .fix { color: var(--ink); }
+  .against .fix::before {
+    content: "The constructive version";
+    display: block; font-family: var(--font-mono); font-size: .68rem;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--trust);
+    margin-bottom: .15rem;
+  }
+  .verdict {
+    background: var(--raised); border: 1px solid var(--hairline);
+    border-radius: 14px; padding: 1.3rem 1.4rem;
+    display: flex; flex-direction: column; gap: .7rem;
+  }
+  .verdict p { font-size: var(--step-0); max-width: 58ch; }
+  .funnel td.num { font-variant-numeric: tabular-nums; }
+  .funnel tr.total td { font-weight: 600; background: var(--raised); }
+  @media print { .against > article, .verdict, .score { break-inside: avoid; } }
+</style>
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">Wingman · Thesis and anti-thesis</p>
+    <h1>Unicorn or bollocks</h1>
+    <p class="standfirst">A realistic path to a billion, and the honest case that this app should not exist. Both are argued as hard as I can argue them, because only one of them is going to turn out to be true.</p>
+    <div class="byline">
+      <span>6 September 2026</span>
+      <span>for Shun Gong, Tide Capital</span>
+      <span>build 7434110 · main</span>
+    </div>
+  </header>
+
+  <section id="verdict">
+    <h2>The verdict, before the argument</h2>
+    <div class="verdict">
+      <p><strong>The consumer app is not the company.</strong> Every comparable that tried to be a networking app for travellers is dead or small; every comparable that became large sold either <em>proof of who someone is</em> or <em>software to the person running the room</em>. Wingman happens to have built both of those and wrapped them in the one part that has never worked.</p>
+      <p>The path to a billion runs through the circle, the credential and a distribution partner. It does not run through the App Store, and it does not run through the airport. The airport is the story you tell; the conference registration desk is the business.</p>
+    </div>
+    <div class="score">
+      <div><div class="big">2–3%</div><div class="lbl">chance of a $1B outcome, my honest estimate</div></div>
+      <div><div class="big">10–15%</div><div class="lbl">chance of a €20–80M acquisition</div></div>
+      <div><div class="big">25–30%</div><div class="lbl">chance of a real €3–10M ARR business</div></div>
+      <div><div class="big">~55%</div><div class="lbl">chance it never gets a second paying circle</div></div>
+    </div>
+    <p class="lede">Those are judgement, not arithmetic, and they are conditional on someone working on this full time. Today nobody is, which makes the last number closer to certain.</p>
+  </section>
+
+  <!-- ══════════════════════════ PART I ══════════════════════════ -->
+
+  <section id="comparables">
+    <h2>Part I · What the comparables actually say</h2>
+    <p class="lede">Figures below are from memory and should be checked before any of them goes in a deck. The pattern, not the decimals, is the point.</p>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>The graveyard: networking apps</h3>
+        <p>Shapr, Polywork, Lunchclub — all raised, all pitched "meet the right person", all gone or dormant. Lunchclub had AI matchmaking, a warm intro model and real money behind it. Hopin reached roughly $7.8B in 2021 and sold its events business for a fraction two years later. Bumble listed near $8B and lost most of it. <strong>Nobody has built a durable business out of introducing strangers who are not dating.</strong></p>
+      </div>
+      <div class="card">
+        <h3>The exceptions: rooms and proof</h3>
+        <p>Cvent went private with Blackstone at roughly $4.6B — event <em>software</em>, sold to organisers. CLEAR built a multi-billion listed business selling identity in airports as a membership. Socure, Persona, Alloy, Onfido — identity verification, all valued in the hundreds of millions to billions. <strong>The money is in the room and the credential, not in the introduction.</strong></p>
+      </div>
+      <div class="card">
+        <h3>The near neighbours</h3>
+        <p>Swapcard, Brella, Grip — attendee matchmaking inside conferences. Real products, real customers, and none of them is a unicorn; they mostly sit in the tens of millions of revenue and get acquired. This is the most likely shape of a Wingman outcome and it is worth saying out loud: <strong>the honest base case is a €30–60M trade sale, not an IPO.</strong></p>
+      </div>
+      <div class="card">
+        <h3>What that implies</h3>
+        <p>To beat the near neighbours you need something they structurally cannot copy. Swapcard cannot make an alumnus of INSEAD prove it once and reuse the proof at forty other events, because Swapcard's data model ends when the conference ends. <strong>The reusable credential is the only asset here that compounds.</strong> Everything else is a feature.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="paths">
+    <h2>Five paths, ranked by how much I believe them</h2>
+
+    <div class="phases">
+      <div class="phase phase--critical">
+        <div class="phase__no">1</div>
+        <div class="phase__body">
+          <div class="phase__head"><span class="phase__title">The credential layer</span><span class="chip chip-work">most defensible</span></div>
+          <p>A person proves an address, an employer or an eID once. That proof becomes portable across every circle, and eventually across other people's products via an API. This is Persona's business with a consumer wedge attached, arriving exactly as the EU Digital Identity Wallet forces every member state to issue one. Revenue is per verification and per seat; gross margin is software margin; the graph gets cheaper to extend with every member. <strong>$100M ARR here is credible because it does not depend on anyone enjoying the app.</strong></p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase__no">2</div>
+        <div class="phase__body">
+          <div class="phase__head"><span class="phase__title">Registration-desk distribution</span><span class="chip chip-dep">partner-gated</span></div>
+          <p>Stop asking delegates to download an app. Become the "who is here and worth meeting" module inside the registration and badge flow that Cvent, Swapcard, Eventbrite or the airline app already owns. You trade margin for a 4× install rate, which is the single largest number in the funnel on the next page. This is a partnership motion, not a product one, and it is the fastest route to density.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase__no">3</div>
+        <div class="phase__body">
+          <div class="phase__head"><span class="phase__title">Membership, not engagement</span><span class="chip chip-work">reframe</span></div>
+          <p>Priority Pass and CLEAR are proof that people pay annually for a travel privilege they use six times a year. If Wingman is "one meeting worth having per trip" rather than "a feed you check", the retention profile stops being a problem and becomes the model. One million members at €100 is €100M. Distribution comes from a card issuer or an airline, not from the store.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase__no">4</div>
+        <div class="phase__body">
+          <div class="phase__head"><span class="phase__title">Take a cut of what happens</span><span class="chip chip-work">later</span></div>
+          <p>The lounge, the coffee, the shared ride, the dinner. Airport concessions are a very large market and a meet is a booking. Real, but it needs the meetings to exist first, so it is a year-four idea, not a thesis.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase__no">5</div>
+        <div class="phase__body">
+          <div class="phase__head"><span class="phase__title">Standalone consumer network</span><span class="chip chip-dep">do not</span></div>
+          <p>The path the product is currently shaped for, and the one every comparable died on. Keep the app beautiful; stop believing it is the business.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="trajectory">
+    <h2>The trajectory, if it works</h2>
+    <p class="lede">Six years, four raises, one wedge widened three times. Each row is only reachable if the row above it produced its evidence — the middle column is what has to be <em>true</em>, not what has to be built.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Stage</th><th>What is true by the end of it</th><th class="num">ARR</th><th class="num">Raise</th><th class="num">Post</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Now</strong><br><span class="code">yr 0</span></td><td>A finished product, no server, no users, no revenue. One pilot circle agreed but not run.</td><td class="num">€0</td><td class="num">—</td><td class="num">—</td></tr>
+          <tr><td><strong>Proof</strong><br><span class="code">yr 1</span></td><td>Three events run. Confirmed meets per hundred members is measured and beats twenty. One organiser renews without a salesperson in the room.</td><td class="num">€0.15M</td><td class="num">€2M</td><td class="num">€12M</td></tr>
+          <tr><td><strong>Repeatable</strong><br><span class="code">yr 2</span></td><td>150 circles. Net revenue retention above 120%. A stamp earned at one circle is reused at another by a third of members — the graph exists.</td><td class="num">€1.2M</td><td class="num">€10M</td><td class="num">€55M</td></tr>
+          <tr><td><strong>Channel</strong><br><span class="code">yr 3</span></td><td>One registration platform ships Wingman inside its badge flow. Install rate quadruples. First enterprise contract for internal mobility.</td><td class="num">€6M</td><td class="num">€30M</td><td class="num">€200M</td></tr>
+          <tr><td><strong>Layer</strong><br><span class="code">yr 4</span></td><td>The credential opens as an API. Someone who is not Wingman pays to check that a person is a verified alumnus. EUDI wallets are live across the EU.</td><td class="num">€20M</td><td class="num">€60M</td><td class="num">€500M</td></tr>
+          <tr class="total"><td><strong>Scale</strong><br><span class="code">yr 5–6</span></td><td>Two revenue lines above €20M each, a card or airline partnership carrying consumer distribution, and gross retention that does not need events to keep working.</td><td class="num">€55M</td><td class="num">€120M</td><td class="num">€1.1B</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The step that breaks is almost always <strong>Repeatable → Channel</strong>. Everyone gets pilots; very few get a platform to ship their thing inside its own onboarding, because that platform correctly sees you as a future competitor. If you are going to spend one relationship, spend it there, and spend it in year one, not year three.</p>
+  </section>
+
+  <section id="mustbetrue">
+    <h2>Five things that must be true, in order</h2>
+    <p class="lede">Each is falsifiable within one event. If any fails twice, the thesis is wrong and the honest move is to stop.</p>
+    <ul class="plain">
+      <li><strong>Meets happen.</strong> Not requests sent — confirmed, attended meetings. Target: twenty per hundred active members per event. Below five, the product does not work and no amount of design fixes it.</li>
+      <li><strong>The organiser renews unprompted.</strong> If the second event needs the same sales effort as the first, there is no business, only consulting.</li>
+      <li><strong>The credential is reused.</strong> A stamp earned for one circle admits someone to a second without re-verifying. This is the only thing here that compounds; if reuse is under 20%, you are a conference app.</li>
+      <li><strong>Someone opens it after the event ends.</strong> Thirty days later. This is what separates a network from a badge scanner, and it is the number every event-tech company quietly fails.</li>
+      <li><strong>Nothing bad happens.</strong> One assault linked to the product ends the B2B channel permanently. This is not a risk to manage; it is a condition of survival.</li>
+    </ul>
+  </section>
+
+  <!-- ══════════════════════════ PART II ══════════════════════════ -->
+
+  <section id="against">
+    <h2>Part II · The case that this is bollocks</h2>
+    <p class="lede">Argued properly, because a critique you can dismiss is worth nothing. Each item ends with what it would take to answer it.</p>
+
+    <div class="against">
+
+      <article><div class="no">01</div><div class="body">
+        <h4>The core behavioural bet is probably false, and it is a demand problem, not a distribution problem.</h4>
+        <p>People at airports do not want to meet strangers. They want to be left alone. The gate is a defensive, exhausted, liminal place, and the reason nobody talks to the person beside them is not the absence of an app — it is that they do not want to. The base rate of the target behaviour, unaided, is approximately zero, and products that require people to want something they have spent decades demonstrating they do not want tend to fail for reasons no amount of onboarding polish can reach.</p>
+        <p class="fix">The demand that does exist is <em>scheduled</em> and <em>pre-committed</em>: Timeleft's dinners, conference matchmaking, alumni drinks. Spontaneity at a gate is the fantasy; a table booked three days out is the product. Lead with the calendar, not the terminal.</p>
+      </div></article>
+
+      <article><div class="no">02</div><div class="body">
+        <h4>The funnel math does not survive contact with reality.</h4>
+        <p>Double opt-in is right, ethically and legally, and it is also a multiplication of small numbers. For a 1,200-delegate conference, taking each rate at what a first event would realistically produce:</p>
+      </div></article>
+    </div>
+
+    <div class="tablewrap funnel">
+      <table>
+        <thead><tr><th>Step</th><th class="num">Rate</th><th class="num">People</th></tr></thead>
+        <tbody>
+          <tr><td>Delegates</td><td class="num">—</td><td class="num">1,200</td></tr>
+          <tr><td>Install the app voluntarily</td><td class="num">10%</td><td class="num">120</td></tr>
+          <tr><td>Open it during the event</td><td class="num">60%</td><td class="num">72</td></tr>
+          <tr><td>Finish a profile worth showing</td><td class="num">70%</td><td class="num">50</td></tr>
+          <tr><td>Discoverable after their own privacy defaults</td><td class="num">80%</td><td class="num">40</td></tr>
+          <tr><td>Send at least one request</td><td class="num">35%</td><td class="num">14</td></tr>
+          <tr><td>Request accepted</td><td class="num">35%</td><td class="num">5</td></tr>
+          <tr class="total"><td>Actually meet</td><td class="num">60%</td><td class="num">3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="against">
+      <article><div class="no"></div><div class="body">
+        <p><strong>Three meetings, for a fee of €8,000.</strong> That is €2,700 per handshake, and no sponsor report survives it. Worse, the conservative privacy default — the ethically correct choice, made deliberately in the build — is itself one of the multipliers working against density. <em>The safest configuration of this product is also the emptiest one.</em></p>
+        <p class="fix">Run the same table with the app bundled into registration rather than downloaded: install 40%, active 80%, prompted send-rate 60%, accept 50%, show 70% — and three meetings becomes roughly forty-five, across three days perhaps a hundred meet-events. The entire business case rests on one number, and that number is <strong>install rate</strong>, and install rate is a partnership, not a feature. This is the strongest argument in the memo for path 2.</p>
+      </div></article>
+
+      <article><div class="no">03</div><div class="body">
+        <h4>It is a feature, not a company, and three larger parties can ship it in a quarter.</h4>
+        <p>LinkedIn knows where you work, who you know and, from your posts, roughly where you are. Cvent and Swapcard already sell attendee matchmaking to exactly this buyer. And a WhatsApp group plus a shared sheet does eighty per cent of what a circle does, for free, with no install and no privacy policy. The honest question a buyer will ask is not "is this good" — it is "what does this do that the group chat does not". The answer is real (proven admission, symmetric privacy, travel overlap) but it is thin, and thin answers do not survive a procurement cycle.</p>
+        <p class="fix">Make the answer un-thin by making it structural rather than featural: the group chat cannot prove anyone is who they say they are, and it cannot carry that proof to the next room. Sell the proof, not the chat.</p>
+      </div></article>
+
+      <article><div class="no">04</div><div class="body">
+        <h4>The privacy architecture is excellent engineering that no user will ever choose you for.</h4>
+        <p>The two-rule model, the disclosure ladder, bucketed counts, the redaction boundary that a test enforces — this is genuinely better than what most funded companies ship. It is also invisible. Nobody has ever downloaded an app because of its redaction architecture. Privacy is a hygiene factor: its absence loses you users, its presence wins you none. Several weeks of the best work in this codebase went into something that shows up in no acquisition loop and no growth curve.</p>
+        <p class="fix">It is not wasted, but it must be <em>converted</em>: privacy is not a consumer feature here, it is an <strong>enterprise sales asset and a regulatory moat</strong>. A university's data protection officer is the person who cares, and that person can block or unblock a €30k contract. Put it in the DPA and the security questionnaire, not the App Store screenshots.</p>
+      </div></article>
+
+      <article><div class="no">05</div><div class="body">
+        <h4>The "not a dating app" position is unstable, and the market will test it within one event.</h4>
+        <p>Put attractive strangers in a time-boxed, low-accountability context away from home, add alcohol and a hotel, and a meaningful share of the usage becomes romantic whatever the copy says. This is not cynicism; it is the observed behaviour of every proximity-based social product ever shipped. Two outcomes follow. Police it and you lose the users who are actually engaged. Do not police it and you become a dating app with worse unit economics than Tinder, a brand you cannot defend to a business school, and an App Store category you did not choose.</p>
+        <p class="fix">This is the single largest threat to the B2B story, and it is manageable only by design, not by copy: keep the professional and social boards separable, let an organiser turn the social side <em>off</em> for their circle, and make that a selling feature rather than an embarrassment. A conference buying "professional only, enforced" is buying something WhatsApp cannot sell them.</p>
+      </div></article>
+
+      <article><div class="no">06</div><div class="body">
+        <h4>The safety liability is asymmetric, uninsurable at this stage, and carried by one person.</h4>
+        <p>The guardian feature is thoughtful and it does not change the fundamental exposure: the product's entire job is to introduce strangers who then meet in person, in unfamiliar cities, often after drinking. Match Group spends tens of millions a year on trust and safety and still produces documentaries. The App Store's guideline 1.2 requires a timely human response to reports — a promise that cannot be kept by someone asleep in Oslo when the report arrives at 3am in Singapore. The first serious incident is not a PR problem; it is the end of the company and possibly a personal one.</p>
+        <p class="fix">Either fund a named moderation function before the first public event, or restrict the product to closed, accountable circles where the organiser is the moderator and the members are identifiable to each other. The second option is cheaper, smaller, and probably correct.</p>
+      </div></article>
+
+      <article><div class="no">07</div><div class="body">
+        <h4>The market it is aimed at is structurally shrinking.</h4>
+        <p>Business travel never fully returned after 2020, remote meetings absorbed a permanent share of it, corporate policy is tightening on both cost and carbon, and the airline industry is actively engineering the layover <em>out</em> of travel with more direct routes. Betting a company on airport dwell time is betting against the direction of the industry that produces it.</p>
+        <p class="fix">The conference and campus markets are not shrinking — in-person events recovered strongly precisely <em>because</em> the rest of work went remote. The scarcity of in-person contact is the tailwind; it just does not blow through the airport.</p>
+      </div></article>
+
+      <article><div class="no">08</div><div class="body">
+        <h4>The trust story is Nordic and the ambition is global.</h4>
+        <p>BankID is what makes "everyone here is real" true, and BankID is Norway, Sweden and Denmark. Step outside and you are matching unverified strangers, which is to say you are a small Bumble. The EU Digital Identity Wallet helps from 2026, but issuance and actual consumer adoption are different years, and the United States — the market any billion-dollar outcome eventually needs — has no national eID and no prospect of one.</p>
+        <p class="fix">Make the wedge the thing that <em>is</em> global: a verified email domain. Every university and employer on earth has one, it costs nothing, and it carries the admission promise almost as well. BankID becomes the premium tier, not the foundation.</p>
+      </div></article>
+
+      <article><div class="no">09</div><div class="body">
+        <h4>The regulatory surface is enormous relative to the revenue it protects.</h4>
+        <p>Precise location, identity documents, a social graph, and strangers meeting in person is close to the maximum-risk configuration under GDPR; it invites a formal impact assessment, a supervisory-authority relationship, and per-country rules that treat matchmaking as its own regulated activity in some jurisdictions. You would be carrying compliance overhead sized for an enterprise on a product with no revenue and no lawyer.</p>
+        <p class="fix">The engineering already answers most of the assessment's questions better than the answers most companies give. Write the DPIA early and use it as sales collateral rather than a cost — it is the document that gets you through a university's procurement in weeks instead of quarters.</p>
+      </div></article>
+
+      <article><div class="no">10</div><div class="body">
+        <h4>There is no team, and consumer social is the least forgiving category to attempt without one.</h4>
+        <p>This was built in two days by an infrastructure investor with an AI. That is a remarkable fact about the tooling and a worrying one about the company: there is no growth function, no trust and safety lead, no community manager, no iOS engineer, and no second person who can be woken up. Consumer social rewards speed, taste and relentless iteration by people who use the product all day. Nobody currently uses this product all day, including its author.</p>
+        <p class="fix">This argues strongly for the B2B shape over the consumer one, because enterprise software forgives a small team and consumer social does not. It also argues for one honest decision: either someone runs at this full time within six months, or it becomes a well-documented portfolio piece and a demonstration of what the tooling can do — which is a genuinely valuable thing to own and nothing to apologise for.</p>
+      </div></article>
+
+      <article><div class="no">11</div><div class="body">
+        <h4>The deepest objection: society's problem is not that people cannot find each other.</h4>
+        <p>The scarce thing in professional life is not contacts. It is attention, depth, and unstructured time. LinkedIn already converted professional identity into a performance; a product that extends that performance to the departure gate — where you are tired, in transit, and unable to leave — is adding to the disease rather than treating it. The person on a twelve-hour layover does not need a networking opportunity. They need a nap. A product whose success condition is <em>more strangers approach you in transit</em> may be optimising for a quantity nobody wants more of, and the most honest reading of low engagement will not be a broken funnel — it will be a correct answer from users.</p>
+        <p class="fix">The answer is to take the criticism literally and invert the metric. Do not optimise for engagement; optimise for <strong>rarity and consequence</strong> — one meeting per trip that the person would have paid for, and silence the rest of the time. That is a subscription utility, not a social network, and it is a product this codebase is already unusually well-shaped for: conservative defaults, no feed, no vanity counts, nothing to scroll. The critique and the best version of the product point the same way.</p>
+      </div></article>
+
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ PART III ══════════════════════════ -->
+
+  <section id="synthesis">
+    <h2>Part III · What survives</h2>
+    <p class="lede">Taking every objection above as correct, here is what is left — and it is more than it sounds.</p>
+    <div class="grid grid-2">
+      <div class="card"><h3>Keep</h3><p>The circle as the unit. The reusable credential. The symmetric privacy model as an enterprise asset. The organiser dashboard. The event board for people with no flight. The design, which is the reason anyone will take a first meeting with you.</p></div>
+      <div class="card"><h3>Demote</h3><p>The airport board, from hero to feature. It stays in the product because it is the memorable story and it costs nothing to keep; it stops being the thing the business plan rests on.</p></div>
+      <div class="card"><h3>Change</h3><p>Distribution from download to bundled registration. Metric from engagement to confirmed meets. Pricing from per-event to per-seat-per-year, so renewal is a default rather than a sale. Verification emphasis from BankID to email domain.</p></div>
+      <div class="card"><h3>Decide</h3><p>Whether this is a company or a portfolio piece. Both are legitimate. Pretending it is the first while treating it like the second is the only genuinely bad outcome, and it is the most likely one.</p></div>
+    </div>
+  </section>
+
+  <section id="next">
+    <h2>The next thirty days, if the answer is "company"</h2>
+    <p class="lede">Note that none of this is engineering. The product is further ahead than the evidence, which is exactly backwards, and the cheapest thing to buy right now is proof.</p>
+    <ul class="plain">
+      <li><strong>Run one event on the build that exists.</strong> No backend, no App Store, no logins — the web app on a phone with the URL on the badge. Thirty to eighty people, one afternoon. It will be ugly and it will produce the only number that matters.</li>
+      <li><strong>Count confirmed meets by hand.</strong> Walk up and ask. Twenty per hundred active members means keep going; five means stop and think.</li>
+      <li><strong>Ask the organiser for money before the event, not after.</strong> Any amount. A signature is the test, not the invoice.</li>
+      <li><strong>Have one conversation with a registration platform.</strong> Cvent, Swapcard, or whoever runs the Oslo Business Forum's badges. Ask what it would take to be a module. That answer determines the entire trajectory in Part I.</li>
+      <li><strong>Write down, in advance, the number that would make you stop.</strong> This is the discipline that separates an investor building a product from a founder falling in love with one, and you already know how to do it — it is the same thing you would demand of a management team.</li>
+    </ul>
+  </section>
+
+  <footer class="end">
+    Wingman · thesis and anti-thesis · 6 September 2026 · prepared for Shun Gong, Tide Capital · companion to the deployment roadmap and the launch memo
+  </footer>
+</div>
+
+</html>

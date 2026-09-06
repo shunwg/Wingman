@@ -1,5 +1,8 @@
 /**
- * docs/launch-memo/body.html → memo.html → A4 PDF + reMarkable PDF.
+ * docs/<name>/body.html → memo.html → A4 PDF + reMarkable PDF.
+ *
+ *   node scripts/memo/build.mjs launch-memo "Wingman — launch memo"
+ *
  *
  * The stylesheet is the deployment memo's, injected at build time so the two
  * memos cannot drift apart. The reMarkable 2 is 1404 × 1872 px at 226 ppi,
@@ -17,7 +20,9 @@ const deployMemo = readFileSync(join(docs, 'deploy-memo', 'memo.html'), 'utf8');
 const style = deployMemo.match(/<style>[\s\S]*?<\/style>/)?.[0];
 if (!style) throw new Error('No <style> block in the deployment memo to share.');
 
-const dir = join(docs, 'launch-memo');
+const name = process.argv[2] ?? 'launch-memo';
+const label = process.argv[3] ?? `Wingman — ${name.replace(/-/g, ' ')}`;
+const dir = join(docs, name);
 const body = readFileSync(join(dir, 'body.html'), 'utf8');
 const html = `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8" />\n<meta name="viewport" content="width=device-width, initial-scale=1" />\n${body.replace('<!--STYLE-->', style)}\n</html>\n`;
 const src = join(dir, 'memo.html');
@@ -33,7 +38,7 @@ const footer = (label) =>
   'padding:0 14mm;display:flex;justify-content:space-between;">' +
   `<span>${label}</span><span class="pageNumber"></span></div>`;
 
-const a4 = join(dir, 'wingman-launch-memo-A4.pdf');
+const a4 = join(dir, `wingman-${name}-A4.pdf`);
 await page.pdf({
   path: a4,
   format: 'A4',
@@ -41,10 +46,10 @@ await page.pdf({
   margin: { top: '18mm', bottom: '18mm', left: '18mm', right: '18mm' },
   displayHeaderFooter: true,
   headerTemplate: '<div></div>',
-  footerTemplate: footer('Wingman — launch memo'),
+  footerTemplate: footer(label),
 });
 
-const rm = join(dir, 'wingman-launch-memo-reMarkable.pdf');
+const rm = join(dir, `wingman-${name}-reMarkable.pdf`);
 await page.addStyleTag({ content: '@media print { body { font-size: 11.5pt; } }' });
 await page.pdf({
   path: rm,
@@ -54,7 +59,7 @@ await page.pdf({
   margin: { top: '10mm', bottom: '12mm', left: '9mm', right: '9mm' },
   displayHeaderFooter: true,
   headerTemplate: '<div></div>',
-  footerTemplate: footer('Wingman — launch memo'),
+  footerTemplate: footer(label),
 });
 
 await browser.close();
