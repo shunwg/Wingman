@@ -81,8 +81,15 @@ const circleScope: PolicyRule = {
   copyKey: 'circle.scope',
   evaluate: (viewer, _subject, ctx) => {
     const c = ctx.rule.circles;
+    // `'any'` means the rule was never restricted — no opinion, fall through.
+    // `{ onlyCircles: [] }` is a different thing entirely: it means the
+    // subject actively chose "my circles only" while belonging to none, most
+    // commonly during signup, before joining anything. Reading that as
+    // "no restriction" (abstain) rather than "restricted to nothing" (deny)
+    // silently ignored the one privacy setting a newly signed-up, privacy-
+    // conscious person is most likely to reach for.
     if (c === 'any') return 'abstain';
-    if (c.onlyCircles.length === 0) return 'abstain';
+    if (c.onlyCircles.length === 0) return 'deny';
     return c.onlyCircles.some((id) => viewer.circleIds.includes(id)) ? 'abstain' : 'deny';
   },
 };
