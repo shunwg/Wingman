@@ -46,10 +46,21 @@ export function JoinCircleScreen({ code, onDone }: { code: string; onDone: () =>
   if (!circle) {
     return (
       <div className="empty">
-        <h2 className="empty__title display">That link has expired</h2>
+        {/*
+          This is not expiry — invite codes are derived from the circle, not
+          issued and revoked, so "ask for a fresh link" sends someone back for
+          an identical code that will fail the same way. The honest fact is
+          narrower: this device does not recognise the circle behind this
+          code, which is also true for a circle a classmate created that this
+          install has never joined. Point at the one thing that actually
+          works instead — most circles (a school, an employer, a public
+          conference) can be found and joined directly, no code required.
+        */}
+        <h2 className="empty__title display">This device does not know that circle</h2>
         <p className="empty__body">
-          The code <code className="mono">{code}</code> does not match a circle. Ask whoever sent
-          it for a fresh link.
+          The code <code className="mono">{code}</code> does not match one it has seen. If it is a
+          school, employer or public conference, look for it under Circles instead — most can be
+          joined directly, without a code.
         </p>
         <Button variant="secondary" onClick={onDone}>
           Back to circles

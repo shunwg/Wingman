@@ -88,7 +88,16 @@ export function VerifyStep({ onNext, onSkip }: { onNext: () => void; onSkip: () 
         <Button variant="secondary" size="lg" onClick={onSkip}>
           Skip for now
         </Button>
-        <Button size="lg" onClick={onNext} disabled={v.held.size === 0}>
+        {/*
+          Verification is recommended, never required (see the file doc
+          comment) — this button used to disagree with that by staying
+          disabled until a stamp existed, which put a greyed-out primary next
+          to an always-enabled "Skip for now" on the one step most likely to
+          be a genuine dead end (no reachable provider for this person's
+          country). `next` and `skip` already do the same thing; only the
+          affordance was wrong.
+        */}
+        <Button size="lg" onClick={onNext}>
           Next
         </Button>
       </div>

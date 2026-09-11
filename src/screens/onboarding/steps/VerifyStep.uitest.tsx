@@ -21,11 +21,14 @@ describe('VerifyStep', () => {
     expect(screen.getByText('Other ways to be trusted')).toBeInTheDocument();
   });
 
-  it('can be skipped, and Next waits for a stamp', () => {
+  it('can be skipped, and Next never waits for a stamp — verification is recommended, not required', () => {
     const onSkip = vi.fn();
-    render(<VerifyStep onNext={() => {}} onSkip={onSkip} />);
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    const onNext = vi.fn();
+    render(<VerifyStep onNext={onNext} onSkip={onSkip} />);
+    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
     expect(onSkip).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(onNext).toHaveBeenCalledTimes(1);
   });
 });
