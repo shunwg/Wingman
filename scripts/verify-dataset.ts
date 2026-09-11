@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'data', 'airports');
 
 interface Payload { columns: string[]; rows: (string | number)[][] }
-interface CityRow { key: string; airports: string[]; zone: string; name: string }
+interface CityRow { key: string; airports: string[]; zone: string; name: string; lat: number; lon: number }
 
 const read = <T>(f: string): T => JSON.parse(readFileSync(join(OUT, f), 'utf8')) as T;
 
@@ -92,6 +92,29 @@ function main() {
     if (!city) { fail(`expected a city entry for ${key}`); continue; }
     for (const iata of expected) {
       if (!city.airports.includes(iata)) fail(`${key} should include ${iata}, has ${city.airports.join(',')}`);
+    }
+  }
+
+  // A multi-airport city's canonical lat/lon comes from whichever airport
+  // build-city-index.ts picked as the anchor. With no passenger data to rank
+  // them, "largest" defaults to "first large airport encountered" unless
+  // PRIMARY_AIRPORT names one explicitly — which is how Paris silently
+  // anchored on Beauvais (85km out) and London on Gatwick instead of Heathrow.
+  // This pins the anchor for the metros this product's own routes touch, so a
+  // dataset rebuild can't drift back without failing loudly.
+  const expectAnchor: Record<string, string> = {
+    'paris-fr': 'CDG',
+    'london-gb': 'LHR',
+    'oslo-no': 'OSL',
+  };
+  for (const [key, primaryIata] of Object.entries(expectAnchor)) {
+    const city = cities.find((c) => c.key === key);
+    const row = all.find((r) => String(r[idx.iata!]) === primaryIata);
+    if (!city || !row) { fail(`cannot check anchor for ${key} — missing city or ${primaryIata}`); continue; }
+    const lat = Number(row[idx.lat!]);
+    const lon = Number(row[idx.lon!]);
+    if (Math.abs(city.lat - lat) > 1e-6 || Math.abs(city.lon - lon) > 1e-6) {
+      fail(`${key} should anchor on ${primaryIata} (${lat},${lon}), anchors on (${city.lat},${city.lon})`);
     }
   }
 
