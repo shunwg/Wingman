@@ -394,8 +394,18 @@ export const tripFor = (personId: string): Trip | undefined => TRIPS[personId];
  * The distinction matters now that people travel more than once: keying by
  * person would silently drop every second journey, and Ingrid would be
  * unreachable in Copenhagen because she already had a trip to Singapore.
+ *
+ * Memoised on first call: `SEED_PEOPLE` and `SEED_TRIPS` are fixed module-level
+ * arrays, not anything that changes with policy or the viewer, so recomputing
+ * this — a fresh `Map` and a fresh `flatMap` over every seeded trip — on every
+ * call is pure waste. It had been called once per candidate per board render
+ * (see `destinationOf` in `state/selectors/board.ts`), which is the one place
+ * in the board pipeline where recompute-on-read was actually expensive rather
+ * than just correct.
  */
-export function seedPool() {
+let cachedPool: ReturnType<typeof buildSeedPool> | undefined;
+
+function buildSeedPool() {
   const byId = new Map(SEED_PEOPLE.map((p) => [String(p.id), p]));
   return SEED_TRIPS.flatMap((t) => {
     const person = byId.get(String(t.personId));
@@ -408,6 +418,11 @@ export function seedPool() {
       },
     ];
   });
+}
+
+export function seedPool() {
+  cachedPool ??= buildSeedPool();
+  return cachedPool;
 }
 
 /** The moment the seeded world is set at — a few hours before the flight. */
