@@ -145,7 +145,14 @@ export function useInbox(filter: InboxFilter = 'all') {
         line: lastLine(last, me.id),
         at,
         unread,
-        needsYou: false,
+        // A meet is a one-on-one arrangement; an unread message there — a
+        // reply, a stage update like "running late", an unanswered proposal —
+        // is something waiting on you specifically. This was hardcoded false
+        // for every row, so a delay or a cancellation sorted no differently
+        // than an old, already-read circle thread. Circle and group channels
+        // stay conservative: general chatter in a room of many people is not
+        // "needs you" just because it is unread.
+        needsYou: c.kind === 'meet' && unread,
         muted: muted.includes(String(c.id)),
         ...(otherPerson ? { avatar: otherPerson.avatar } : {}),
         ...(circle
