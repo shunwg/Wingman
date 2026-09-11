@@ -1,7 +1,7 @@
 import type { AirportIndex, ISODate, Trip } from '@domain/index';
 import { intersectDates, intersectWindows, localDate, minutesBetween, windowLengthMin } from '@domain/time';
 import type { MatchConfig, TravelOverlap } from '../types';
-import { airportPresences, inSameTerminal, orderedSegments } from './layover';
+import { airportPresences, orderedSegments, terminalMatch } from './layover';
 
 /**
  * Classify how two itineraries touch.
@@ -77,7 +77,7 @@ export function classifyOverlap(
       // Two questions, not one: are they each staying put, and are they in the
       // same place as each other. Only the second decides whether a meet is
       // physically possible between *them*.
-      const sameTerminal = x.sameTerminal && y.sameTerminal && inSameTerminal(x, y);
+      const sameTerminal = terminalMatch(x, y);
       const bothAirside = x.bothAirside && y.bothAirside;
 
       if (x.kind === 'layover' && y.kind === 'layover') {

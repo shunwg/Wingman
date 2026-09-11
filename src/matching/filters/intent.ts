@@ -29,9 +29,11 @@ export function feasibleMeetKinds(overlap: TravelOverlap, config: MatchConfig): 
       const { usableMin, bothAirside, sameTerminal } = overlap;
       if (usableMin < config.minUsableMin) return [];
 
-      if (!bothAirside || !sameTerminal) {
-        // Different terminals, or one of you has to clear immigration. Only
-        // worth proposing anything at all if there is real time to burn.
+      // A *confirmed* terminal change, or one of you has to clear immigration,
+      // narrows things down. An unknown terminal is not treated the same as a
+      // known-different one — most trips never have it filled in, and it is
+      // not this person's job to prove a negative.
+      if (!bothAirside || sameTerminal === 'different') {
         return usableMin >= 120 ? ['gate_coffee', 'business_intro'] : [];
       }
 
@@ -46,10 +48,13 @@ export function feasibleMeetKinds(overlap: TravelOverlap, config: MatchConfig): 
       // people landing within half an hour and heading the same way.
       if (overlap.usableMin < config.minUsableMin) return [];
 
-      // Being at one airport is not being in one place. Different terminals
-      // means a transit, a re-screening, and a real chance of missing
-      // something — the same bar as a layover.
-      if (!overlap.sameTerminal) {
+      // Being at one airport is not being in one place. A *confirmed*
+      // different terminal means a transit, a re-screening, and a real chance
+      // of missing something — the same bar as a layover. Terminal is filled
+      // in rarely enough that treating "not entered" the same as "confirmed
+      // different" made this branch, and ride-share along with it,
+      // unreachable for most trips by default.
+      if (overlap.sameTerminal === 'different') {
         return overlap.usableMin >= 120 ? ['gate_coffee', 'business_intro'] : [];
       }
 

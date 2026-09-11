@@ -29,8 +29,10 @@ const CLOSENESS: ProximityClass[] = [
 ];
 
 export function proximityForOverlap(o: TravelOverlap): ProximityClass {
-  // A layover where the two are in different terminals is not "same terminal".
-  if (o.kind === 'shared_layover' && !o.sameTerminal) return 'same_airport';
+  // A layover where the two are confirmed in different terminals is not "same
+  // terminal"; unknown stays same_terminal rather than being downgraded on no
+  // evidence.
+  if (o.kind === 'shared_layover' && o.sameTerminal === 'different') return 'same_airport';
   return CLASS_FOR[o.kind];
 }
 

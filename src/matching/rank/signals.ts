@@ -48,7 +48,7 @@ export function overlapStrength(ctx: SignalContext): number {
     case 'same_flight':
       return 1;
     case 'shared_layover':
-      return ctx.strongest.sameTerminal ? 0.85 : 0.6;
+      return ctx.strongest.sameTerminal === 'same' ? 0.85 : 0.6;
     case 'same_airport_window':
       return 0.6;
     case 'same_city_night':

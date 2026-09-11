@@ -284,7 +284,7 @@ describe('feasibleMeetKinds', () => {
           airport: 'LHR' as never,
           window: { from: NOW, to: NOW },
           bothAirside: false,
-          sameTerminal: false,
+          sameTerminal: 'different',
           usableMin: 70,
         },
         cfg,
@@ -294,11 +294,11 @@ describe('feasibleMeetKinds', () => {
 
   it('offers a meal only when there is real time in one terminal', () => {
     const short = feasibleMeetKinds(
-      { kind: 'shared_layover', airport: 'LHR' as never, window: { from: NOW, to: NOW }, bothAirside: true, sameTerminal: true, usableMin: 40 },
+      { kind: 'shared_layover', airport: 'LHR' as never, window: { from: NOW, to: NOW }, bothAirside: true, sameTerminal: 'same', usableMin: 40 },
       cfg,
     );
     const long = feasibleMeetKinds(
-      { kind: 'shared_layover', airport: 'LHR' as never, window: { from: NOW, to: NOW }, bothAirside: true, sameTerminal: true, usableMin: 150 },
+      { kind: 'shared_layover', airport: 'LHR' as never, window: { from: NOW, to: NOW }, bothAirside: true, sameTerminal: 'same', usableMin: 150 },
       cfg,
     );
     expect(short).not.toContain('meal');

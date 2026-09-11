@@ -23,8 +23,24 @@ export const MATCH_CONFIG_V1: MatchConfig = {
   boardingBufferMin: 35,
   /** Below this, nothing is proposable at all. */
   minUsableMin: 30,
-  /** Short hops are not a social occasion. */
+  /**
+   * Short hops are not a social occasion. 90 also excludes intra-European
+   * routes a Europe-based cohort actually flies (CDG–LHR, CDG–AMS, ORY–BCN
+   * run 60 to 85 minutes) — but there is no seeded data for those routes yet
+   * to tune this number against, and the existing OSL–CPH fixture in
+   * overlap.test.ts deliberately treats 50 minutes as too short. Revisit
+   * this alongside the Fontainebleau seed data, so the new floor is chosen
+   * against real flight durations rather than picked blind.
+   */
   minSameFlightMin: 90,
+  /** How long before departure someone is plausibly at the airport. */
+  preDepartureMin: 120,
+  /**
+   * How long after landing someone is plausibly still there. 75 minutes was
+   * tuned for someone walking straight out; a person clearing bags, then
+   * finding and agreeing a shared ride needs longer before they are gone.
+   */
+  postArrivalMin: 150,
 
   idealMin: {
     gate_coffee: 45,
@@ -67,5 +83,14 @@ export const MATCH_CONFIG_V1: MatchConfig = {
 
   /** Shown five times and never acted on: stop leading with them. */
   fatiguePenalty: 0.06,
+  /**
+   * 60 is more than the current ~23-person seed cast ever produces, so
+   * nobody is cut today. It is also sized for a curated conference list, not
+   * a launch where hundreds of people can share one flight or one airport
+   * window — but lowering it needs the board grouped by airport and arrival
+   * slot first (state/selectors/board.ts), or it just hides real candidates
+   * behind an arbitrary cutoff instead of making them scannable. Tighten
+   * this together with that grouping work, not in isolation.
+   */
   limit: 60,
 };

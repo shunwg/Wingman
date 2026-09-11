@@ -63,9 +63,9 @@ export function buildReceipt(input: ReceiptInput): RouteReceipt {
         mono: true,
       });
       lines.push({ label: 'Airport', value: strongest.airport, mono: true });
-      if (!strongest.sameTerminal) {
-        // Say it plainly. A terminal change is the difference between a coffee
-        // and a brisk walk, and finding that out at the airport is too late.
+      if (strongest.sameTerminal === 'different') {
+        // Say it plainly, but only when it is actually known — an unknown
+        // terminal is not a warning worth surfacing.
         lines.push({ label: 'Note', value: 'Different terminals. Allow for the transit' });
       }
       break;

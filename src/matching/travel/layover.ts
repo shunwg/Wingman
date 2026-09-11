@@ -106,16 +106,28 @@ export interface AirportPresence {
   terminal?: string;
 }
 
-/** Two people share a terminal only when both terminals are known and equal. */
-export function inSameTerminal(a: AirportPresence, b: AirportPresence): boolean {
-  if (!a.terminal || !b.terminal) return false;
-  return a.terminal === b.terminal;
-}
+/** Whether two people are confirmed in the same terminal, confirmed different, or unknown. */
+export type TerminalMatch = 'same' | 'different' | 'unknown';
 
-/** How long before departure someone is plausibly at the airport. */
-const PRE_DEPARTURE_MIN = 120;
-/** How long after landing someone is plausibly still there. */
-const POST_ARRIVAL_MIN = 75;
+/**
+ * Compare two people's terminals.
+ *
+ * Terminal is an optional field on a trip — filled in occasionally, blank
+ * most of the time — and an earlier version of this function returned `false`
+ * whenever either side was blank, which every downstream caller then read as
+ * "confirmed different terminal." That silently made ride-share unreachable
+ * for the common case of nobody having typed a terminal. `'unknown'` is a
+ * distinct outcome so callers can decide for themselves whether the absence
+ * of data should gate a meet kind out — most should not.
+ */
+export function terminalMatch(a: AirportPresence, b: AirportPresence): TerminalMatch {
+  // Either person's own connection changes terminals: wherever they end up,
+  // it is not the stable "same terminal" case, so this is a known no rather
+  // than an unknown.
+  if (!a.sameTerminal || !b.sameTerminal) return 'different';
+  if (!a.terminal || !b.terminal) return 'unknown';
+  return a.terminal === b.terminal ? 'same' : 'different';
+}
 
 /**
  * Every window in which a traveller is at an airport.
@@ -164,27 +176,27 @@ export function airportPresences(trip: Trip, config: MatchConfig): AirportPresen
   const first = segs[0]!;
   const last = segs[segs.length - 1]!;
 
-  const depWindow = { from: addMinutes(first.departUtc, -PRE_DEPARTURE_MIN), to: first.departUtc };
+  const depWindow = { from: addMinutes(first.departUtc, -config.preDepartureMin), to: first.departUtc };
   out.push({
     airport: first.from,
     window: depWindow,
     usableWindow: shrink(depWindow, 0, config.boardingBufferMin),
     kind: 'departure',
-    usableMin: Math.max(0, PRE_DEPARTURE_MIN - config.boardingBufferMin),
+    usableMin: Math.max(0, config.preDepartureMin - config.boardingBufferMin),
     sameTerminal: true,
     bothAirside: true,
     ...(first.terminalFrom ? { terminal: first.terminalFrom } : {}),
   });
 
   if (!layoverAirports.has(last.to)) {
-    const arrWindow = { from: last.arriveUtc, to: addMinutes(last.arriveUtc, POST_ARRIVAL_MIN) };
+    const arrWindow = { from: last.arriveUtc, to: addMinutes(last.arriveUtc, config.postArrivalMin) };
     out.push({
       airport: last.to,
       window: arrWindow,
       // No onward flight to be late for, so only disembarkation is charged.
       usableWindow: shrink(arrWindow, config.disembarkMin, 0),
       kind: 'arrival',
-      usableMin: Math.max(0, POST_ARRIVAL_MIN - config.disembarkMin),
+      usableMin: Math.max(0, config.postArrivalMin - config.disembarkMin),
       sameTerminal: true,
       bothAirside: true,
       ...(last.terminalTo ? { terminal: last.terminalTo } : {}),

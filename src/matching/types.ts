@@ -16,6 +16,7 @@ import type {
   Trip,
 } from '@domain/index';
 import type { BucketedCount } from '@lib/bucket';
+import type { TerminalMatch } from './travel/layover';
 
 /**
  * How two itineraries touch.
@@ -37,7 +38,8 @@ export type TravelOverlap =
       airport: IataCode;
       window: TimeWindow;
       bothAirside: boolean;
-      sameTerminal: boolean;
+      /** 'unknown' when either side's terminal was never entered — not the same as 'different'. */
+      sameTerminal: TerminalMatch;
       /** Gross minutes minus the buffers. The honest number. */
       usableMin: Minutes;
     }
@@ -50,9 +52,10 @@ export type TravelOverlap =
        * Carried here for the same reason as on a layover: two people at one
        * airport in different terminals are not two people who can have a
        * coffee. An earlier version omitted this and cheerfully proposed a meet
-       * across Heathrow T5 and T2 with 85 minutes to spare.
+       * across Heathrow T5 and T2 with 85 minutes to spare. 'unknown' when
+       * either side's terminal was never entered — not the same as 'different'.
        */
-      sameTerminal: boolean;
+      sameTerminal: TerminalMatch;
       bothAirside: boolean;
     }
   | {
@@ -83,6 +86,11 @@ export interface MatchConfig {
   minUsableMin: Minutes;
   /** Minimum flight length before an onboard meet is worth proposing. */
   minSameFlightMin: Minutes;
+  /** How long before departure someone is plausibly at the airport. */
+  preDepartureMin: Minutes;
+  /** How long after landing someone is plausibly still there — a person with
+   *  bags to collect and a ride to arrange is at the airport for a while. */
+  postArrivalMin: Minutes;
   /** Ideal duration per meet kind — feeds the temporal-slack signal. */
   idealMin: Record<MeetKind, Minutes>;
   weights: Record<SignalName, number>;
