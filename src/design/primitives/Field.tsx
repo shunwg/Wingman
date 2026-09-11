@@ -24,10 +24,28 @@ export interface FieldProps {
 export function Field({ label, hint, error, htmlFor, className, children }: FieldProps) {
   const auto = useId();
   const id = htmlFor ?? auto;
-  const control =
-    !htmlFor && isValidElement(children) && !(children.props as { id?: string }).id
-      ? cloneElement(children as ReactElement<{ id?: string }>, { id })
-      : children;
+  const hintId = `${auto}-hint`;
+  const errorId = `${auto}-error`;
+  // Only the error is announced by the browser's error-locating behaviour,
+  // but a screen-reader user tabbing back into the field with no
+  // `aria-describedby` at all hears nothing distinguishing it from any other
+  // control — `aria-invalid` and `aria-describedby` are what actually connect
+  // the alert to the input it belongs to.
+  const describedBy = error ? errorId : hint ? hintId : undefined;
+  // `id` is only injected when the caller has not already fixed one via
+  // `htmlFor` — a hand-set id must not be overwritten. `aria-invalid` and
+  // `aria-describedby` are a separate decision and apply whenever there is a
+  // single element to clone onto, `htmlFor` or not: the majority of this
+  // component's callers pass `htmlFor` precisely so the id is stable and
+  // predictable, and those controls need the error wired up exactly as much
+  // as the ones that let this component generate an id.
+  const control = isValidElement(children)
+    ? cloneElement(children as ReactElement<Record<string, unknown>>, {
+        ...(!htmlFor && !(children.props as { id?: string }).id ? { id } : {}),
+        'aria-invalid': error ? true : undefined,
+        ...(describedBy ? { 'aria-describedby': describedBy } : {}),
+      })
+    : children;
 
   return (
     <div className={`field ${error ? 'is-invalid' : ''} ${className ?? ''}`}>
@@ -35,9 +53,13 @@ export function Field({ label, hint, error, htmlFor, className, children }: Fiel
         {label}
       </label>
       {control}
-      {hint && !error && <span className="field__hint">{hint}</span>}
+      {hint && !error && (
+        <span className="field__hint" id={hintId}>
+          {hint}
+        </span>
+      )}
       {error && (
-        <p className="field__error" role="alert">
+        <p className="field__error" id={errorId} role="alert">
           {error}
         </p>
       )}

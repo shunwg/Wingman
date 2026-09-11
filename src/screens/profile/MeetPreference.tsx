@@ -55,7 +55,15 @@ export function MeetPreference({ compact }: { compact?: boolean }) {
 
   return (
     <div className="panel__stack">
-      <div className="panel__stack">
+      {/*
+        Both call sites (PrivacyStep during signup, YouScreen afterwards) put
+        a heading right above this component, but as two different element
+        types with no id this component controls — so the group names itself
+        rather than trying to thread an id through. Four mutually-related
+        toggle buttons with no group name announced as four unrelated
+        switches.
+      */}
+      <div className="panel__stack" role="group" aria-label="Who you want to meet">
         {OPTIONS.map((o) => (
           <OptionRow
             key={o.id}

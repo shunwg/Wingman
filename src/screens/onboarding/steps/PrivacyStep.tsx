@@ -31,7 +31,12 @@ export function PrivacyStep({ onNext }: { onNext: () => void }) {
     setPrivacy({ presets: presets.includes(id) ? presets.filter((p) => p !== id) : [...presets, id] });
 
   const note = (id: PrivacyPresetId) => {
-    if (id === 'id_verified_only') return 'Needs the ID stamp from the next step.';
+    // A government ID stamp is not available in every country yet. Naming it
+    // as a flat requirement ("Needs the ID stamp from the next step.") reads
+    // as a promise the next screen cannot always keep.
+    if (id === 'id_verified_only') {
+      return 'Needs a government ID stamp, where one exists for your country. Narrows things down a lot.';
+    }
     if (id === 'verified_only') return 'On by default. Verify, and the people who chose this can see you back.';
     return undefined;
   };
@@ -43,8 +48,8 @@ export function PrivacyStep({ onNext }: { onNext: () => void }) {
       </p>
 
       <div className="panel__stack">
-        <span className="field__label">You are</span>
-        <div className="panel__row">
+        <span className="field__label" id="privacy-gender-label">You are</span>
+        <div className="panel__row" role="group" aria-labelledby="privacy-gender-label">
           {GENDERS.map((g) => (
             <OptionRow
               key={g.id}
@@ -66,16 +71,18 @@ export function PrivacyStep({ onNext }: { onNext: () => void }) {
       </div>
 
       <div className="panel__stack">
-        <span className="field__label">Who can see you</span>
-        {PRESET_LIST.map((p) => (
-          <OptionRow
-            key={p.id}
-            label={p.label}
-            note={note(p.id) ?? p.explainer}
-            selected={presets.includes(p.id)}
-            onClick={() => toggle(p.id)}
-          />
-        ))}
+        <span className="field__label" id="privacy-presets-label">Who can see you</span>
+        <div className="panel__stack" role="group" aria-labelledby="privacy-presets-label">
+          {PRESET_LIST.map((p) => (
+            <OptionRow
+              key={p.id}
+              label={p.label}
+              note={note(p.id) ?? p.explainer}
+              selected={presets.includes(p.id)}
+              onClick={() => toggle(p.id)}
+            />
+          ))}
+        </div>
       </div>
 
       <div className="signup__actions">

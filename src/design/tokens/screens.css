@@ -133,11 +133,16 @@
 .lens { display: flex; gap: var(--sp-2); overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * var(--sp-screen)); padding: 0 var(--sp-screen) var(--sp-1); }
 .lens::-webkit-scrollbar { display: none; }
 .lens__item {
+  position: relative;
   flex: none; min-height: 36px; padding: 0 var(--sp-4); border-radius: var(--r-pill);
   border: 1px solid var(--hairline-strong); background: var(--surface); color: var(--ink);
   font: inherit; font-size: var(--text-sm); font-weight: 500; cursor: pointer;
   transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-press) ease;
 }
+/* Visually 36px, 44px to the thumb — the same extended hit area the filter
+   chips and the tight segmented control already use; this one had been left
+   without it, the one lens row a viewer scrolls and taps one-handed most. */
+.lens__item::after { content: ''; position: absolute; inset: -4px -2px; }
 .lens__item:active { transform: scale(0.97); }
 .lens__item.is-on { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
 
@@ -1107,7 +1112,12 @@
 
 .field__error {
   font-size: var(--text-sm);
-  color: var(--accent);
+  /* Was the accent blue — identical to a link or the primary button, so a
+     validation error read as ordinary emphasis rather than a problem. --warn
+     is the same amber already used for every other caution state in the app
+     (stage warnings, the warn chip), so this stays inside the four-hue
+     palette rather than introducing a fifth "danger red". */
+  color: var(--warn);
   margin: 0;
 }
 
@@ -1611,8 +1621,10 @@
 }
 
 .stepper__dot {
-  width: 7px;
-  height: 7px;
+  /* 7px read as barely-there at a glance for anyone relying on zoom or with
+     low vision, on the one control telling them how much of signup is left. */
+  width: 9px;
+  height: 9px;
   border-radius: var(--r-pill);
   background: var(--hairline-strong);
   transition: background-color var(--dur-tooltip) ease, transform var(--dur-tooltip) var(--ease-out);
