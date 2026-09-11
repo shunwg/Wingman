@@ -17,6 +17,7 @@ import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 const OPENERS = [
   'Same flight. Fancy a coffee before boarding?',
   'Happy to share the ride into town if you are heading that way.',
+  'Heading the same way from here. Want to split a car?',
   'In town the same nights. Dinner, if you are free?',
   'Would be good to talk shop for twenty minutes.',
 ];

@@ -1,6 +1,7 @@
 import { Button } from '@design/primitives/Button';
 import { Sheet } from '@design/primitives/Sheet';
 import type { MeetRequest } from '@domain/index';
+import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { FIELD_LABEL, FIELD_LEVEL, PROFESSIONAL_FIELD_LEVEL, linkLevel } from '@privacy/index';
 import { useStore } from '@state/store';
 
@@ -50,8 +51,8 @@ export function AcceptSheet({
       }
     >
       <p className="sheet__body">
-        {firstName} proposed {request.proposal.kind.replace(/_/g, ' ')}. Saying yes opens a room
-        and shows them:
+        {firstName} proposed: {MEET_KIND_LABEL[request.proposal.kind]}. Saying yes opens a room and
+        shows them:
       </p>
       <ul className="reveal">
         {reveals.map((r) => (
