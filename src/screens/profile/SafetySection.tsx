@@ -38,6 +38,22 @@ const PERSONAS: ViewerPersona[] = [
       channel: 'app',
     },
   },
+  // Gender-specific personas: the only way "Who you want to meet" and the
+  // gender half of a preset are actually checkable. The two personas above
+  // are both gender: '*', so neither one could ever have shown whether a
+  // gender restriction is doing anything — a real gap, since this section
+  // exists precisely so a person can trust their own settings instead of
+  // taking them on faith.
+  {
+    id: 'woman',
+    label: 'A woman on your flight',
+    facets: { gender: 'woman', assurance: 0, stampKinds: [], circleIds: [], intents: '*', proximity: 'same_flight', channel: 'app' },
+  },
+  {
+    id: 'man',
+    label: 'A man on your flight',
+    facets: { gender: 'man', assurance: 0, stampKinds: [], circleIds: [], intents: '*', proximity: 'same_flight', channel: 'app' },
+  },
 ];
 
 export function SafetySection() {
