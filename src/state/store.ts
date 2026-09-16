@@ -1019,27 +1019,25 @@ export const useStore = create<WingmanState>()(
        * Only durable facts are persisted. Nothing derived, and nothing that
        * privacy depends on being fresh.
        */
-      partialize: (s) => ({
-        me: s.me,
-        myTrips: s.myTrips,
-        requests: s.requests,
-        channels: s.channels,
-        messages: s.messages,
-        readAt: s.readAt,
-        myCircles: s.myCircles,
-        seenCounts: s.seenCounts,
-        reports: s.reports,
-        muted: s.muted,
-        guardian: s.guardian,
-        ratings: s.ratings,
-        announcements: s.announcements,
-        saved: s.saved,
-        onboarded: s.onboarded,
-        account: s.account,
-        // `filters` is absent on purpose. It is a lens on this session, not a
-        // durable fact, and reopening the app to a board silently narrowed by
-        // a filter set last week is indistinguishable from a broken product.
-      }),
+      /*
+       * What gets written, via `slice()` rather than a second list.
+       *
+       * This used to be its own hand-maintained object naming all sixteen
+       * fields, which meant the app had two lists that had to agree and no
+       * mechanism to make them. Adding the `rides` slice proved the point: it
+       * went into `slice()`, not into here, so shared cars worked perfectly
+       * until the first page reload and then silently were not there. Nothing
+       * failed — the data was simply never written.
+       *
+       * `slice()` returns `PersistedSlice`, so the compiler now enforces what
+       * a comment used to ask for.
+       *
+       * `filters` is absent on purpose, and that is the one real difference
+       * from the whole state: it is a lens on this session, not a durable
+       * fact, and reopening the app to a board silently narrowed by a filter
+       * set last week is indistinguishable from a broken product.
+       */
+      partialize: (s) => slice(s),
       migrate: (persisted, version) =>
         migratePersisted(persisted, version, mintDeviceId, SEED_NOW) as never,
     },

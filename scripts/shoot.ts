@@ -32,7 +32,20 @@ const THEMES = (process.env.SHOOT_ALL || process.env.SHOOT_DARK ? ['light', 'dar
  * person to have pressed "Create my profile" first. Everything else is shot
  * as the seeded demo, entered through #/demo.
  */
-const ROUTES: { name: string; hash: string; fresh?: boolean }[] = [
+const ROUTES: {
+  name: string;
+  hash: string;
+  fresh?: boolean;
+  /**
+   * A button to press after arriving, before capturing.
+   *
+   * The board's lens is store state rather than part of the URL, so the only
+   * honest way to photograph the shared-cars board is to press the chip a
+   * person would press. A query parameter would have photographed a screen
+   * that does not exist.
+   */
+  press?: string;
+}[] = [
   { name: 'welcome', hash: '#/welcome', fresh: true },
   { name: 'signup-about', hash: '#/signup/about', fresh: true },
   { name: 'signup-privacy', hash: '#/signup/privacy', fresh: true },
@@ -46,6 +59,13 @@ const ROUTES: { name: string; hash: string; fresh?: boolean }[] = [
   { name: 'channel-group', hash: '#/inbox/group:insead-singapore' },
   { name: 'trip', hash: '#/trip' },
   { name: 'trip-new', hash: '#/trip/new' },
+  // Shared cars. The board lens is a separate shot from the default board
+  // because it renders a different kind of card, and a persona reviewing
+  // screenshots can only react to what is actually in one.
+  { name: 'discover-cars', hash: '#/discover', press: 'Shared cars' },
+  { name: 'car-join', hash: '#/car/ride_mira_tiong' },
+  { name: 'car-circle', hash: '#/car/ride_jonas_marina' },
+  { name: 'car-host', hash: '#/car/ride_you_cph' },
   { name: 'circles', hash: '#/circles' },
   { name: 'circle', hash: '#/circles/gridweek' },
   { name: 'circles-new', hash: '#/circles/new' },
@@ -97,6 +117,10 @@ async function main() {
         mode = want;
       }
       await page.goto(`${BASE}/${route.hash}`, { waitUntil: 'networkidle' });
+      if (route.press) {
+        await page.getByRole('button', { name: route.press, exact: true }).click();
+        await page.waitForTimeout(150);
+      }
       // Webfonts change metrics; waiting avoids capturing a fallback-font frame.
       await page.evaluate(() => document.fonts.ready);
       await page.waitForTimeout(200);
