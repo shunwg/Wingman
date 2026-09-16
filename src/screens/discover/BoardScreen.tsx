@@ -13,6 +13,7 @@ import { ContextStrip } from './ContextStrip';
 import { SuppressionNote } from './SuppressionNote';
 import { useEventBoards } from '@state/selectors/event';
 import { CircleCrest } from '@design/patterns/CircleCrest';
+import { VenueBand } from '@screens/placePhoto';
 
 /**
  * The board.
@@ -41,6 +42,14 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
    */
   const eventSection = events.map((e) => (
     <section className="eventboard" key={String(e.circle.id)}>
+      {/* A photograph here is identifying, which is the only thing that earns
+          one: the card's whole subject is a place, and the venue label names a
+          hall without naming the city it is in. Described rather than
+          decorative for the same reason — "the Jewel at Changi, Singapore" is
+          information a reader does not otherwise get from this card. When the
+          venue's city has no photography the card stays text-only; an
+          atmosphere shot would be decoration pretending to be a location. */}
+      <VenueBand venue={e.circle.venue} />
       <div className="eventboard__head">
         <CircleCrest shortName={e.circle.shortName} {...(e.circle.crestUrl ? { crestUrl: e.circle.crestUrl } : {})} size="sm" />
         <div>

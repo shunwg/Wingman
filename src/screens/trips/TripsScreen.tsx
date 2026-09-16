@@ -7,6 +7,8 @@ import { RideSheet } from '@screens/rides/RideSheet';
 import { useMyRides, type RideRow } from '@state/selectors/rides';
 import { Sheet } from '@design/primitives/Sheet';
 import { Timeline, type TimelineRow } from '@design/patterns/Timeline';
+import { PlaceBand, atmosphere, cityPhoto, destinationPhoto } from '@screens/placePhoto';
+import { PortRail } from './PortRail';
 import { airportIndex, cityByKey } from '@data/airports/index';
 import { personById } from '@data/seed/people';
 import type { Trip } from '@domain/index';
@@ -39,6 +41,7 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
   const [removing, setRemoving] = useState<Trip | null>(null);
   const [sharing, setSharing] = useState<Trip | null>(null);
   const me = useStore((s) => s.me);
+  const now = useStore((s) => s.now);
   // Both halves in one place: cars you offered, and cars you hold a seat in.
   // A seat you took on somebody else's car belongs on your own trip, because
   // that is where you look when you are working out how you get into town.
@@ -56,6 +59,8 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
 
   return (
     <>
+      <PortRail trips={trips} now={now} />
+
       {trips.map((trip) => (
         <TripBlock
           key={String(trip.id)}
@@ -156,6 +161,24 @@ function TripBlock({
   const perTrip = board.perTrip[String(trip.id)];
   const events = destinationEvents(trip, circles);
 
+  /*
+   * The photograph is of where you are going, never where you started. A trip
+   * block is read while looking forward to it, and OSL → SIN showing Gardermoen
+   * in the snow would be answering a question nobody asked.
+   *
+   * Three answers, in order of how much they know: the last segment's arrival
+   * airport; the city, when the trip is a stay with no flights at all, which
+   * the city picker allows; and atmosphere keyed off the trip id when neither
+   * has photography. That last one is the common case worldwide — five of the
+   * 3,270 airports in the index are photographed — so it is the ordinary path,
+   * not a fallback for broken data.
+   */
+  const arrival = trip.segments.at(-1)?.to;
+  const stayCity = trip.stays.at(-1)?.cityKey;
+  const photo = arrival
+    ? destinationPhoto(arrival)
+    : cityPhoto(String(stayCity ?? '')) ?? atmosphere(String(trip.id));
+
   const rows: TimelineRow[] = [];
   trip.segments.forEach((s, i) => {
     const fromZone = airportIndex.zone(s.from);
@@ -166,7 +189,7 @@ function TripBlock({
         code: s.from,
         city: airportIndex.get(s.from)?.city ?? s.from,
         ...(fromZone ? { time: localTime(s.departUtc, fromZone) } : {}),
-        ...(s.terminalFrom ? { terminal: `Terminal ${s.terminalFrom}` } : {}),
+        ...(s.terminalFrom ? { terminal: terminalLabel(s.terminalFrom) } : {}),
       });
     }
     const onFlight = i === 0 ? perTrip?.onYourFlight ?? 0 : 0;
@@ -189,7 +212,7 @@ function TripBlock({
       code: s.to,
       city: airportIndex.get(s.to)?.city ?? s.to,
       ...(toZone ? { time: localTime(s.arriveUtc, toZone) } : {}),
-      ...(s.terminalTo ? { terminal: `Terminal ${s.terminalTo}` } : {}),
+      ...(s.terminalTo ? { terminal: terminalLabel(s.terminalTo) } : {}),
     });
   });
   for (const stay of trip.stays) {
@@ -214,6 +237,12 @@ function TripBlock({
 
   return (
     <article className={`tripblock ${tripHueClass(tripCode(trip))} ${open ? '' : 'tripblock--closed'}`}>
+      {/* Decorative, and deliberately so: the destination is named in the
+          timeline three lines below, in text, with its local arrival time. A
+          screen reader announcing "the waterfall inside the Jewel at Changi"
+          before that would be flavour in front of the facts. */}
+      <PlaceBand photo={photo} className="tripblock__photo" />
+
       <header className="tripblock__head">
         <span className="tripdot tripblock__dot" aria-hidden="true" />
         <span className="tripblock__code mono">{tripLabel(trip)}</span>
@@ -278,6 +307,16 @@ function TripBlock({
     </article>
   );
 }
+
+/**
+ * "T3" reads as Terminal 3; "Terminal T3" reads as a bug.
+ *
+ * Terminals arrive as people read them off a boarding pass, which usually
+ * already carries the T — but not always: Heathrow says "T5" and Schiphol says
+ * "Departures 2". So the word is added only when the value does not already
+ * look like a terminal code, rather than always or never.
+ */
+const terminalLabel = (t: string): string => (/^[A-Z]?\d/i.test(t.trim()) ? `Terminal ${t}`.replace(/Terminal T/i, 'Terminal ') : t);
 
 const hours = (min: number) => {
   const h = Math.floor(min / 60);

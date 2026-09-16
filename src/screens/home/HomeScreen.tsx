@@ -4,6 +4,7 @@ import { Button } from '@design/primitives/Button';
 import { Chip } from '@design/primitives/Chip';
 import { PersonCard } from '@design/patterns/PersonCard';
 import { CircleCrest } from '@design/patterns/CircleCrest';
+import { VenueBand } from '@screens/placePhoto';
 import { tripCode, tripDestination } from '@domain/trip';
 import { tripHueClass } from '@design/tokens/tripHue';
 import { bucketPhrase } from '@lib/bucket';
@@ -82,6 +83,12 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
 
       {live.map((e) => (
         <section className="homesec eventboard" key={String(e.circle.id)}>
+          {/* Home's version of this card never prints the venue at all — it
+              has the circle's short name and the days left, and that is it.
+              So the photograph is the only thing saying *where*, which is both
+              why it belongs here and why its caption is real alt text rather
+              than an empty one. */}
+          <VenueBand venue={e.circle.venue} />
           <div className="homesec__head">
             <h2 className="homesec__title">At {e.circle.shortName}</h2>
             <span className="homesec__meta mono">
