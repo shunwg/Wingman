@@ -23,11 +23,18 @@ const ROUTES = [
   '#/verify',
   '#/person/jonas',
   '#/inbox/circle:insead',
+  '#/car/ride_jonas_marina',
+  '#/car/ride_you_cph',
   // Not-found states.
   '#/person/nobody',
   '#/inbox/meet:nothing',
   '#/circles/nothing',
   '#/join/NOPE00',
+  // A car that does not exist, and a key that matches no car. Both have to
+  // end somewhere other than the tab bar — someone who followed a dead link
+  // from a group chat is exactly the person least able to guess what to do.
+  '#/car/ride_nothing',
+  '#/car/ZZZZZZ',
 ];
 
 test('every route, found or not, offers an action outside the tab bar', async ({ page }) => {
