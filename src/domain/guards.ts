@@ -1,7 +1,8 @@
-import type { CityKey, IataCode } from './ids';
-import type { PublicPlace } from './meet';
+import type { CityKey, IataCode, MeetId, PersonId } from './ids';
+import type { Meet, MeetOrigin, PublicPlace } from './meet';
 import type { Redacted } from './person';
 import type { MeetKind } from './intent';
+import type { TimeWindow } from './time';
 
 /**
  * Constructors and narrowing helpers.
@@ -46,6 +47,75 @@ export function makePublicPlace(input: {
     throw new Error('A meeting point must be anchored to an airport or a city.');
   }
   return { ...input, isPublicGround: true };
+}
+
+/**
+ * Meet kinds that more than two people can share.
+ *
+ * Every kind is listed in one of the two sets below, deliberately, with no
+ * default — so adding a ninth `MeetKind` breaks the exhaustiveness test in
+ * guards.test.ts rather than silently inheriting whichever answer was easier.
+ *
+ * A car, a table and a desk hold a group. The airside kinds do not, because
+ * they are bounded by a layover and a gate bench; and a business introduction
+ * is between two people by definition — three makes it a meeting, which is a
+ * different thing with different consent.
+ */
+export const GROUP_KINDS: ReadonlySet<MeetKind> = new Set<MeetKind>([
+  'ride_share',
+  'meal',
+  'drinks',
+  'coworking',
+]);
+
+/** Meet kinds that are between exactly two people. */
+export const PAIR_ONLY_KINDS: ReadonlySet<MeetKind> = new Set<MeetKind>([
+  'gate_coffee',
+  'lounge',
+  'terminal_walk',
+  'business_intro',
+]);
+
+/**
+ * The only sanctioned way to build a meet.
+ *
+ * `Meet.participants` used to be a `[PersonId, PersonId]` tuple, and the tuple
+ * was doing real work: it made "three people at a gate coffee" unrepresentable.
+ * Widening it so a taxi can exist would have thrown that away, so the invariant
+ * moved here instead of disappearing — the same trade `makePublicPlace()` makes,
+ * where the type cannot express the rule and the constructor refuses to build
+ * the value.
+ */
+export function makeMeet(input: {
+  id: MeetId;
+  participants: PersonId[];
+  kind: MeetKind;
+  origin: MeetOrigin;
+  place: PublicPlace;
+  window: TimeWindow;
+}): Meet {
+  const { participants: people, kind } = input;
+  if (people.length < 2) {
+    throw new Error(`A meet is at least two people. Got ${people.length}.`);
+  }
+  if (new Set(people.map(String)).size !== people.length) {
+    throw new Error('The same person cannot be in a meet twice.');
+  }
+  if (!GROUP_KINDS.has(kind) && people.length > 2) {
+    throw new Error(`A ${kind} is between two people. Got ${people.length}.`);
+  }
+  return {
+    id: input.id,
+    participants: [...people],
+    origin: input.origin,
+    kind,
+    place: input.place,
+    window: input.window,
+    status: 'scheduled',
+    checkIns: {},
+    guardianSessionIds: [],
+    ratingIds: [],
+  };
 }
 
 export const isPublicPlace = (v: unknown): v is PublicPlace =>

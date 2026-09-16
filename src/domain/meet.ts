@@ -1,5 +1,5 @@
 import type {
-  CircleId, CityKey, IataCode, MeetId, MeetRequestId, PersonId, RatingId, TripId } from './ids';
+  CircleId, CityKey, IataCode, MeetId, MeetRequestId, PersonId, RatingId, RideId, TripId } from './ids';
 import type { GuardianSessionId } from './ids';
 import type { ISODateTime, TimeWindow } from './time';
 import type { MeetKind } from './intent';
@@ -195,10 +195,38 @@ export interface MeetMessage {
 
 export type MeetStatus = 'scheduled' | 'live' | 'completed' | 'no_show' | 'cancelled';
 
+/**
+ * What produced this meet.
+ *
+ * A pairwise meet comes from one request. A shared car comes from a `Ride`,
+ * where several seat claims were each confirmed separately and no single
+ * request stands for the whole thing — so the origin is a union rather than a
+ * nullable request id, and neither case has to pretend to be the other.
+ */
+export type MeetOrigin =
+  | { kind: 'request'; requestId: MeetRequestId }
+  | { kind: 'ride'; rideId: RideId };
+
+/**
+ * Two or more people who agreed to be somewhere public.
+ *
+ * `participants` was a `[PersonId, PersonId]` tuple, which said something true
+ * about coffee and false about a taxi: a car holds three or four, splits one
+ * fare, and has one pickup time. Widening it to a list is what lets a confirmed
+ * car inherit everything a meet already carries — check-ins, guardian sessions,
+ * ratings, and a place that cannot be anything but public ground — instead of
+ * rides reimplementing all of it alongside.
+ *
+ * The pair invariant did not disappear; it moved. A gate coffee still cannot
+ * hold three people, but the refusal now comes from `makeMeet()` in guards.ts,
+ * which is the only sanctioned constructor, rather than from the shape of the
+ * field. `checkIns`, `guardianSessionIds` and `ratingIds` needed no change at
+ * all — they were already keyed and listed per person.
+ */
 export interface Meet {
   id: MeetId;
-  participants: [PersonId, PersonId];
-  fromRequestId: MeetRequestId;
+  participants: PersonId[];
+  origin: MeetOrigin;
   kind: MeetKind;
   place: PublicPlace;
   window: TimeWindow;

@@ -22,6 +22,7 @@ export * from './invite';
 export * from './person';
 export * from './privacy';
 export * from './meet';
+export * from './ride';
 export * from './channel';
 export * from './safety';
 export * from './rating';
