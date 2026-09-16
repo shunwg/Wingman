@@ -1,5 +1,5 @@
 import type { Person, PersonId, Ride } from '@domain/index';
-import { rideIsJoinable, seatsLeft } from '@domain/index';
+import { riders, rideIsJoinable, seatsLeft } from '@domain/index';
 import type { ISODateTime } from '@domain/time';
 import { compilePolicy, evaluateRideAudience, type RideAudienceVerdict } from '@privacy/index';
 import type { PersonFacets } from '@privacy/types';
@@ -56,9 +56,40 @@ function hostIsKnown(ride: Ride, v: RideViewer): boolean {
   return seedPool().some((e) => String(e.person.id) === String(ride.hostPersonId));
 }
 
+/**
+ * Somebody in this car the viewer has hidden, or who has hidden them.
+ *
+ * The audience rules answer "may this viewer see the *host*", which is the
+ * question a profile asks and exactly the wrong one for a car: a car has
+ * passengers, and a rider row renders a face and a first name. So hiding
+ * someone did nothing once they took a seat in a third party's car — their
+ * photograph came back on your board, next to a named airport and a one-hour
+ * window. An adversarial persona walked straight through it.
+ *
+ * A block is symmetric and absolute here, as it is in `blockEither`.
+ */
+function blockedRider(ride: Ride, v: RideViewer): boolean {
+  const mine = new Set(v.me.blocked.map(String));
+  for (const id of riders(ride)) {
+    if (String(id) === String(v.me.id)) continue;
+    if (mine.has(String(id))) return true;
+    const them = seedPool().find((e) => String(e.person.id) === String(id));
+    if (them?.person.blocked.some((b) => String(b) === String(v.me.id))) return true;
+  }
+  return false;
+}
+
 export function rideVisibility(ride: Ride, v: RideViewer): RideAudienceVerdict {
   if (!hostIsKnown(ride, v)) {
     return { visible: false, seatsAutomatically: false, deniedBy: [], reasons: [] };
+  }
+  if (blockedRider(ride, v)) {
+    return {
+      visible: false,
+      seatsAutomatically: false,
+      deniedBy: ['block.either'],
+      reasons: [{ ruleId: 'block.either', side: 'yours', text: 'Not available.' }],
+    };
   }
   const host = hostSubject(ride, v);
   const viewer = selfFacets(v.me, v.myCircleIds, { proximity: 'none', channel: 'app', onTrip: true });

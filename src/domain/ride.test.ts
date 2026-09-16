@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { asCircleId, asIata, asPersonId, asRideId, asTripId } from './ids';
 import type { ISODateTime } from './time';
-import { makeRide, rideIsJoinable, seatsLeft, sharesDirection, type Ride } from './ride';
+import { makeRide, rideIsJoinable, seatsLeft, seatsPending, sharesDirection, type Ride } from './ride';
 import { anyAudience } from './privacy';
 
 const t = (s: string) => s as ISODateTime;
@@ -62,20 +62,32 @@ describe('seatsLeft', () => {
     expect(seatsLeft(base())).toBe(3);
   });
 
-  it('counts a requested seat as taken — a seat being asked for is not a free seat', () => {
+  it('does NOT count a requested seat — the count would otherwise leak a decline', () => {
+    // Deliberate, and the reason is a leak rather than a preference. If a
+    // pending ask consumed a seat, the count would fall when somebody asked
+    // and rise again when the host said no — telling the person refused
+    // exactly the thing claimantView() exists to keep from them.
     const r = base();
     r.claims.push(claim('a', 'requested'));
+    expect(seatsLeft(r)).toBe(3);
+  });
+
+  it('tells the host how many are asking, which the public count no longer shows', () => {
+    const r = base();
+    r.claims.push(claim('a', 'requested'), claim('b', 'requested'), claim('c', 'confirmed'));
+    expect(seatsPending(r)).toBe(2);
     expect(seatsLeft(r)).toBe(2);
   });
 
-  it('ignores declined, withdrawn, expired and revoked claims', () => {
+  it('ignores every settled claim, however it settled', () => {
     const r = base();
     r.claims.push(
       claim('a', 'confirmed'),
       claim('b', 'declined'),
       claim('c', 'withdrawn'),
-      claim('d', 'expired'),
-      claim('e', 'revoked_by_policy'),
+      claim('d', 'removed_by_host'),
+      claim('e', 'expired'),
+      claim('f', 'revoked_by_policy'),
     );
     expect(seatsLeft(r)).toBe(2);
   });

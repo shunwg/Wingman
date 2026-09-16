@@ -64,7 +64,7 @@ import type { ISODateTime } from '@domain/time';
 import { SEED_NOW } from '@data/seed/trips';
 import { layoversFor, MATCH_CONFIG_V1 } from '@matching/index';
 import { transition } from './machines/meetRequest';
-import { transitionClaim, transitionRide } from './machines/rideSeat';
+import { revokeClaimByPolicy, transitionClaim, transitionRide } from './machines/rideSeat';
 import { canClaim, type RideViewer } from './rides/eligibility';
 import type { Account } from './account/types';
 import {
@@ -292,6 +292,15 @@ export interface WingmanState {
   declineSeat: (rideId: string, personId: PersonId) => void;
   /** Passenger: pull out, whether asked-for or already confirmed. */
   withdrawSeat: (rideId: string) => void;
+  /**
+   * Host: take back a seat you already granted.
+   *
+   * Separate from `declineSeat`, which refuses one that was only ever asked
+   * for. A host who changes her mind about somebody she already said yes to is
+   * the case a shared car most needs to support — you cannot get out of a
+   * moving taxi — and collapsing the two would have hidden it.
+   */
+  removeSeat: (rideId: string, personId: PersonId) => void;
   /** Host: call the whole car off. */
   cancelRide: (rideId: string) => void;
   /** Open or refresh the car's group room. Called for you when a seat lands. */
@@ -394,6 +403,9 @@ function mapClaim(
   if (!ride) return s.rides;
 
   // Only the host settles somebody else's seat; only you withdraw your own.
+  // `removed_by_host` is deliberately on the host side of that line even
+  // though it ends the same seat `withdrawn` would: who ended it is the fact
+  // worth keeping, and the passenger is told only that it closed.
   const hostActing = String(ride.hostPersonId) === String(by);
   const ownSeat = String(personId) === String(by);
   if (to === 'withdrawn' ? !ownSeat : !hostActing) return s.rides;
@@ -658,6 +670,9 @@ export const useStore = create<WingmanState>()(
 
       withdrawSeat: (rideId) =>
         set((s) => ({ rides: mapClaim(s, rideId, s.me.id, 'withdrawn', s.me.id) })),
+
+      removeSeat: (rideId, personId) =>
+        set((s) => ({ rides: mapClaim(s, rideId, personId, 'removed_by_host', s.me.id) })),
 
       cancelRide: (rideId) =>
         set((s) => {
@@ -1007,6 +1022,32 @@ export const useStore = create<WingmanState>()(
               ? transition(r, { to: 'revoked_by_policy', by: 'system', at: s.now })
               : r,
           ),
+          /*
+           * And any seat between you, in either direction.
+           *
+           * `revokeClaimByPolicy()` was written for exactly this and had no
+           * caller anywhere — the sweep here stopped at `requests`, so blocking
+           * someone left them sitting in your car and you in theirs. A block
+           * that does not reach the one meet you cannot walk out of is not a
+           * block.
+           */
+          rides: s.rides.map((ride) => {
+            const hostIsThem = String(ride.hostPersonId) === String(id);
+            const mineHosted = String(ride.hostPersonId) === String(s.me.id);
+            if (!hostIsThem && !mineHosted) return ride;
+            return {
+              ...ride,
+              claims: ride.claims.map((c) => {
+                const involvesThem = String(c.personId) === String(id);
+                const involvesMe = String(c.personId) === String(s.me.id);
+                // Their seat in my car, or my seat in theirs.
+                if ((mineHosted && involvesThem) || (hostIsThem && involvesMe)) {
+                  return revokeClaimByPolicy(c, s.now);
+                }
+                return c;
+              }),
+            };
+          }),
         })),
 
       reset: () => set(initial()),

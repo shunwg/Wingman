@@ -7,6 +7,7 @@ import { Button } from '@design/primitives/Button';
 import { Chip } from '@design/primitives/Chip';
 import { airportIndex } from '@data/airports/index';
 import { personById } from '@data/seed/people';
+import { DOOR_COPY, RIDE_FARE_NOTE } from '@data/copy/rides';
 import { useStore } from '@state/store';
 
 /**
@@ -116,11 +117,40 @@ export function JoinRideScreen({ code, onOpen, onDone }: JoinRideScreenProps) {
   }
 
   if (tried) {
+    /*
+     * Read the store back rather than trusting the tap.
+     *
+     * This screen used to say "You are in" the moment the button was pressed,
+     * whether the write landed or not — so a refusal the store was right to
+     * make (a stale link, a door that closed while the page was open) was
+     * reported as a seat. Saying "you are in" to somebody who is not in the
+     * car is the worst sentence in this feature.
+     */
+    const seat = ride.claims.find((c) => String(c.personId) === String(me.id));
+    if (seat?.status === 'confirmed') {
+      return (
+        <Outcome
+          title="You are in"
+          note="The car's room is open, with the pickup time and who else is coming."
+          action={<Button onClick={() => onOpen(String(ride.id))}>Open the car</Button>}
+          onDone={onDone}
+        />
+      );
+    }
+    if (seat?.status === 'requested') {
+      return (
+        <Outcome
+          title="Asked"
+          note="The host has to say yes. You will see it either way."
+          action={<Button onClick={() => onOpen(String(ride.id))}>Open the car</Button>}
+          onDone={onDone}
+        />
+      );
+    }
     return (
       <Outcome
-        title="You are in"
-        note="The car's room is open, with the pickup time and who else is coming."
-        action={<Button onClick={() => onOpen(String(ride.id))}>Open the car</Button>}
+        title="That seat did not go through"
+        note="The car may have filled or the door may have closed since the link was sent. Nothing was taken."
         onDone={onDone}
       />
     );
@@ -140,10 +170,8 @@ export function JoinRideScreen({ code, onOpen, onDone }: JoinRideScreenProps) {
           <Chip tone="accent">{left === 1 ? '1 seat left' : `${left} seats left`}</Chip>
           <Chip tone="neutral">{hostFirst ? `${hostFirst} is driving it` : 'Shared car'}</Chip>
         </div>
-        <p className="panel__note">
-          Holding this link is what admits you — the car is invisible to everyone else. The fare is
-          split evenly and stated, never charged.
-        </p>
+        <p className="panel__note">{DOOR_COPY[ride.audience.kind].guest}</p>
+        <p className="panel__note">{RIDE_FARE_NOTE}</p>
         <Button
           full
           onClick={() => {

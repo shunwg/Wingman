@@ -170,3 +170,35 @@ describe('the reasons given', () => {
     expect(v.deniedBy).toEqual(expect.arrayContaining(['gender.audience', 'assurance.floor']));
   });
 });
+
+describe("the host's own privacy is a floor", () => {
+  // A car can be narrower than the person offering it, never wider. This was
+  // the reverse on the first pass: `effectiveRule()` began at the permissive
+  // rule and the host's compiled policy was consulted by nothing, so somebody
+  // set to "verified people only" published a car open to everyone.
+  const strictHost = compilePolicy({ ...defaultPolicy(), presets: ['verified_only'] }, []);
+
+  const underStrictHost = (audience: RideAudience, viewer: PersonFacets) =>
+    evaluateRideAudience({ audience, viewer, host, hostPolicy: strictHost, now });
+
+  it('denies an unverified viewer even when the car itself asks for nothing', () => {
+    const wideOpen: RideAudience = { kind: 'open', rules: anyAudience() };
+    const v = underStrictHost(wideOpen, facets({ assurance: 0 }));
+    expect(v.visible).toBe(false);
+    expect(v.deniedBy).toContain('assurance.floor');
+  });
+
+  it('still admits a viewer who clears both the floor and the door', () => {
+    const wideOpen: RideAudience = { kind: 'open', rules: anyAudience() };
+    expect(underStrictHost(wideOpen, facets({ assurance: 3 })).visible).toBe(true);
+  });
+
+  it('says a rule once even when floor and door both deny on it', () => {
+    const alsoVerified: RideAudience = {
+      kind: 'open',
+      rules: { ...anyAudience(), minAssurance: 3 },
+    };
+    const v = underStrictHost(alsoVerified, facets({ assurance: 0 }));
+    expect(v.reasons.filter((r) => r.ruleId === 'assurance.floor')).toHaveLength(1);
+  });
+});

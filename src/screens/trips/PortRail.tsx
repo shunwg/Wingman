@@ -1,7 +1,8 @@
 import { airportIndex } from '@data/airports/index';
 import type { FlightSegment, IanaZone, IataCode, ISODateTime, Trip } from '@domain/index';
-import { epoch, localTime } from '@domain/time';
+import { epoch } from '@domain/time';
 import { PlaceBand, portPhoto } from '@screens/placePhoto';
+import { whenLabel } from '@screens/whenLabel';
 
 /**
  * Where you will be.
@@ -38,7 +39,7 @@ export function PortRail({ trips, now }: { trips: Trip[]; now: ISODateTime }) {
                   unknown one is left unsaid rather than filled with a dash. */}
               <p className="ports__code mono">{p.terminal ? `${p.iata} ${p.terminal}` : p.iata}</p>
               <p className="ports__city">{p.city}</p>
-              <p className="ports__when mono">{whenLabel(p, now)}</p>
+              <p className="ports__when mono">{whenLabel(p.at, p.zone, now)}</p>
             </div>
           </li>
         ))}
@@ -106,48 +107,3 @@ function portOf(trip: Trip, s: FlightSegment, end: 'from' | 'to'): Port {
   };
 }
 
-/**
- * "Tonight 21:00", "Tomorrow 17:00", "Fri 08:40", "18 Sep".
- *
- * Two clocks meet here, deliberately. The day word is yours — days ahead on
- * the calendar your phone is showing, because days are the unit you plan in —
- * and the time is the port's, because that is the wall clock above the gate
- * when you get there. Reading both from one zone breaks the other half:
- * Singapore is already past midnight when Oslo is at 18:30, so Changi's own
- * calendar calls a landing sixteen hours out "today", and nobody standing in
- * Oslo on Wednesday evening means that.
- *
- * What it costs: a red-eye can read "Today 02:00" while the aircraft is still
- * on the stand. Rare, and still true.
- */
-function whenLabel(p: Port, now: ISODateTime): string {
-  const clock = p.zone ? localTime(p.at, p.zone) : undefined;
-  const ahead = daysAhead(now, p.at);
-  if (ahead <= 0) {
-    if (!clock) return 'Today';
-    return `${Number(clock.slice(0, 2)) >= 18 ? 'Tonight' : 'Today'} ${clock}`;
-  }
-  if (ahead === 1) return clock ? `Tomorrow ${clock}` : 'Tomorrow';
-  // Inside the week a weekday is how people say it. Past that it stops being
-  // useful — "Tue" three weeks out tells you nothing — and the clock goes with
-  // it, because the hour of a flight a month away is not what you are reading.
-  if (ahead < 7) return [dateIn(p, { weekday: 'short' }), clock].filter(Boolean).join(' ');
-  return dateIn(p, { day: 'numeric', month: 'short' });
-}
-
-/** Whole days from today to `t`, on the viewer's own calendar — the render edge. */
-function daysAhead(now: ISODateTime, t: ISODateTime): number {
-  const midnight = (ms: number) => {
-    const d = new Date(ms);
-    return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
-  };
-  return Math.round((midnight(epoch(t)) - midnight(epoch(now))) / 86_400_000);
-}
-
-/** A piece of the port's own local date — its weekday, or its day and month. */
-function dateIn(p: Port, parts: Intl.DateTimeFormatOptions): string {
-  return new Date(epoch(p.at)).toLocaleDateString('en-GB', {
-    ...parts,
-    ...(p.zone ? { timeZone: String(p.zone) } : {}),
-  });
-}

@@ -92,7 +92,31 @@ export function evaluateRideAudience(input: RideAudienceInput): RideAudienceVerd
     reasons.push({ ruleId: 'ride.invite', side: 'theirs', text: policyCopy('ride.invite', 'theirs') });
   }
 
-  const ran = runRules(
+  /*
+   * Two rule sets, both of which must admit the viewer.
+   *
+   * The host's own profile audience is a **floor**: a car can be narrower than
+   * the person who offered it, never wider. This was wrong on the first pass —
+   * `effectiveRule()` started from the permissive rule, so somebody whose
+   * profile was set to "ID-verified only" published a car that unverified
+   * strangers could see, and nothing anywhere said so. A privacy-minded
+   * persona found it by reading this file, which is the only way it could have
+   * been found: every screen looked right.
+   *
+   * A conjunction rather than a merged rule, deliberately. Merging two
+   * `circles` constraints would mean intersecting the two circle lists, and
+   * "must be in INSEAD" plus "must be in Grid Week" is not "must be in the
+   * empty intersection of the two" — it is both conditions, separately. Union
+   * the denials and the algebra never has to be invented.
+   */
+  const floor = runRules(
+    RIDE_AUDIENCE_RULES,
+    viewer,
+    host,
+    { rule: hostPolicy.audience, policy: hostPolicy, now },
+    'theirs',
+  );
+  const door = runRules(
     RIDE_AUDIENCE_RULES,
     viewer,
     host,
@@ -100,8 +124,15 @@ export function evaluateRideAudience(input: RideAudienceInput): RideAudienceVerd
     'theirs',
   );
 
-  deniedBy.push(...ran.denied);
-  reasons.push(...ran.reasons);
+  for (const id of [...floor.denied, ...door.denied]) {
+    if (!deniedBy.includes(id)) deniedBy.push(id);
+  }
+  // One sentence per rule. Both passes can deny on the same rule — a profile
+  // restricted to women and a car restricted to women is the normal case —
+  // and saying it twice reads as a bug.
+  for (const r of [...floor.reasons, ...door.reasons]) {
+    if (!reasons.some((x) => x.ruleId === r.ruleId)) reasons.push(r);
+  }
 
   return {
     visible: deniedBy.length === 0,

@@ -4,7 +4,7 @@ import { asCircleId, asPersonId } from '@domain/ids';
 import { seatsLeft } from '@domain/index';
 import { useStore, STORE_VERSION } from '@state/store';
 import { demoState } from '@state/account/reducers';
-import { SEED_NOW } from '@data/seed/trips';
+import { SEED_NOW, tripFor } from '@data/seed/trips';
 import { useJoinableRides, useMyRides, useRide } from './rides';
 
 /**
@@ -297,4 +297,117 @@ describe('unused circle ids', () => {
     const { result } = renderHook(() => useJoinableRides());
     expect(result.current.rows.map((r) => String(r.ride.id))).not.toContain('ride_jonas_marina');
   });
+});
+
+/**
+ * Regressions from the 2026-09-16 persona round.
+ *
+ * Each of these is a hole somebody walked through, written as the walk rather
+ * than as the patch — a test named after the fix tends to pass for the wrong
+ * reason once the fix moves.
+ */
+describe('what the persona round found', () => {
+  it('hides a car once anyone in it is someone you hid', () => {
+    // The adversary's route: she hides me, then takes a seat in a third
+    // party's car, and her face comes back on my board beside a named
+    // airport and a one-hour window. The audience rules only ever asked
+    // about the host.
+    const rides = useStore.getState().rides.map((r) =>
+      String(r.id) === 'ride_mira_tiong'
+        ? {
+            ...r,
+            claims: [
+              { personId: asPersonId('priya'), status: 'confirmed' as const, askedAt: SEED_NOW, history: [] },
+            ],
+          }
+        : r,
+    );
+    useStore.setState({ rides });
+
+    const before = renderHook(() => useJoinableRides());
+    expect(before.result.current.rows.map((r) => String(r.ride.id))).toContain('ride_mira_tiong');
+
+    useStore.setState({ me: { ...useStore.getState().me, blocked: [asPersonId('priya')] } });
+    const after = renderHook(() => useJoinableRides());
+    expect(after.result.current.rows.map((r) => String(r.ride.id))).not.toContain('ride_mira_tiong');
+  });
+
+  it('kills a seat in both directions when you block someone', () => {
+    // revokeClaimByPolicy() was written for exactly this and had no caller.
+    const rides = useStore.getState().rides.map((r) =>
+      String(r.id) === 'ride_you_cph'
+        ? {
+            ...r,
+            claims: [
+              { personId: asPersonId('priya'), status: 'confirmed' as const, askedAt: SEED_NOW, history: [] },
+            ],
+          }
+        : r,
+    );
+    useStore.setState({ rides });
+
+    useStore.getState().blockPerson(asPersonId('priya'));
+    const ride = useStore.getState().rides.find((r) => String(r.id) === 'ride_you_cph')!;
+    expect(ride.claims[0]!.status).toBe('revoked_by_policy');
+  });
+
+  it('does not let the seat count betray a decline', () => {
+    // Seats fall when somebody asks and rise when they are refused: an oracle
+    // for the one fact the product promises to keep from them.
+    const before = seatsLeft(useStore.getState().rides.find((r) => String(r.id) === 'ride_you_cph')!);
+
+    const rides = useStore.getState().rides.map((r) =>
+      String(r.id) === 'ride_you_cph'
+        ? {
+            ...r,
+            claims: [
+              { personId: asPersonId('priya'), status: 'requested' as const, askedAt: SEED_NOW, history: [] },
+            ],
+          }
+        : r,
+    );
+    useStore.setState({ rides });
+    const whileAsking = seatsLeft(useStore.getState().rides.find((r) => String(r.id) === 'ride_you_cph')!);
+
+    useStore.getState().declineSeat('ride_you_cph', asPersonId('priya'));
+    const afterDecline = seatsLeft(useStore.getState().rides.find((r) => String(r.id) === 'ride_you_cph')!);
+
+    expect(whileAsking).toBe(before);
+    expect(afterDecline).toBe(before);
+  });
+
+  it('does not offer a car from a trip its host has hidden', () => {
+    const mira = tripFor('mira')!;
+    const listing = mira.visibility.listing;
+    try {
+      // The hide button and the car row render inside the same card, and the
+      // car ignored the button entirely.
+      mira.visibility.listing = 'hidden';
+      const { result } = renderHook(() => useJoinableRides());
+      expect(result.current.rows.map((r) => String(r.ride.id))).not.toContain('ride_mira_tiong');
+    } finally {
+      mira.visibility.listing = listing;
+    }
+  });
+
+  it('lets a host take back a seat she already granted', () => {
+    const rides = useStore.getState().rides.map((r) =>
+      String(r.id) === 'ride_you_cph'
+        ? {
+            ...r,
+            claims: [
+              { personId: asPersonId('priya'), status: 'confirmed' as const, askedAt: SEED_NOW, history: [] },
+            ],
+          }
+        : r,
+    );
+    useStore.setState({ rides });
+
+    useStore.getState().removeSeat('ride_you_cph', asPersonId('priya'));
+    const ride = useStore.getState().rides.find((r) => String(r.id) === 'ride_you_cph')!;
+    expect(ride.claims[0]!.status).toBe('removed_by_host');
+    // And a passenger cannot use it on somebody else's seat.
+    expect(ride.claims[0]!.history[0]!.by).toBe('you');
+  });
+
 });

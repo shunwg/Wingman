@@ -4,6 +4,7 @@ import { riders, rideRoute, seatsLeft, tripIsOpen } from '@domain/index';
 import { addMinutes } from '@domain/time';
 import { filterRides, type RideNeed } from '@matching/index';
 import { bucketPhrase } from '@lib/bucket';
+import { tripFor } from '@data/seed/trips';
 import { useStore } from '@state/store';
 import { claimRefusal, myClaim, rideVisibility, type ClaimRefusal, type RideViewer } from '@state/rides/eligibility';
 
@@ -122,15 +123,41 @@ export function useJoinableRides(): { rows: RideRow[]; hiddenNote?: string } {
   const v = useRideViewer();
   const rides = useStore((s) => s.rides);
   const myTrips = useStore((s) => s.myTrips);
+  /*
+   * The board's filters apply here too, and two of them mean something for a
+   * car: which trip, and how far from where you are going. They rendered in
+   * selected states above the car list and did nothing at all — the exact
+   * dead-control failure this project just spent a QA round removing from the
+   * native prototype. The rest of the row is hidden on this lens rather than
+   * left inert, in `BoardFilters`.
+   */
+  const filters = useStore((s) => s.filters);
 
   return useMemo(() => {
-    const others = rides.filter((r) => String(r.hostPersonId) !== String(v.me.id));
+    /*
+     * A car on a hidden trip is hidden.
+     *
+     * `tripIsOpen` gates the *person* board in `hardFilters`, and rides never
+     * consulted it — so "Hide this trip" left the car from that same trip on
+     * everyone's board, with the hide button and the car row rendering inside
+     * the same card. Whatever else that is, it is not what the button says.
+     */
+    const others = rides.filter((r) => {
+      if (String(r.hostPersonId) === String(v.me.id)) return false;
+      const hostTrip = tripFor(String(r.hostPersonId));
+      return !hostTrip || String(hostTrip.id) !== String(r.tripId) || tripIsOpen(hostTrip);
+    });
     const seen = new Map<string, RideRow>();
     let hidden = 0;
 
-    for (const trip of myTrips.filter(tripIsOpen)) {
+    const scoped =
+      filters.tripId === 'all'
+        ? myTrips.filter(tripIsOpen)
+        : myTrips.filter((t) => tripIsOpen(t) && String(t.id) === filters.tripId);
+
+    for (const trip of scoped) {
       for (const need of needsForTrip(trip)) {
-        for (const match of filterRides(others, need, v.now)) {
+        for (const match of filterRides(others, need, v.now, filters.withinKm ?? undefined)) {
           const id = String(match.ride.id);
           if (seen.has(id)) continue;
           if (!rideVisibility(match.ride, v).visible) {
@@ -154,7 +181,7 @@ export function useJoinableRides(): { rows: RideRow[]; hiddenNote?: string } {
     return hidden > 0
       ? { rows, hiddenNote: `${bucketPhrase(hidden, 'car', 'cars')} hidden by someone's settings.` }
       : { rows };
-  }, [rides, myTrips, v]);
+  }, [rides, myTrips, v, filters.tripId, filters.withinKm]);
 }
 
 /** Cars the viewer hosts, plus any where they hold a live seat. */

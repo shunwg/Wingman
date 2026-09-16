@@ -67,51 +67,104 @@ export function BoardFilters({
     filters.industry !== 'any' ||
     filters.savedOnly;
 
-  return (
-    <div className="filters filters--sticky">
-      <div className="lens" role="group" aria-label="Why now">
-        {LENSES.map((l) => (
+  /*
+   * The two rows that mean something for a shared car.
+   *
+   * Named rather than inlined because the cars lens renders these and nothing
+   * else: an industry chip or a saved-person filter has no meaning for a car,
+   * and a control that sits in a selected state and changes nothing is the
+   * worst kind of lie a UI can tell — this project spent a whole QA round
+   * pulling exactly that out of the native prototype.
+   */
+  const tripPicker =
+    openTrips.length > 1 ? (
+      <div className="segmented" role="group" aria-label="Which trip">
+        <button
+          type="button"
+          className={`segmented__item ${filters.tripId === 'all' ? 'is-on' : ''}`}
+          aria-pressed={filters.tripId === 'all'}
+          onClick={() => setFilters({ tripId: 'all' })}
+        >
+          All
+        </button>
+        {openTrips.map((t) => (
           <button
-            key={l.id}
+            key={String(t.id)}
             type="button"
-            ref={filters.lens === l.id ? activeLens : undefined}
-            className={`lens__item ${filters.lens === l.id ? 'is-on' : ''}`}
-            aria-pressed={filters.lens === l.id}
-            onClick={() => setFilters({ lens: l.id })}
+            className={`segmented__item mono ${tripHueClass(tripCode(t))} ${
+              filters.tripId === String(t.id) ? 'is-on' : ''
+            }`}
+            aria-pressed={filters.tripId === String(t.id)}
+            onClick={() => setFilters({ tripId: String(t.id) })}
           >
-            {l.label}
+            <span className="tripdot" aria-hidden="true" />
+            {tripCode(t)}
           </button>
         ))}
       </div>
-      <div className="filters__top">
-        {openTrips.length > 1 ? (
-          <div className="segmented" role="group" aria-label="Which trip">
-            <button
-              type="button"
-              className={`segmented__item ${filters.tripId === 'all' ? 'is-on' : ''}`}
-              aria-pressed={filters.tripId === 'all'}
-              onClick={() => setFilters({ tripId: 'all' })}
-            >
-              All
+    ) : (
+      <span />
+    );
+
+  const radiusRow = (
+    <div className="filterbar" role="group" aria-label="How far they are heading from you">
+      <span className="filterbar__hint" aria-hidden="true">
+        Heading
+      </span>
+      {RADII.map((km) => (
+        <button
+          key={km}
+          type="button"
+          className={`filterchip mono ${filters.withinKm === km ? 'is-on' : ''}`}
+          aria-pressed={filters.withinKm === km}
+          aria-label={`Within ${km} kilometres of where you are going`}
+          onClick={() => setFilters({ withinKm: filters.withinKm === km ? null : km })}
+        >
+          {km}km
+        </button>
+      ))}
+    </div>
+  );
+
+  const lensRow = (
+    <div className="lens" role="group" aria-label="Why now">
+      {LENSES.map((l) => (
+        <button
+          key={l.id}
+          type="button"
+          ref={filters.lens === l.id ? activeLens : undefined}
+          className={`lens__item ${filters.lens === l.id ? 'is-on' : ''}`}
+          aria-pressed={filters.lens === l.id}
+          onClick={() => setFilters({ lens: l.id })}
+        >
+          {l.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (filters.lens === 'shared_cars') {
+    return (
+      <div className="filters filters--sticky">
+        {lensRow}
+        <div className="filters__top">{tripPicker}</div>
+        {radiusRow}
+        {dirty && (
+          <div className="filterbar">
+            <button type="button" className="filterchip filterchip--clear" onClick={() => setFilters(NO_FILTERS)}>
+              Clear
             </button>
-            {openTrips.map((t) => (
-              <button
-                key={String(t.id)}
-                type="button"
-                className={`segmented__item mono ${tripHueClass(tripCode(t))} ${
-                  filters.tripId === String(t.id) ? 'is-on' : ''
-                }`}
-                aria-pressed={filters.tripId === String(t.id)}
-                onClick={() => setFilters({ tripId: String(t.id) })}
-              >
-                <span className="tripdot" aria-hidden="true" />
-                {tripCode(t)}
-              </button>
-            ))}
           </div>
-        ) : (
-          <span />
         )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="filters filters--sticky">
+      {lensRow}
+      <div className="filters__top">
+        {tripPicker}
         <div className="segmented segmented--tight" role="group" aria-label="Density">
           <button
             type="button"
@@ -188,23 +241,7 @@ export function BoardFilters({
         </div>
       )}
 
-      <div className="filterbar" role="group" aria-label="How far they are heading from you">
-        <span className="filterbar__hint" aria-hidden="true">
-          Heading
-        </span>
-        {RADII.map((km) => (
-          <button
-            key={km}
-            type="button"
-            className={`filterchip mono ${filters.withinKm === km ? 'is-on' : ''}`}
-            aria-pressed={filters.withinKm === km}
-            aria-label={`Within ${km} kilometres of where you are going`}
-            onClick={() => setFilters({ withinKm: filters.withinKm === km ? null : km })}
-          >
-            {km}km
-          </button>
-        ))}
-      </div>
+      {radiusRow}
 
       {filters.womenOnly && (
         <p className="filters__note">

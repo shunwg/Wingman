@@ -8,6 +8,7 @@ import { OptionRow } from '@design/primitives/OptionRow';
 import { Sheet } from '@design/primitives/Sheet';
 import { ToggleChip } from '@design/primitives/Chip';
 import { useCircles } from '@state/selectors/circles';
+import { DOOR_COPY } from '@data/copy/rides';
 import { useStore, type HostRideInput } from '@state/store';
 
 /**
@@ -236,22 +237,26 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
       </Field>
 
       <Field label="Who can join">
+        {/* Each option states its *consent* model, not its category. Two
+            persona walks read "A circle" as a tightening and missed that it
+            waives the host's yes — which is the half that matters when you
+            are the one who will be sitting in the car. */}
         <OptionRow
           label="Anyone matching"
-          note="They ask; you say yes. Nobody is seated without your word."
+          note={DOOR_COPY.open.host}
           selected={door === 'open'}
           onClick={() => setDoor('open')}
         />
         <OptionRow
           label="A circle"
-          note="Members seat themselves — they were admitted already."
+          note={DOOR_COPY.circles.host}
           selected={door === 'circles'}
           onClick={() => setDoor('circles')}
           disabled={mine.length === 0}
         />
         <OptionRow
           label="By link only"
-          note="Invisible to everyone else. Whoever holds the link takes a seat."
+          note={DOOR_COPY.invite.host}
           selected={door === 'invite'}
           onClick={() => setDoor('invite')}
         />
@@ -276,7 +281,10 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
         </Field>
       )}
 
-      <Field label="Narrow it further" hint="Optional, and the same rules your profile uses.">
+      <Field
+        label="Narrow it further"
+        hint="On top of your profile's own privacy, which already applies to this car."
+      >
         <div className="panel__row">
           <ToggleChip selected={womenOnly} onClick={() => setWomenOnly((v) => !v)}>
             Women only

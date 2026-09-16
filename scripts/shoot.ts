@@ -123,7 +123,23 @@ async function main() {
       }
       // Webfonts change metrics; waiting avoids capturing a fallback-font frame.
       await page.evaluate(() => document.fonts.ready);
-      await page.waitForTimeout(200);
+      /*
+       * Wait for the screen transition to finish, not for a guessed 200ms.
+       *
+       * A design review caught `car-join` captured mid-fade — `<main>`
+       * composited at exactly 65% opacity, every token visibly washed out.
+       * The review set is the render-and-inspect gate, so a frame that is not
+       * the shipped state means the gate inspected something that never
+       * existed. `getAnimations()` knows when it is actually done.
+       */
+      await page.evaluate(async () => {
+        const running = document
+          .getAnimations()
+          .filter((a) => a.playState === 'running')
+          .map((a) => a.finished.catch(() => undefined));
+        await Promise.all(running);
+      });
+      await page.waitForTimeout(120);
 
       for (const theme of THEMES) {
         await setTheme(page, theme);

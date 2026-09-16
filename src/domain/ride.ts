@@ -82,11 +82,36 @@ export type RideClaimStatus =
   | 'confirmed'
   | 'declined'
   | 'withdrawn'
+  /**
+   * The host took the seat back after granting it.
+   *
+   * Distinct from `declined` (never granted) and from `withdrawn` (the
+   * passenger pulled out), because a host who changes her mind about somebody
+   * she already said yes to is the case this feature most needs to support and
+   * the one a shared status would have hidden. A car is not a café: you cannot
+   * walk out of it, so the decision has to stay reversible right up to the
+   * kerb.
+   */
+  | 'removed_by_host'
   | 'expired'
   | 'revoked_by_policy';
 
-/** Statuses that occupy a seat. A seat being asked for is not a free seat. */
-const LIVE_CLAIM: ReadonlySet<RideClaimStatus> = new Set<RideClaimStatus>(['requested', 'confirmed']);
+/**
+ * Statuses that occupy a seat.
+ *
+ * Only `confirmed`, and the reason is a leak rather than a preference. When a
+ * pending request also consumed a seat, the seat count became an oracle for a
+ * refusal: seats drop with no new face in the car, so somebody asked — and
+ * then seats go back *up*, which says the host declined them. That is the one
+ * fact `claimantView()` exists to keep private, and with a 2–4 seat car the
+ * number is permanently inside the band `lib/bucket.ts` was written to
+ * suppress. An adversarial persona found it by arithmetic alone.
+ *
+ * What it costs: two people can ask for the same last seat and one is
+ * disappointed. That is a real cost, it is visible and explainable, and it is
+ * strictly better than leaking a decline to the person declined.
+ */
+const LIVE_CLAIM: ReadonlySet<RideClaimStatus> = new Set<RideClaimStatus>(['confirmed']);
 
 export interface RideClaimEvent {
   at: ISODateTime;
@@ -209,6 +234,11 @@ export function makeRide(input: {
 export function seatsLeft(r: Ride): number {
   const taken = r.claims.filter((c) => LIVE_CLAIM.has(c.status)).length;
   return Math.max(0, r.seatsTotal - 1 - taken);
+}
+
+/** Seats asked for and not yet settled. The host's view only. */
+export function seatsPending(r: Ride): number {
+  return r.claims.filter((c) => c.status === 'requested').length;
 }
 
 /** Everyone who is actually in the car, host first. */

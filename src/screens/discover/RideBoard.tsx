@@ -1,6 +1,6 @@
-import type { DisclosureLevel } from '@domain/index';
-import { localTime } from '@domain/time';
+import type { DisclosureLevel, ISODateTime } from '@domain/index';
 import { redact } from '@privacy/index';
+import { windowLabel } from '@screens/whenLabel';
 import { RideCard } from '@design/patterns/RideCard';
 import { Button } from '@design/primitives/Button';
 import { airportIndex } from '@data/airports/index';
@@ -21,6 +21,7 @@ import { useStore } from '@state/store';
 export function RideBoard({ onOpen }: { onOpen: (rideId: string) => void }) {
   const { rows, hiddenNote } = useJoinableRides();
   const me = useStore((s) => s.me);
+  const now = useStore((s) => s.now);
 
   if (rows.length === 0) {
     return (
@@ -41,7 +42,7 @@ export function RideBoard({ onOpen }: { onOpen: (rideId: string) => void }) {
     <>
       <div className="rideboard">
         {rows.map((row) => (
-          <RideCard key={String(row.ride.id)} {...cardProps(row, String(me.id))} onOpen={() => onOpen(String(row.ride.id))} />
+          <RideCard key={String(row.ride.id)} {...cardProps(row, String(me.id), now)} onOpen={() => onOpen(String(row.ride.id))} />
         ))}
       </div>
       {hiddenNote && <p className="panel__note">{hiddenNote}</p>}
@@ -56,12 +57,12 @@ export function RideBoard({ onOpen }: { onOpen: (rideId: string) => void }) {
  * two hand-written prop mappings drift — one would say "1 seat left" while the
  * other said "1 left".
  */
-export function cardProps(row: RideRow, meId: string) {
+export function cardProps(row: RideRow, meId: string, now: ISODateTime) {
   const { ride } = row;
-  const zone = airportIndex.zone(ride.airportIata);
-  const when = zone
-    ? `${localTime(ride.window.from, zone)} – ${localTime(ride.window.to, zone)}`
-    : `${String(ride.window.from).slice(11, 16)} – ${String(ride.window.to).slice(11, 16)}`;
+  // Dated, not just clocked. The board can hold cars from trips weeks apart,
+  // and a bare "17:30 – 18:30" on each of them is what sends somebody back to
+  // the group chat to ask which day.
+  const when = windowLabel(ride.window.from, ride.window.to, airportIndex.zone(ride.airportIata), now);
   // The host's first name is a rung-0 field, so it is readable while browsing;
   // `redact` is still the thing that decides that, not this file.
   const hostRaw = personById(String(ride.hostPersonId));
@@ -83,7 +84,16 @@ export function cardProps(row: RideRow, meId: string) {
    * to share a journey, so it reads at `accepted`. Nothing here invents a
    * level: it is the same ladder the person's own card uses.
    */
-  const rung: DisclosureLevel = row.mine?.status === 'confirmed' ? 2 : 0;
+  /*
+      * Rung 1, not 2.
+      *
+      * Sharing a car is not the same consent as accepting a request from
+      * somebody. Rung 2 releases full name, employer, bio and links — and on
+      * a circle car anyone in the circle self-seats, so nobody in the car
+      * ever agreed to *each other*. Rung 1 gives a first name and an intent,
+      * which is what choosing who to sit beside actually needs.
+      */
+     const rung: DisclosureLevel = row.mine?.status === 'confirmed' ? 1 : 0;
   const riders = row.riders
     .map((id) => personById(String(id)))
     .filter((p): p is NonNullable<typeof p> => Boolean(p))
@@ -96,10 +106,17 @@ export function cardProps(row: RideRow, meId: string) {
         ? `${hostName} · going where you are going`
         : `${hostName} · ${Math.round(row.apartKm)} km from where you are going`;
 
+  const closed =
+    ride.status === 'cancelled' || ride.status === 'departed' || ride.status === 'completed'
+      ? ride.status
+      : undefined;
+
   return {
     route: row.route,
     when,
+    ...(closed ? { closed } : {}),
     seatsLeft: row.seatsLeft,
+    seatsTotal: ride.seatsTotal,
     riders,
     fareNote: ride.fareSplit === 'host_pays' ? `${hostName} is covering it` : 'Fare split evenly',
     context,

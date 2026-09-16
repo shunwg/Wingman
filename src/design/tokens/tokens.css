@@ -169,6 +169,19 @@
     --accent: #6e9be8;
     --accent-press: #5a88d8;
     --accent-wash: #1b2a47;
+    /*
+     * Dark ink on the accent, not white.
+     *
+     * The dark theme's accent is a *light* blue, and white on it measures
+     * 2.79:1 — failing AA even at the 3:1 large-text threshold, on every
+     * enabled primary button in the app. Navy on the same blue is 6.14:1.
+     * The light theme keeps white, where its deep navy accent gives 7.99:1.
+     *
+     * Measured, not eyeballed: a design review sampled the rendered pixels
+     * and did the arithmetic, which is the only way this kind of failure gets
+     * found — it looks perfectly confident on a screen.
+     */
+    --on-accent: #0f1b33;
     --trust: #4fbf8a;
     --trust-wash: #10291d;
     --guard: #8aa6e8;
@@ -213,6 +226,8 @@
   --accent: #6e9be8;
   --accent-press: #5a88d8;
   --accent-wash: #1b2a47;
+  /* See the note in the media query above: white on this blue is 2.79:1. */
+  --on-accent: #0f1b33;
   --trust: #4fbf8a;
   --trust-wash: #10291d;
   --guard: #8aa6e8;

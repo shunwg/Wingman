@@ -24,8 +24,13 @@ test('a car going your way can be joined, and taking the seat fills it', async (
 
   // The INSEAD car: one seat, and a circle member seats themselves.
   const circleCar = page.locator('.ridecard', { hasText: 'Marina Bay' });
-  await expect(circleCar).toContainText('1 seat left');
-  await expect(circleCar).toContainText('Circle only');
+  // The count carries its denominator, the last seat carries a word as well
+  // as a colour, and the chip names the consent model rather than a category.
+  await expect(circleCar).toContainText('1 of 2 seats free');
+  await expect(circleCar).toContainText('Last');
+  await expect(circleCar).toContainText('Circle seats itself');
+  // And the card is dated: the board mixes trips weeks apart.
+  await expect(circleCar).toContainText(/Tomorrow|Tonight|Today|\d{1,2} \w{3}/);
   await circleCar.locator('.ridecard__body').click();
 
   await page.waitForURL(/#\/car\//);
@@ -55,7 +60,7 @@ test('an open car asks the host rather than seating a stranger', async ({ page }
   await page.getByRole('button', { name: 'Shared cars', exact: true }).click();
 
   const openCar = page.locator('.ridecard', { hasText: 'Tiong Bahru' });
-  await expect(openCar).toContainText('Anyone matching');
+  await expect(openCar).toContainText('Host approves');
   await openCar.locator('.ridecard__body').click();
   await page.waitForURL(/#\/car\//);
 

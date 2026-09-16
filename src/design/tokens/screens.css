@@ -2321,11 +2321,15 @@ textarea.field__input {
  * frequently-scanned surface. Only the car's own screen lifts.
  */
 
+/* No horizontal padding here: `.board` and every other list on this screen
+   are already inside the screen's 20px, and adding it again made the car
+   cards 320px wide against 360px for everything else in the app. A review
+   measured it; it is invisible until you put two screens side by side. */
 .rideboard {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-screen) var(--sp-5);
+  padding: var(--sp-3) 0 var(--sp-5);
 }
 
 .ridecard {
@@ -2333,6 +2337,24 @@ textarea.field__input {
   border: 1px solid var(--hairline);
   border-radius: var(--r-card);
   overflow: hidden;
+}
+
+/* A car that is no longer happening recedes rather than disappearing: it is
+   still yours, it is still on your trip, and hiding it would make a thing you
+   cancelled simply vanish. Desaturated and dimmed, with the word doing the
+   work — colour is never the only indicator. */
+.ridecard.is-closed {
+  background: var(--surface-sunk);
+}
+
+.ridecard.is-closed .ridecard__route,
+.ridecard.is-closed .ridecard__seats {
+  color: var(--muted);
+}
+
+.ridecard.is-closed .ridecard__faces {
+  filter: saturate(0.4);
+  opacity: 0.7;
 }
 
 .ridecard__body {
@@ -2356,34 +2378,6 @@ textarea.field__input {
 
 .ridecard__body:not(:disabled):active {
   transform: scale(0.97);
-}
-
-/* The rail. Fixed height so the two dots line up with the route line and the
-   time beneath it, rather than stretching with the card's content. */
-.ridecard__rail {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 5px;
-  flex: 0 0 auto;
-}
-
-.ridecard__dot {
-  width: 7px;
-  height: 7px;
-  border-radius: var(--r-pill);
-  border: 1.5px solid var(--accent);
-  background: var(--surface);
-}
-
-.ridecard__dot--end {
-  background: var(--accent);
-}
-
-.ridecard__line {
-  width: 1.5px;
-  height: 26px;
-  background: linear-gradient(var(--accent), var(--hairline-strong));
 }
 
 .ridecard__main {
@@ -2440,18 +2434,40 @@ textarea.field__input {
   color: var(--accent);
 }
 
+/* The non-colour half of the last-seat signal. */
+.ridecard__lastflag {
+  display: inline-block;
+  margin-right: var(--sp-1);
+  padding: 1px var(--sp-1);
+  border-radius: var(--r-sm);
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* The door, above the rider list on a car's own screen. */
+.ride__door {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-2);
+}
+
 .ridecard__fare {
   font-size: var(--text-xs);
   color: var(--muted);
 }
 
+/* Not overlapped. An overlapped avatar stack is exactly the pattern
+   `PersonCard`'s header explains was removed on purpose — it reads as a wall
+   of faces to be judged, which is what this product decided not to be. Three
+   small photographs in a row say "three people" without the grammar. */
 .ridecard__faces {
   display: flex;
+  gap: var(--sp-1);
   flex: 0 0 auto;
-}
-
-.ridecard__faces > * + * {
-  margin-left: -8px;
 }
 
 .ridecard__tail {
@@ -2528,11 +2544,15 @@ textarea.field__input {
   color: var(--ink);
 }
 
+/* Clears the tab bar the way every other scrolling surface does — the
+   established `calc()` in `.screen`, not a guessed constant. Without it the
+   last action on a car sat underneath the navigation. */
 .ride__actions {
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-screen) var(--sp-7);
+  padding: var(--sp-3) var(--sp-screen)
+    calc(var(--tabbar-height) + var(--sp-6) + env(safe-area-inset-bottom, 0px));
 }
 
 /* The cars sitting on one of your own trips, inside its block. */

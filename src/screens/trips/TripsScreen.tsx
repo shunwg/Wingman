@@ -11,7 +11,7 @@ import { PlaceBand, atmosphere, cityPhoto, destinationPhoto } from '@screens/pla
 import { PortRail } from './PortRail';
 import { airportIndex, cityByKey } from '@data/airports/index';
 import { personById } from '@data/seed/people';
-import type { Trip } from '@domain/index';
+import type { ISODateTime, Trip } from '@domain/index';
 import { localTime, minutesBetween } from '@domain/time';
 import { tripCode, tripIsOpen, tripLabel } from '@domain/trip';
 import { tripHueClass } from '@design/tokens/tripHue';
@@ -67,6 +67,7 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
           trip={trip}
           onOpen={onOpen}
           meId={String(me.id)}
+          now={now}
           cars={[...hosting, ...riding].filter((r) => String(r.ride.tripId) === String(trip.id))}
           onShareCar={() => setSharing(trip)}
           onToggleListing={() =>
@@ -140,6 +141,7 @@ function TripBlock({
   onShareCar,
   cars,
   meId,
+  now,
   onToggleListing,
   onReopen,
   onRemove,
@@ -149,6 +151,7 @@ function TripBlock({
   onShareCar: () => void;
   cars: RideRow[];
   meId: string;
+  now: ISODateTime;
   onToggleListing: () => void;
   onReopen: () => void;
   onRemove: () => void;
@@ -269,7 +272,7 @@ function TripBlock({
           {cars.map((row) => (
             <RideCard
               key={String(row.ride.id)}
-              {...cardProps(row, meId)}
+              {...cardProps(row, meId, now)}
               onOpen={() => onOpen(`#/car/${String(row.ride.id)}`)}
             />
           ))}

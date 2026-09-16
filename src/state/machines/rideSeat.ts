@@ -17,12 +17,15 @@ import type { ISODateTime } from '@domain/time';
 
 export const CLAIM_TRANSITIONS: Record<RideClaimStatus, RideClaimStatus[]> = {
   requested: ['confirmed', 'declined', 'withdrawn', 'expired', 'revoked_by_policy'],
-  // A confirmed passenger can still pull out. A shared car is a favour between
-  // people who mostly do not know each other, not a commitment device, and a
-  // seat nobody can release is a seat that goes empty with someone in it.
-  confirmed: ['withdrawn', 'expired', 'revoked_by_policy'],
+  // A confirmed passenger can still pull out, and the host can still take the
+  // seat back. Both directions matter and for the same reason: a shared car is
+  // a favour between people who mostly do not know each other, not a
+  // commitment device — and unlike every other meet in this app, you cannot
+  // leave it once it is moving.
+  confirmed: ['withdrawn', 'removed_by_host', 'expired', 'revoked_by_policy'],
   declined: [],
   withdrawn: [],
+  removed_by_host: [],
   expired: [],
   revoked_by_policy: [],
 };
@@ -157,6 +160,7 @@ export function claimantView(status: RideClaimStatus): ClaimantVisibleStatus {
       return 'confirmed';
     case 'declined':
     case 'withdrawn':
+    case 'removed_by_host':
     case 'expired':
     case 'revoked_by_policy':
       return 'closed';
