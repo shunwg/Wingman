@@ -50,9 +50,12 @@ function useRideViewer(): RideViewer {
       me,
       myCircleIds: memberKey ? memberKey.split(',') : [],
       now,
-      // A code is "held" once a car carrying it is on this device — which is
-      // what following an invite link does. Nothing else grants it.
-      heldCodes: rides.filter((r) => r.inviteCode).map((r) => String(r.inviteCode)),
+      // Your own cars only. A code someone sent you is not "held" just because
+      // the car is on this device — the link route passes it in for the one
+      // evaluation that needs it.
+      heldCodes: rides
+        .filter((r) => r.inviteCode && String(r.hostPersonId) === String(me.id))
+        .map((r) => String(r.inviteCode)),
     }),
     [me, memberKey, now, rides],
   );
@@ -203,3 +206,21 @@ export function fareShare(ride: Ride, estimateMinor: number): number | undefined
   return n > 0 ? Math.round(estimateMinor / n) : undefined;
 }
 
+
+/**
+ * The car a channel belongs to, if it belongs to one.
+ *
+ * Keyed off the derived `ride:<id>` channel id rather than a field on the
+ * channel, so a room and its car cannot disagree about which car it is.
+ */
+export function useRideForChannel(channelId: string): RideRow | undefined {
+  const v = useRideViewer();
+  const rides = useStore((s) => s.rides);
+
+  return useMemo(() => {
+    if (!channelId.startsWith('ride:')) return undefined;
+    const rideId = channelId.slice('ride:'.length);
+    const ride = rides.find((r) => String(r.id) === rideId);
+    return ride ? rowFor(ride, v) : undefined;
+  }, [channelId, rides, v]);
+}

@@ -116,10 +116,19 @@ export const STORE_VERSION = 6;
  * Deliberately not persisted. Reopening the app to a board silently narrowed by
  * a filter set last week is indistinguishable from a broken product.
  */
-export type BoardLens = 'all' | 'same_flight' | 'same_airport' | 'same_event';
+export type BoardLens = 'all' | 'same_flight' | 'same_airport' | 'same_event' | 'shared_cars';
 
 export interface BoardFilters {
-  /** For you, same flight, same airport, same event. The first row on Discover. */
+  /**
+   * For you, same flight, same airport, same event, shared cars. The first row
+   * on Discover.
+   *
+   * `shared_cars` is the one lens that changes *what kind of thing* the board
+   * lists rather than which people it lists — a car is not a person, so the
+   * board renders ride cards under it. Kept in the same control anyway,
+   * because "why am I seeing this" is the question the row answers and a car
+   * going your way is an answer to it.
+   */
   lens: BoardLens;
   /** A specific trip, or every open one. */
   tripId: string | 'all';
@@ -276,7 +285,7 @@ export interface WingmanState {
    * open car raises a request for the host to confirm. The decision lives in
    * `seatsAutomatically()` in the domain so no caller can make it differently.
    */
-  claimSeat: (rideId: string, note?: string) => void;
+  claimSeat: (rideId: string, opts?: { note?: string; code?: string }) => void;
   /** Host: yes to a pending seat. */
   confirmSeat: (rideId: string, personId: PersonId) => void;
   /** Host: no. The claimant is told only that it closed. */
@@ -359,7 +368,11 @@ const rideViewer = (s: WingmanState): RideViewer => ({
   me: s.me,
   myCircleIds: s.me.memberships.filter((m) => m.display !== 'paused').map((m) => String(m.circleId)),
   now: s.now,
-  heldCodes: s.rides.filter((r) => r.inviteCode).map((r) => String(r.inviteCode)),
+  // Only your own cars' codes are yours by default; a code someone sent you
+  // arrives through the link route and is passed to `claimSeat` explicitly.
+  heldCodes: s.rides
+    .filter((r) => r.inviteCode && String(r.hostPersonId) === String(s.me.id))
+    .map((r) => String(r.inviteCode)),
 });
 
 /**
@@ -598,11 +611,19 @@ export const useStore = create<WingmanState>()(
         return ride;
       },
 
-      claimSeat: (rideId, note) => {
+      claimSeat: (rideId, opts) => {
         const s = get();
         const ride = s.rides.find((r) => String(r.id) === rideId);
         if (!ride) return;
-        const viewer = rideViewer(s);
+        const note = opts?.note;
+        // A code followed from a link is the credential for a link-only car.
+        // Passed in explicitly rather than inferred from what happens to be on
+        // the device: "this car is here" and "I was given its link" are not
+        // the same fact, and conflating them would open every link car to
+        // anyone who ever received one.
+        const viewer = opts?.code
+          ? { ...rideViewer(s), heldCodes: [...(rideViewer(s).heldCodes ?? []), opts.code.toUpperCase()] }
+          : rideViewer(s);
         // The same question the screen asked before offering the button. If
         // the two ever disagree, this is the side that must win.
         if (!canClaim(ride, viewer)) return;

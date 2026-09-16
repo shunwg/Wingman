@@ -1,6 +1,7 @@
 import type { Trip } from '@domain/index';
 import { tripCode } from '@domain/trip';
 import { tripHueClass } from '@design/tokens/tripHue';
+import { useEffect, useRef } from 'react';
 import { useCircles } from '@state/selectors/circles';
 import { NO_FILTERS, useStore, type BoardLens } from '@state/store';
 
@@ -9,6 +10,7 @@ const LENSES: { id: BoardLens; label: string }[] = [
   { id: 'same_flight', label: 'Same flight' },
   { id: 'same_airport', label: 'Same airport' },
   { id: 'same_event', label: 'Same event' },
+  { id: 'shared_cars', label: 'Shared cars' },
 ];
 
 /**
@@ -43,6 +45,19 @@ export function BoardFilters({
   // see into would return nothing and read as a bug.
   const myCircles = circles.filter((c) => me.memberships.some((m) => String(m.circleId) === String(c.id)));
 
+  /*
+   * Keep the chosen lens in view.
+   *
+   * The row scrolls, and with five chips the one you just picked can sit off
+   * the right edge — so the board changes under you with no visible reason
+   * why, which reads as a bug rather than as a filter. `nearest` so it does
+   * not yank the row when the chip is already visible.
+   */
+  const activeLens = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    activeLens.current?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  }, [filters.lens]);
+
   const dirty =
     filters.lens !== 'all' ||
     filters.tripId !== 'all' ||
@@ -59,6 +74,7 @@ export function BoardFilters({
           <button
             key={l.id}
             type="button"
+            ref={filters.lens === l.id ? activeLens : undefined}
             className={`lens__item ${filters.lens === l.id ? 'is-on' : ''}`}
             aria-pressed={filters.lens === l.id}
             onClick={() => setFilters({ lens: l.id })}

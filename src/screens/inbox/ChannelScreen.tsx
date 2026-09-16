@@ -10,6 +10,7 @@ import { STAGE_COPY, stagesFor } from '@data/copy/stages';
 import { isLive } from '@privacy/index';
 import { bucketPhrase } from '@lib/bucket';
 import { authorName, useChannel, type Participant } from '@state/selectors/channel';
+import { useRideForChannel } from '@state/selectors/rides';
 import { useStore } from '@state/store';
 import { PersonMenu } from '@screens/safety/PersonMenu';
 import { ReportSheet } from '@screens/safety/ReportSheet';
@@ -72,6 +73,14 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
 
   const { channel, messages, mine, theirs, theirsCard, sameTerminal, circle } = view;
   const isMeet = channel.kind === 'meet';
+  /*
+   * A car's room carries a persistent strip rather than a message about money.
+   * The split is the one fact everybody in a shared cab wants and nobody wants
+   * to raise, so the room states it and keeps stating it — and states equally
+   * plainly that Wingman is not settling it. The prototype's version of this
+   * looked like a charge; this one cannot be mistaken for one.
+   */
+  const ride = useRideForChannel(channelId);
   const isMuted = muted.includes(channelId);
   const watching = guardian && String(guardian.meetId) === channelId && isLive(guardian, now) ? guardian : null;
   const title = channel.kind === 'circle' && circle ? `${circle.shortName} · General` : channel.title;
@@ -106,6 +115,19 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
             : `${channel.memberIds.length} people`}
           {isMuted && ' · muted'}
         </p>
+      )}
+
+      {ride && (
+        <a className="room__fare" href={`#/car/${String(ride.ride.id)}`}>
+          <span className="room__farelabel">
+            {ride.route.from} → {ride.route.to} · {ride.riders.length} sharing
+          </span>
+          <span className="room__farenote">
+            {ride.ride.fareSplit === 'host_pays'
+              ? 'The host is covering this one'
+              : 'Fare split evenly · settle it between you'}
+          </span>
+        </a>
       )}
 
       {channel.pinned && (

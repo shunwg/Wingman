@@ -2309,3 +2309,260 @@ textarea.field__input {
 .contact__name { font-weight: 600; margin: 0; }
 .contact__links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: var(--text-sm); }
 .contact__held { color: var(--faint); font-size: var(--text-xs); }
+
+/* ── Shared cars ──────────────────────────────────────────────────────────
+ *
+ * The card is a route, not a face. Its spine is a two-dot rail — the one
+ * borrowing worth keeping from the native prototype's Car screen, because it
+ * says "a journey with two ends" before any text is read, and it reads the
+ * same at a glance whether the car is leaving an airport or heading to one.
+ *
+ * The board of these stays flat and hairlined like every other
+ * frequently-scanned surface. Only the car's own screen lifts.
+ */
+
+.rideboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-screen) var(--sp-5);
+}
+
+.ridecard {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  overflow: hidden;
+}
+
+.ridecard__body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-4);
+  background: none;
+  border: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: transform var(--dur-press) var(--ease-out);
+}
+
+.ridecard__body:disabled {
+  cursor: default;
+}
+
+.ridecard__body:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+/* The rail. Fixed height so the two dots line up with the route line and the
+   time beneath it, rather than stretching with the card's content. */
+.ridecard__rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 5px;
+  flex: 0 0 auto;
+}
+
+.ridecard__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--accent);
+  background: var(--surface);
+}
+
+.ridecard__dot--end {
+  background: var(--accent);
+}
+
+.ridecard__line {
+  width: 1.5px;
+  height: 26px;
+  background: linear-gradient(var(--accent), var(--hairline-strong));
+}
+
+.ridecard__main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ridecard__route {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--ink);
+}
+
+.ridecard__to {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.ridecard__when {
+  margin: 2px 0 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.ridecard__context {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.ridecard__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2) var(--sp-3);
+  margin-top: var(--sp-3);
+}
+
+.ridecard__seats {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* The last seat is the only count that earns emphasis. Colour is never the
+   only signal — the word "left" carries it for anyone who cannot see the hue. */
+.ridecard__seats.is-last {
+  color: var(--accent);
+}
+
+.ridecard__fare {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.ridecard__faces {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.ridecard__faces > * + * {
+  margin-left: -8px;
+}
+
+.ridecard__tail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-4) var(--sp-4);
+}
+
+/* ── One car's own screen ───────────────────────────────────────────────── */
+
+.ride__head {
+  padding: var(--sp-4) var(--sp-screen) var(--sp-2);
+}
+
+.ride__route {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+  color: var(--ink);
+}
+
+.ride__to {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--muted);
+}
+
+.ride__when {
+  margin: var(--sp-2) 0 var(--sp-3);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.ride__riders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: 0 0 var(--sp-3);
+  padding: 0;
+  list-style: none;
+}
+
+.ride__rider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.ride__askname {
+  flex: 1 1 auto;
+}
+
+.ride__blank {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-photo);
+  background: var(--surface-sunk);
+  flex: 0 0 auto;
+}
+
+.ride__code {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--text-xl);
+  letter-spacing: 0.14em;
+  color: var(--ink);
+}
+
+.ride__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-screen) var(--sp-7);
+}
+
+/* The cars sitting on one of your own trips, inside its block. */
+.tripblock__cars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+/* ── The fare strip in a car's room ─────────────────────────────────────── */
+
+.room__fare {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 var(--sp-screen) var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--accent-wash);
+  text-decoration: none;
+}
+
+.room__farelabel {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.room__farenote {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}

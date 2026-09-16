@@ -7,6 +7,7 @@ import { tripHueClass } from '@design/tokens/tripHue';
 import { useBoard, useRelaxations, type BoardCandidate } from '@state/selectors/board';
 import { useStore } from '@state/store';
 import { personById } from '@data/seed/people';
+import { RideBoard } from './RideBoard';
 import { BoardFilters } from './BoardFilters';
 import { ContextStrip } from './ContextStrip';
 import { SuppressionNote } from './SuppressionNote';
@@ -86,6 +87,24 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
         </p>
         <Button onClick={() => (window.location.hash = '#/trip/new')}>Add a flight</Button>
       </div>
+    );
+  }
+
+  /*
+   * The shared-cars lens lists cars rather than people, so it replaces the
+   * board below the filters instead of filtering it. Kept on the same control
+   * because the row answers "why am I seeing this", and "there is a car going
+   * your way" is an answer to that question — but a car is not a candidate and
+   * pretending otherwise would have meant a PersonCard with a route bolted on.
+   */
+  if (filters.lens === 'shared_cars') {
+    return (
+      <>
+        {eventSection}
+        <ContextStrip context={board.context} />
+        <BoardFilters openTrips={board.openTrips} industries={board.industries} />
+        <RideBoard onOpen={(rideId) => (window.location.hash = `#/car/${rideId}`)} />
+      </>
     );
   }
 

@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Chip } from '@design/primitives/Chip';
 import { Button } from '@design/primitives/Button';
+import { RideCard } from '@design/patterns/RideCard';
+import { cardProps } from '@screens/discover/RideBoard';
+import { RideSheet } from '@screens/rides/RideSheet';
+import { useMyRides, type RideRow } from '@state/selectors/rides';
 import { Sheet } from '@design/primitives/Sheet';
 import { Timeline, type TimelineRow } from '@design/patterns/Timeline';
 import { airportIndex, cityByKey } from '@data/airports/index';
@@ -33,6 +37,12 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
   const reopenTrip = useStore((s) => s.reopenTrip);
   const removeTrip = useStore((s) => s.removeTrip);
   const [removing, setRemoving] = useState<Trip | null>(null);
+  const [sharing, setSharing] = useState<Trip | null>(null);
+  const me = useStore((s) => s.me);
+  // Both halves in one place: cars you offered, and cars you hold a seat in.
+  // A seat you took on somebody else's car belongs on your own trip, because
+  // that is where you look when you are working out how you get into town.
+  const { hosting, riding } = useMyRides();
 
   if (trips.length === 0) {
     return (
@@ -51,6 +61,9 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
           key={String(trip.id)}
           trip={trip}
           onOpen={onOpen}
+          meId={String(me.id)}
+          cars={[...hosting, ...riding].filter((r) => String(r.ride.tripId) === String(trip.id))}
+          onShareCar={() => setSharing(trip)}
           onToggleListing={() =>
             upsertTrip({
               ...trip,
@@ -68,6 +81,18 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
       <Button variant="secondary" full onClick={() => onOpen('#/trip/new')}>
         Add a trip
       </Button>
+
+      {sharing && (
+        <RideSheet
+          open
+          trip={sharing}
+          onClose={() => setSharing(null)}
+          onDone={(rideId) => {
+            setSharing(null);
+            onOpen(`#/car/${rideId}`);
+          }}
+        />
+      )}
 
       <p className="smallnote">
         A trip that is listed lets people around it find you. Hiding one removes you from that
@@ -107,12 +132,18 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
 function TripBlock({
   trip,
   onOpen,
+  onShareCar,
+  cars,
+  meId,
   onToggleListing,
   onReopen,
   onRemove,
 }: {
   trip: Trip;
   onOpen: (hash: string) => void;
+  onShareCar: () => void;
+  cars: RideRow[];
+  meId: string;
   onToggleListing: () => void;
   onReopen: () => void;
   onRemove: () => void;
@@ -204,6 +235,18 @@ function TripBlock({
         </button>
       )}
 
+      {cars.length > 0 && (
+        <div className="tripblock__cars">
+          {cars.map((row) => (
+            <RideCard
+              key={String(row.ride.id)}
+              {...cardProps(row, meId)}
+              onOpen={() => onOpen(`#/car/${String(row.ride.id)}`)}
+            />
+          ))}
+        </div>
+      )}
+
       <div className="panel__row">
         {trip.outcome ? (
           <>
@@ -218,6 +261,11 @@ function TripBlock({
         ) : (
           <Button size="sm" variant="secondary" onClick={onToggleListing}>
             {trip.visibility.listing === 'listed' ? 'Hide this trip' : 'List this trip again'}
+          </Button>
+        )}
+        {!trip.outcome && (
+          <Button size="sm" variant="secondary" onClick={onShareCar}>
+            Share a car
           </Button>
         )}
         <Button size="sm" variant="quiet" onClick={() => onOpen(`#/trip/${String(trip.id)}/edit`)}>

@@ -12,6 +12,8 @@ const InboxScreen = lazy(() => import('@screens/inbox/InboxScreen').then((m) => 
 const ChannelScreen = lazy(() => import('@screens/inbox/ChannelScreen').then((m) => ({ default: m.ChannelScreen })));
 const TripsScreen = lazy(() => import('@screens/trips/TripsScreen').then((m) => ({ default: m.TripsScreen })));
 const NewTripScreen = lazy(() => import('@screens/trips/NewTripScreen').then((m) => ({ default: m.NewTripScreen })));
+const RideScreen = lazy(() => import('@screens/rides/RideScreen').then((m) => ({ default: m.RideScreen })));
+const JoinRideScreen = lazy(() => import('@screens/rides/JoinRideScreen').then((m) => ({ default: m.JoinRideScreen })));
 const CirclesScreen = lazy(() => import('@screens/circles/CirclesScreen').then((m) => ({ default: m.CirclesScreen })));
 const SetupScreen = lazy(() => import('@screens/circles/SetupScreen').then((m) => ({ default: m.SetupScreen })));
 const CircleScreen = lazy(() => import('@screens/circles/CircleScreen').then((m) => ({ default: m.CircleScreen })));
@@ -44,6 +46,8 @@ export interface Route {
     | 'trip'
     | 'trip.new'
     | 'trip.edit'
+    | 'ride'
+    | 'ride.join'
     | 'circles'
     | 'circles.new'
     | 'circle'
@@ -93,6 +97,15 @@ export function parseRoute(hash: string): Route {
   if (head === 'trip' && id === 'new') return { name: 'trip.new' };
   if (head === 'trip' && id && tripId === 'edit') return { name: 'trip.edit', id };
   if (head === 'trip' || head === 'trips') return { name: 'trip' };
+  // "car" rather than "ride" in the URL — it is the word people actually use,
+  // and these links get read out in taxi queues.
+  //
+  // One head serves both the car and its key, told apart by shape rather than
+  // by a longer URL: a key is exactly six characters from the invite alphabet,
+  // which omits I, O, 0 and 1, while every ride id carries an underscore. The
+  // two sets cannot overlap.
+  if (head === 'car' && id && /^[A-HJ-NP-Z2-9]{6}$/.test(id)) return { name: 'ride.join', id };
+  if (head === 'car' && id) return { name: 'ride', id };
   if (head === 'circles' && id === 'new') return { name: 'circles.new' };
   if (head === 'circles' && id && tripId === 'invite') return { name: 'circle.invite', id };
   if (head === 'circles' && id && tripId === 'admin') return { name: 'circle.admin', id };
@@ -270,6 +283,26 @@ function Routes() {
       return (
         <AppShell route="trip" title="Edit this trip">
           <NewTripScreen tripId={route.id ?? ''} onDone={() => navigate('#/trip')} />
+        </AppShell>
+      );
+    case 'ride':
+      return (
+        <AppShell route="trip" title="Shared car">
+          <RideScreen
+            rideId={route.id ?? ''}
+            onBack={() => navigate('#/trip')}
+            onOpenRoom={(channelId) => navigate(`#/inbox/${channelId}`)}
+          />
+        </AppShell>
+      );
+    case 'ride.join':
+      return (
+        <AppShell route="trip" title="A seat in a car">
+          <JoinRideScreen
+            code={route.id ?? ''}
+            onOpen={(rideId) => navigate(`#/car/${rideId}`)}
+            onDone={() => navigate('#/trip')}
+          />
         </AppShell>
       );
     case 'circles':
