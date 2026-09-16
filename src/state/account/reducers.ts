@@ -8,11 +8,13 @@ import type {
   Person,
   PersonId,
   Rating,
+  Ride,
   SafetyReport,
   Trip,
 } from '@domain/index';
 import { asMeetRequestId, asUtc } from '@domain/index';
 import { ME, MY_TRIPS, SEED_NOW } from '@data/seed/trips';
+import { SEED_RIDES } from '@data/seed/rides';
 import { blankPerson } from './blank';
 import type { Account } from './types';
 
@@ -25,6 +27,14 @@ export interface PersistedSlice {
   me: Person;
   myTrips: Trip[];
   requests: MeetRequest[];
+  /**
+   * Shared cars, both the ones you host and the ones you have a seat in.
+   *
+   * Persisted rather than derived: a seat claim is a fact about who asked for
+   * what, and the append-only history behind it is what makes "who confirmed
+   * this, and when" answerable after something goes wrong in a car.
+   */
+  rides: Ride[];
   /** Groups opened on this device. Meet and circle channels are derived. */
   channels: Channel[];
   messages: Message[];
@@ -81,6 +91,7 @@ export function blankState(deviceId: string, now: ISODateTime): PersistedSlice {
     me: blankPerson(deviceId, now),
     myTrips: [],
     requests: [],
+    rides: [],
     channels: [],
     messages: [],
     readAt: {},
@@ -103,6 +114,7 @@ export function demoState(deviceId: string, returnTo?: string): PersistedSlice {
     me: ME,
     myTrips: MY_TRIPS,
     requests: [seededInbound()],
+    rides: SEED_RIDES,
     channels: [],
     messages: [],
     readAt: {},

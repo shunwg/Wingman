@@ -19,8 +19,16 @@ import type {
   PrivacyPolicy,
   ProfessionalCard,
   Rating,
+  Ride,
+  RideAudience,
+  RideClaim,
+  RideDirection,
+  RidePoint,
   SafetyReport,
+  TimeWindow,
+  TripId,
   Trip,
+  IataCode,
   VerificationRecord,
 } from '@domain/index';
 import {
@@ -31,8 +39,15 @@ import {
   asMeetRequestId,
   asMessageId,
   asRatingId,
+  asRideId,
   asUtc,
+  codeFromSeed,
+  makeRide,
   meetChannelId,
+  rideChannelId,
+  rideRoute,
+  riders,
+  seatsAutomatically,
   TEXT_CAP,
 } from '@domain/index';
 import {
@@ -49,6 +64,8 @@ import type { ISODateTime } from '@domain/time';
 import { SEED_NOW } from '@data/seed/trips';
 import { layoversFor, MATCH_CONFIG_V1 } from '@matching/index';
 import { transition } from './machines/meetRequest';
+import { transitionClaim, transitionRide } from './machines/rideSeat';
+import { canClaim, type RideViewer } from './rides/eligibility';
 import type { Account } from './account/types';
 import {
   applyBeginSignup,
@@ -85,7 +102,7 @@ import { migratePersisted } from './persist/migrate';
 // intact; v1 and earlier are discarded. v4 → v5: the intent profile gains
 // interests, seeking, offering and the open switch, and the women_only
 // preset becomes the meet preference.
-export const STORE_VERSION = 5;
+export const STORE_VERSION = 6;
 
 /**
  * What the board is currently being filtered to.
@@ -140,6 +157,15 @@ export interface WingmanState {
    */
   myTrips: Trip[];
   requests: MeetRequest[];
+  /**
+   * Shared cars — hosted by you, or with a seat you asked for.
+   *
+   * Seat claims are facts and persist; whether a given car is *visible* to a
+   * given person is not, and is recomputed on every read in
+   * `selectors/rides.ts`. A cached visibility verdict is how a car that was
+   * made women-only keeps a seat held by someone the new rule excludes.
+   */
+  rides: Ride[];
   /**
    * Groups opened on this device. Meet channels are derived from accepted
    * requests and circle channels from memberships, so neither is stored — a
@@ -237,6 +263,30 @@ export interface WingmanState {
   post: (channel: Channel, body: MessageBody) => void;
   /** A group inside a circle, with an explicit member list. */
   openGroup: (circleId: string, title: string, memberIds: PersonId[]) => Channel;
+
+  /* ── Shared cars ──────────────────────────────────────────────────────── */
+
+  /** Offer a car on one of your trips. Returns it, so the caller can link to it. */
+  hostRide: (input: HostRideInput) => Ride;
+  /**
+   * Ask for a seat — or take one outright.
+   *
+   * Which of the two depends on the car's door and nothing else: a circle or
+   * link car seats you (those people were admitted to something already), an
+   * open car raises a request for the host to confirm. The decision lives in
+   * `seatsAutomatically()` in the domain so no caller can make it differently.
+   */
+  claimSeat: (rideId: string, note?: string) => void;
+  /** Host: yes to a pending seat. */
+  confirmSeat: (rideId: string, personId: PersonId) => void;
+  /** Host: no. The claimant is told only that it closed. */
+  declineSeat: (rideId: string, personId: PersonId) => void;
+  /** Passenger: pull out, whether asked-for or already confirmed. */
+  withdrawSeat: (rideId: string) => void;
+  /** Host: call the whole car off. */
+  cancelRide: (rideId: string) => void;
+  /** Open or refresh the car's group room. Called for you when a seat lands. */
+  openRideRoom: (rideId: string) => void;
   markRead: (channelId: string) => void;
   muteChannel: (channelId: string) => void;
   unmuteChannel: (channelId: string) => void;
@@ -283,10 +333,79 @@ let requestCounter = 0;
 const mintDeviceId = () => crypto.randomUUID();
 
 /** The persisted facts, as the pure reducers see them. */
+/**
+ * What a screen has to supply to offer a car.
+ *
+ * Narrower than a `Ride` on purpose: the id, the claims, the history, the
+ * status and the expiry are all the store's business, and a screen that could
+ * set them could write a car that had already departed with four passengers.
+ */
+export interface HostRideInput {
+  tripId: TripId;
+  direction: RideDirection;
+  airportIata: IataCode;
+  point: RidePoint;
+  window: TimeWindow;
+  seatsTotal: number;
+  audience: RideAudience;
+  fareSplit?: Ride['fareSplit'];
+}
+
+/** A six-character key for a link-only car, in the circle-invite format. */
+const rideCodeFrom = (seed: string): string => codeFromSeed(`ride:${seed}`);
+
+/** The viewer, as the ride eligibility rules want them. */
+const rideViewer = (s: WingmanState): RideViewer => ({
+  me: s.me,
+  myCircleIds: s.me.memberships.filter((m) => m.display !== 'paused').map((m) => String(m.circleId)),
+  now: s.now,
+  heldCodes: s.rides.filter((r) => r.inviteCode).map((r) => String(r.inviteCode)),
+});
+
+/**
+ * Move one person's seat, leaving every other seat and the car untouched.
+ *
+ * Returns the rides list unchanged when the move is not the caller's to make or
+ * the FSM would refuse it. Silence rather than a throw, because these are
+ * called straight from buttons: a host double-tapping "confirm" on a seat that
+ * is already confirmed should do nothing, not crash the screen.
+ */
+function mapClaim(
+  s: WingmanState,
+  rideId: string,
+  personId: PersonId,
+  to: RideClaim['status'],
+  by: PersonId,
+): Ride[] {
+  const ride = s.rides.find((r) => String(r.id) === rideId);
+  if (!ride) return s.rides;
+
+  // Only the host settles somebody else's seat; only you withdraw your own.
+  const hostActing = String(ride.hostPersonId) === String(by);
+  const ownSeat = String(personId) === String(by);
+  if (to === 'withdrawn' ? !ownSeat : !hostActing) return s.rides;
+
+  const claim = ride.claims.find((c) => String(c.personId) === String(personId));
+  if (!claim) return s.rides;
+
+  let moved: RideClaim;
+  try {
+    moved = transitionClaim(claim, { to, by, at: s.now });
+  } catch {
+    // An illegal move means the UI is showing a stale state; the FSM refusing
+    // it is the system working. Leave the store as it was.
+    return s.rides;
+  }
+
+  const claims = ride.claims.map((c) => (String(c.personId) === String(personId) ? moved : c));
+  return s.rides.map((r) => (String(r.id) === rideId ? { ...r, claims } : r));
+}
+
 const slice = (s: WingmanState): PersistedSlice => ({
   me: s.me,
   myTrips: s.myTrips,
   requests: s.requests,
+  rides: s.rides,
   channels: s.channels,
   messages: s.messages,
   readAt: s.readAt,
@@ -453,6 +572,119 @@ export const useStore = create<WingmanState>()(
           }
           return { messages: out, readAt: { ...s.readAt, [String(channel.id)]: s.now } };
         }),
+
+      hostRide: (input) => {
+        const s = get();
+        const ride = makeRide({
+          id: asRideId(`ride_${Date.parse(String(s.now))}_${s.rides.length + 1}`),
+          hostPersonId: s.me.id,
+          tripId: input.tripId,
+          direction: input.direction,
+          airportIata: input.airportIata,
+          point: input.point,
+          window: input.window,
+          seatsTotal: input.seatsTotal,
+          audience: input.audience,
+          createdAt: s.now,
+          ...(input.fareSplit ? { fareSplit: input.fareSplit } : {}),
+          // A link car needs a link. Derived from the id rather than random,
+          // because ESLint bans Math.random() in the engines and a code you
+          // cannot reproduce from state is a code you cannot test.
+          ...(input.audience.kind === 'invite'
+            ? { inviteCode: rideCodeFrom(String(Date.parse(String(s.now))) + String(s.rides.length + 1)) }
+            : {}),
+        });
+        set({ rides: [...s.rides, ride] });
+        return ride;
+      },
+
+      claimSeat: (rideId, note) => {
+        const s = get();
+        const ride = s.rides.find((r) => String(r.id) === rideId);
+        if (!ride) return;
+        const viewer = rideViewer(s);
+        // The same question the screen asked before offering the button. If
+        // the two ever disagree, this is the side that must win.
+        if (!canClaim(ride, viewer)) return;
+
+        const seated = seatsAutomatically(ride.audience);
+        const claim: RideClaim = {
+          personId: s.me.id,
+          status: 'requested',
+          askedAt: s.now,
+          history: [],
+          ...(note ? { note: note.slice(0, 200) } : {}),
+        };
+        const settled = seated
+          ? transitionClaim(claim, { to: 'confirmed', by: 'system', at: s.now })
+          : claim;
+        const next = { ...ride, claims: [...ride.claims, settled] };
+        set({ rides: s.rides.map((r) => (String(r.id) === rideId ? next : r)) });
+        if (seated) get().openRideRoom(rideId);
+      },
+
+      confirmSeat: (rideId, personId) => {
+        set((s) => ({ rides: mapClaim(s, rideId, personId, 'confirmed', s.me.id) }));
+        // A confirmed seat means the car holds more than its host, which is
+        // the condition the room exists for. Idempotent, so confirming a
+        // second passenger refreshes the member list rather than opening a
+        // second room.
+        get().openRideRoom(rideId);
+      },
+
+      declineSeat: (rideId, personId) =>
+        set((s) => ({ rides: mapClaim(s, rideId, personId, 'declined', s.me.id) })),
+
+      withdrawSeat: (rideId) =>
+        set((s) => ({ rides: mapClaim(s, rideId, s.me.id, 'withdrawn', s.me.id) })),
+
+      cancelRide: (rideId) =>
+        set((s) => {
+          const ride = s.rides.find((r) => String(r.id) === rideId);
+          if (!ride || String(ride.hostPersonId) !== String(s.me.id)) return {};
+          const cancelled = transitionRide(ride, { to: 'cancelled', by: s.me.id, at: s.now });
+          // Every live seat dies with the car. Leaving one confirmed would be a
+          // person standing at a rank waiting for a car nobody is driving.
+          const claims = cancelled.claims.map((c) =>
+            c.status === 'requested' || c.status === 'confirmed'
+              ? transitionClaim(c, { to: 'revoked_by_policy', by: 'system', at: s.now })
+              : c,
+          );
+          return { rides: s.rides.map((r) => (String(r.id) === rideId ? { ...cancelled, claims } : r)) };
+        }),
+
+      /**
+       * The car's room, opened once it holds more than its host.
+       *
+       * A `'group'` channel, not a new `ChannelKind`: the kind already exists,
+       * already carries a member list, and already renders "N people".
+       */
+      openRideRoom: (rideId) => {
+        const s = get();
+        const ride = s.rides.find((r) => String(r.id) === rideId);
+        if (!ride) return;
+        const members = riders(ride);
+        if (members.length < 2) return;
+        const existing = s.channels.find((c) => c.id === rideChannelId(rideId));
+        const route = rideRoute(ride);
+        if (existing) {
+          set({
+            channels: s.channels.map((c) =>
+              c.id === existing.id ? { ...c, memberIds: [...new Set(members)] } : c,
+            ),
+          });
+          return;
+        }
+        const channel: Channel = {
+          id: rideChannelId(rideId),
+          kind: 'group',
+          title: `${route.from} → ${route.to}`.slice(0, 40),
+          memberIds: [...new Set(members)],
+          createdBy: ride.hostPersonId,
+          createdAt: s.now,
+        };
+        set({ channels: [...s.channels, channel] });
+      },
 
       openGroup: (circleId, title, memberIds) => {
         const s = get();

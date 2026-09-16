@@ -60,7 +60,14 @@ const seg = (
  * filter would be decoration — Jurong and Changi Business Park sit 15–20km the
  * other side of the island, so narrowing the radius genuinely removes people.
  */
-const PLACES = {
+/**
+ * Neighbourhood centroids people are headed to.
+ *
+ * Exported because the seeded shared cars need the same coordinates their
+ * hosts' stays use: a car "to Marina Bay" that is 300 m from the stay called
+ * Marina Bay would make the distance filter look broken in the demo.
+ */
+export const PLACES = {
   marinaBay: { lat: 1.283, lon: 103.8607, label: 'Marina Bay' },
   rafflesPlace: { lat: 1.2839, lon: 103.8515, label: 'Raffles Place' },
   tanjongPagar: { lat: 1.2764, lon: 103.8455, label: 'Tanjong Pagar' },

@@ -20,6 +20,12 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
  * v3 → v4: meet messages become messages in a `meet:<requestId>` channel and
  * the safety slices appear, empty.
  *
+ * v5 → v6: the rides slice appears, empty. A pure backfill — no existing
+ * field is rewritten — but the version still moves, because relying on the
+ * persist middleware's shallow merge to supply a missing array is the kind of
+ * implicit behaviour that breaks quietly the first time someone adds
+ * `partialize`.
+ *
  * v4 → v5: the intent profile gains interests, seeking, offering and the
  * open switch. These are nested inside `me`, which the top-level backfill
  * cannot reach, so `repairPerson` walks in. Free-text topics the vocabulary
@@ -42,6 +48,10 @@ function v4Fields(p: Record<string, unknown>): Partial<PersistedSlice> {
   const messages = Array.isArray(p.messages) ? (p.messages as (LegacyMeetMessage | Message)[]) : [];
   return {
     channels: Array.isArray(p.channels) ? (p.channels as PersistedSlice['channels']) : [],
+    // v5 → v6: shared cars. A blob written before rides existed gets an empty
+    // list rather than `undefined`, which every selector would then have to
+    // guard against for the rest of the app's life.
+    rides: Array.isArray(p.rides) ? (p.rides as PersistedSlice['rides']) : [],
     messages: messages.map((x) =>
       'requestId' in x
         ? ({ id: x.id, channelId: meetChannelId(x.requestId), from: x.from, at: x.at, body: x.body } as Message)

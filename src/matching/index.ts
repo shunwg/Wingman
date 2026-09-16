@@ -24,6 +24,7 @@ export {
   activeAxes,
 } from './filters/intent';
 export { applyHardFilters, maxAssurance, type DenialReason, type FilterOutcome } from './filters/hardFilters';
+export { selfFacets } from './facets';
 export {
   filterRides,
   rideMatchesNeed,

@@ -37,7 +37,15 @@ export default defineWorkspace([
       name: 'ui',
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
-      include: ['src/design/**/*.uitest.tsx', 'src/screens/**/*.uitest.tsx'],
+      include: [
+        'src/design/**/*.uitest.tsx',
+        'src/screens/**/*.uitest.tsx',
+        // The ride selectors are hooks over the real store: what they prove is
+        // that the seeded world, the persisted slice and the privacy engine
+        // agree, which is exactly the wiring a pure test cannot reach. A hook
+        // needs a renderer, so it belongs in this project rather than `pure`.
+        'src/state/**/*.uitest.tsx',
+      ],
     },
   },
 ]);

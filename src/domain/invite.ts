@@ -24,3 +24,28 @@ export function parseInvite(raw: string): ParsedInvite | null {
 export function inviteWithBadge(code: string, badgeId?: string): string {
   return badgeId ? `${code}-${badgeId}` : code;
 }
+
+/**
+ * A six-character door key derived from a seed string.
+ *
+ * Deterministic, and that is the point twice over: the code for a thing can be
+ * recomputed from the thing rather than stored beside it and drifting, and a
+ * code that cannot be reproduced from state cannot be asserted in a test.
+ * `Math.random()` is banned inside the engines for exactly this reason.
+ *
+ * The alphabet omits I, O, 0 and 1 — these get read aloud in taxi queues and
+ * typed from a photograph of a screen.
+ */
+export function codeFromSeed(seed: string): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(h ^ seed.charCodeAt(i), 16777619) >>> 0;
+  }
+  let out = '';
+  for (let i = 0; i < 6; i++) {
+    out += alphabet[h % alphabet.length];
+    h = Math.floor(h / alphabet.length) + i * 7919;
+  }
+  return out;
+}

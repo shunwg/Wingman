@@ -1,4 +1,5 @@
 import type { Circle } from '@domain/index';
+import { codeFromSeed } from '@domain/invite';
 import { asCircleId } from '@domain/ids';
 import { asISODate, asUtc } from '@domain/time';
 
@@ -79,18 +80,7 @@ export const circleById = (id: string): Circle | undefined =>
  * why a domain circle still demands a verified address on top.
  */
 export function inviteCodeFor(circle: Circle): string {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I/O/0/1
-  let h = 2166136261;
-  const seed = String(circle.id) + circle.crestSeed;
-  for (let i = 0; i < seed.length; i++) {
-    h = Math.imul(h ^ seed.charCodeAt(i), 16777619) >>> 0;
-  }
-  let out = '';
-  for (let i = 0; i < 6; i++) {
-    out += alphabet[h % alphabet.length];
-    h = Math.floor(h / alphabet.length) + i * 7919;
-  }
-  return out;
+  return codeFromSeed(String(circle.id) + circle.crestSeed);
 }
 
 /** The whole link, ready to paste into a message. */

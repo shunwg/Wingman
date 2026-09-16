@@ -9,8 +9,8 @@ import type {
   SuppressionSummary,
   TravelContextSummary,
 } from './types';
-import { applyHardFilters, maxAssurance, type DenialReason } from './filters/hardFilters';
-import { activeAxes } from './filters/intent';
+import { applyHardFilters, type DenialReason } from './filters/hardFilters';
+import { selfFacets } from './facets';
 import { strongest } from './travel/overlap';
 import { proximityClasses } from './travel/proximity';
 import { buildReceipt } from './explain/receipt';
@@ -36,18 +36,11 @@ export function findCandidates(input: MatchInput): MatchResult {
   const myCircleIds = input.myCircleIds ?? [];
   const dayKey = dayKeyOf(now);
 
-  const myFacets: PersonFacets = {
-    id: me.id,
-    gender: me.gender,
-    assurance: maxAssurance(me),
-    stampKinds: me.verifications.filter((v) => !v.revokedAt).map((v) => v.kind),
-    circleIds: myCircleIds as PersonFacets['circleIds'],
-    intents: activeAxes(me.intent),
-    blocked: me.blocked,
+  const myFacets: PersonFacets = selfFacets(me, myCircleIds, {
     proximity: 'none',
     channel: 'app',
     onTrip: true,
-  };
+  });
   const mySubject: PolicySubject = {
     facets: myFacets,
     policy: compilePolicy(me.privacy, myCircleIds),

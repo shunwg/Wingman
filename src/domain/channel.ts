@@ -45,6 +45,9 @@ export const meetChannelId = (requestId: MeetRequestId | string): ChannelId =>
   asChannelId(`meet:${String(requestId)}`);
 export const circleChannelId = (circleId: CircleId | string): ChannelId =>
   asChannelId(`circle:${String(circleId)}`);
+/** A shared car's room. Derived, so the car and its room cannot disagree. */
+export const rideChannelId = (rideId: string): ChannelId =>
+  asChannelId(`ride:${String(rideId)}`);
 
 /** Free text caps. A meet is arranged in a sentence; a channel gets a paragraph. */
 export const TEXT_CAP: Record<ChannelKind, number> = { meet: 240, circle: 500, group: 500 };
