@@ -321,3 +321,75 @@ it('refuses duplicate participants', () => {
 5. Rule checks specific to this work: no `full` status persisted anywhere; no ride
    visibility verdict stored; every seat write routed through the FSM; hidden-people counts
    bucketed; `RideCard` takes `RedactedPerson`.
+
+---
+
+## What actually happened — corrections to this plan
+
+Written after execution. The plan was right about the shape and wrong about
+three specific things, and the record is more useful than the intention.
+
+### The plan's central claim about `destination` was wrong
+
+Stream G1 said `TripForm` never writes `StayWindow.destination`, so adding a
+field would "switch on an engine that is already built". Reading
+`domain/tripEntry.ts:152-166` properly shows it **does** write it — as the
+**city centroid**, deliberately: *"An area label is a label only — it is never
+geocoded, so nothing precise enough to find a door exists."*
+
+So the gap is not a missing field. It is that between two manually entered
+trips in the same city the distance is always zero, and the existing 5/15/40 km
+filter cannot tell "also going to Marina Bay" from "going to Jurong". Seeded
+people have hand-picked neighbourhood coordinates, which is why the demo
+discriminates and a real user's trip would not.
+
+Direction, airport and pickup window still do the real work of matching a car.
+Sub-city precision needs a closed vocabulary of neighbourhoods with published
+centroids — the same shape as the interest-tag vocabulary. That is a dataset
+decision and it is **not** done. The limitation is documented at the point
+where the tradeoff is made, in `screens/rides/RideSheet.tsx`.
+
+### Two duplicate lists, neither of which the plan predicted
+
+Both were found the same way: by adding a field and watching only half of it
+work.
+
+1. **`partialize` duplicated `slice()`** in `state/store.ts`. Rides went into
+   `slice()` and not into the hand-written `partialize` object, so shared cars
+   worked until the first page reload and then silently were not there.
+   Nothing threw. `partialize` now calls `slice()`, so the compiler enforces
+   what a comment used to ask for. Caught by an e2e spec that reloads the page;
+   26 selector tests had missed it because they set state directly and never
+   crossed localStorage.
+2. **The invite-code generator** existed as an FNV-1a loop inside
+   `data/seed/circles.ts` and was about to exist twice. Extracted to
+   `domain/invite.ts` as `codeFromSeed()`.
+
+### `Meet` was cheaper to widen than the plan assumed, and `Channel` did more
+
+The plan treated decision C as a real cost. It was nearly free: `participants`
+appeared in five places and `fromRequestId` in exactly one — its own
+declaration — because **nothing constructs a `Meet`**. Meanwhile `Channel`
+already carried `memberIds: PersonId[]`, already had a `'group'` kind, already
+had `openGroup()` in the store, and the seed already shipped a four-member
+INSEAD group. The ride room cost about twenty lines.
+
+The lesson worth keeping: two of this plan's three "hard" items were cheap and
+the cheap-sounding one (a form field) was the one that turned out to be a
+design decision nobody had made.
+
+### Still open
+
+- **`TripVisibility.onlyCircleIds`** is still dead — declared, commented as
+  "Restrict this trip to specific circles", and read by nothing. Its job moved
+  to `RideAudience` at the ride level, which is a *different* thing from
+  restricting a whole trip. It should be deleted or implemented; dead code
+  shaped like a privacy guarantee is worse than no code, because a reader
+  believes it. Left for the user's call rather than decided unilaterally.
+- **Provenance of the 37 place photographs.** All 37 rows in
+  `src/assets/places/PROVENANCE.md` read `source: unknown — flagged`. They are
+  real photographs of real identifiable places, every file is exactly 640px
+  wide (a batch web resize, not a licensed original), and all EXIF is stripped.
+  This needs clearing before a public deploy, not after.
+- **Fare settlement.** The split is stated and never charged, by design. If
+  that is ever meant to become a transaction it is a separate brainstorm.
