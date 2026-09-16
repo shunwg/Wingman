@@ -124,7 +124,12 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
         <p className="ride__when mono">{when} local</p>
         <div className="panel__row">
           <Chip tone={seatsLeft === 0 ? 'neutral' : 'accent'}>
-            {seatsLeft === 0 ? 'Full' : seatsLeft === 1 ? '1 seat left' : `${seatsLeft} seats left`}
+            {/* Same wording as the card. "1 seat left" left a persona asking
+                "out of how many?", and two surfaces answering the same
+                question differently is its own small dishonesty. */}
+            {seatsLeft === 0
+              ? 'Full'
+              : `${seatsLeft} of ${ride.seatsTotal} seat${ride.seatsTotal === 1 ? '' : 's'} free`}
           </Chip>
           <Chip tone="neutral">
             {ride.fareSplit === 'host_pays' ? 'Host is covering it' : 'Fare split evenly'}
@@ -167,11 +172,6 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
             );
           })}
         </ul>
-        {seatsLeft > 0 && (
-          <p className="panel__note">
-            {seatsLeft === 1 ? 'One seat still free.' : `${seatsLeft} seats still free.`}
-          </p>
-        )}
         <p className="panel__note">{RIDE_GROUND}</p>
       </section>
 
