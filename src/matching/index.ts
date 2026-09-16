@@ -24,6 +24,14 @@ export {
   activeAxes,
 } from './filters/intent';
 export { applyHardFilters, maxAssurance, type DenialReason, type FilterOutcome } from './filters/hardFilters';
+export {
+  filterRides,
+  rideMatchesNeed,
+  needFromArrival,
+  needFromDeparture,
+  type RideMatch,
+  type RideNeed,
+} from './filters/rideFilters';
 export { buildReceipt } from './explain/receipt';
 export { scoreCandidate, compareCandidates, dayKeyOf } from './rank/score';
 export { deferredAcceptance, blockingPairs, type Preferences, type Matching } from './rank/stable';
