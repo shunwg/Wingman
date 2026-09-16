@@ -10,6 +10,7 @@ import type {
   Rating,
   Ride,
   SafetyReport,
+  StageUpdate,
   Trip,
 } from '@domain/index';
 import { asMeetRequestId, asUtc } from '@domain/index';
@@ -35,6 +36,17 @@ export interface PersistedSlice {
    * this, and when" answerable after something goes wrong in a car.
    */
   rides: Ride[];
+  /**
+   * Where you have said you are, per trip.
+   *
+   * A fact you reported about yourself, so it persists — and it is yours
+   * alone: nothing here reaches another person until you tap to tell a car.
+   * The alternative, inferring it from the clock, would have been free and
+   * wrong: no schedule knows whether you are through security or still in the
+   * taxi, and a rail that confidently says the wrong thing is worse than no
+   * rail.
+   */
+  tripStages: Record<string, StageUpdate>;
   /** Groups opened on this device. Meet and circle channels are derived. */
   channels: Channel[];
   messages: Message[];
@@ -92,6 +104,7 @@ export function blankState(deviceId: string, now: ISODateTime): PersistedSlice {
     myTrips: [],
     requests: [],
     rides: [],
+    tripStages: {},
     channels: [],
     messages: [],
     readAt: {},
@@ -115,6 +128,8 @@ export function demoState(deviceId: string, returnTo?: string): PersistedSlice {
     myTrips: MY_TRIPS,
     requests: [seededInbound()],
     rides: SEED_RIDES,
+    // The demo starts before the journey, which is where the rail begins.
+    tripStages: {},
     channels: [],
     messages: [],
     readAt: {},

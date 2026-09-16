@@ -2737,3 +2737,179 @@ textarea.field__input {
   color: var(--ink);
   margin: 0;
 }
+
+/* ── The journey rail ─────────────────────────────────────────────────────
+ *
+ * Still on every view; it moves only at the instant you advance it. That is
+ * the whole reason it is allowed on a surface this product says does not
+ * animate — see the header of `screens/trips/JourneyRail.tsx`, where the
+ * argument is made rather than assumed.
+ *
+ * A horizontal track of dots on a hairline, sized so five or six steps fit
+ * 362px without the labels colliding. The labels are the content; the dots
+ * are the index. No progress ring, no percentage — this is a sequence with
+ * named places, and a number would say less than "Past security" does.
+ */
+
+.jrail {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--hairline);
+}
+
+.jrail__track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jrail__step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+/* The connector sits behind the dots, drawn from the previous step to this
+   one — so a filled length reads as distance covered rather than as a bar. */
+.jrail__link {
+  position: absolute;
+  top: 5px;
+  right: 50%;
+  left: -50%;
+  height: 2px;
+  background: var(--hairline-strong);
+  border-radius: var(--r-pill);
+}
+
+.jrail__link.is-filled {
+  background: var(--accent);
+}
+
+.jrail__dot {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  border: 2px solid var(--hairline-strong);
+  transition:
+    background-color var(--dur-screen) var(--ease-out),
+    border-color var(--dur-screen) var(--ease-out);
+}
+
+.jrail__step.is-done .jrail__dot {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Where you are now: a ring, so the current step is distinguishable from the
+   ones behind it without relying on colour alone. */
+.jrail__step.is-here .jrail__dot {
+  box-shadow: 0 0 0 4px var(--accent-wash);
+}
+
+.jrail__label {
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  text-align: center;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  transition: color var(--dur-screen) var(--ease-out);
+}
+
+.jrail__step.is-done .jrail__label {
+  color: var(--ink);
+}
+
+.jrail__step.is-here .jrail__label {
+  font-weight: 600;
+}
+
+/* ── The one moment of motion ──────────────────────────────────────────── */
+
+/* The connector wipes in from the step you left toward the one you reached:
+   direction carries the meaning, so it is a clip rather than a fade. */
+.jrail__link.is-drawing {
+  animation: jrail-draw 280ms var(--ease-out) both;
+}
+
+@keyframes jrail-draw {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* The reached dot swells once and settles. 340ms and no bounce: this is an
+   arrival, not a celebration. */
+.jrail__step.is-arriving .jrail__dot {
+  animation: jrail-arrive 340ms var(--ease-out) 120ms both;
+}
+
+@keyframes jrail-arrive {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.5);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.jrail__step.is-arriving .jrail__label {
+  animation: jrail-label 260ms var(--ease-out) 160ms both;
+}
+
+@keyframes jrail-label {
+  from {
+    opacity: 0.4;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.jrail__said {
+  margin: var(--sp-4) 0 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.jrail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+/*
+ * Reduced motion keeps the meaning and drops the travel.
+ *
+ * The state change still has to read — someone who asked for less motion
+ * asked for less movement, not for a rail that stops confirming their tap —
+ * so the dot and the connector still change colour, and only the wipe, the
+ * swell and the label's rise are removed.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .jrail__link.is-drawing,
+  .jrail__step.is-arriving .jrail__dot,
+  .jrail__step.is-arriving .jrail__label {
+    animation: none;
+  }
+
+  .jrail__step.is-arriving .jrail__dot {
+    transition: background-color var(--dur-screen) var(--ease-out);
+  }
+}

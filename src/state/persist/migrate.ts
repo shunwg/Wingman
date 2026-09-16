@@ -20,6 +20,8 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
  * v3 → v4: meet messages become messages in a `meet:<requestId>` channel and
  * the safety slices appear, empty.
  *
+ * v6 → v7: `tripStages` appears, empty — the self-reported journey rail.
+ *
  * v5 → v6: the rides slice appears, empty. A pure backfill — no existing
  * field is rewritten — but the version still moves, because relying on the
  * persist middleware's shallow merge to supply a missing array is the kind of
@@ -52,6 +54,9 @@ function v4Fields(p: Record<string, unknown>): Partial<PersistedSlice> {
     // list rather than `undefined`, which every selector would then have to
     // guard against for the rest of the app's life.
     rides: Array.isArray(p.rides) ? (p.rides as PersistedSlice['rides']) : [],
+    // v6 → v7: where you have said you are, per trip. Empty is the honest
+    // default — a blob written before the rail existed cannot know.
+    tripStages: isRecord(p.tripStages) ? (p.tripStages as PersistedSlice['tripStages']) : {},
     messages: messages.map((x) =>
       'requestId' in x
         ? ({ id: x.id, channelId: meetChannelId(x.requestId), from: x.from, at: x.at, body: x.body } as Message)

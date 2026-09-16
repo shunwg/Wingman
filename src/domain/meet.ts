@@ -132,6 +132,17 @@ export interface MeetRequest {
  * the people using it.
  */
 export type JourneyStage =
+  /**
+   * On your way to the airport, not there yet.
+   *
+   * The journey did not start at check-in for anyone who has ever missed a
+   * flight. Two stages were missing at the front and they are the two a shared
+   * car turns on: getting to the airport is the half people dread, and it is
+   * the half this app can actually help with.
+   */
+  | 'heading_to_airport'
+  /** In the car — yours, theirs, or the one you are sharing. */
+  | 'in_car'
   | 'checked_in'
   | 'through_security'
   | 'in_lounge'
@@ -146,6 +157,8 @@ export type JourneyStage =
 
 /** Ordered, for rendering a progress rail. The last two are out-of-band. */
 export const STAGE_ORDER: JourneyStage[] = [
+  'heading_to_airport',
+  'in_car',
   'checked_in',
   'through_security',
   'in_lounge',
@@ -155,6 +168,39 @@ export const STAGE_ORDER: JourneyStage[] = [
   'through_immigration',
   'through_baggage',
   'at_meeting_point',
+];
+
+/**
+ * The two halves of a journey, each as its own rail.
+ *
+ * One list of eleven is a true sequence and a useless graphic: nobody is at
+ * both ends of a flight at once, and a rail showing where you will be in
+ * fourteen hours tells you nothing about the next twenty minutes. So the
+ * departure half and the arrival half are separate rails and the clock picks
+ * which one you are looking at — while *which stage you are at within it*
+ * stays something you say, because no schedule knows whether you are through
+ * security or still in the taxi.
+ *
+ * `in_lounge` is deliberately absent from the departure rail: it is a real
+ * stage and an optional detour, not a step on the way to a gate, and putting
+ * it on the rail would mark everyone who walked past the lounge as behind.
+ */
+export const DEPARTURE_RAIL: JourneyStage[] = [
+  'heading_to_airport',
+  'in_car',
+  'checked_in',
+  'through_security',
+  'at_gate',
+  'boarded',
+];
+
+/** Arriving, and the mirror image: the car is the last step, not the first. */
+export const ARRIVAL_RAIL: JourneyStage[] = [
+  'landed',
+  'through_immigration',
+  'through_baggage',
+  'at_meeting_point',
+  'in_car',
 ];
 
 export interface StageUpdate {

@@ -9,9 +9,10 @@ import { Sheet } from '@design/primitives/Sheet';
 import { Timeline, type TimelineRow } from '@design/patterns/Timeline';
 import { PlaceBand, atmosphere, cityPhoto, destinationPhoto } from '@screens/placePhoto';
 import { PortRail } from './PortRail';
+import { JourneyRail } from './JourneyRail';
 import { airportIndex, cityByKey } from '@data/airports/index';
 import { personById } from '@data/seed/people';
-import type { ISODateTime, Trip } from '@domain/index';
+import type { ISODateTime, JourneyStage, StageUpdate, Trip } from '@domain/index';
 import { localTime, minutesBetween } from '@domain/time';
 import { tripCode, tripIsOpen, tripLabel } from '@domain/trip';
 import { tripHueClass } from '@design/tokens/tripHue';
@@ -46,6 +47,35 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
   // A seat you took on somebody else's car belongs on your own trip, because
   // that is where you look when you are working out how you get into town.
   const { hosting, riding } = useMyRides();
+  const tripStages = useStore((s) => s.tripStages);
+  const setTripStage = useStore((s) => s.setTripStage);
+  const clearTripStage = useStore((s) => s.clearTripStage);
+  const post = useStore((s) => s.post);
+  const channels = useStore((s) => s.channels);
+
+  /*
+   * Telling the car is a separate, deliberate act.
+   *
+   * The rail is private until this runs. It posts into the car's own room
+   * using the `stage` message the room already speaks — the same one-tap
+   * vocabulary a meet room has had since it was built — so nothing new is
+   * invented and the people in the car see it in the place they are already
+   * looking.
+   */
+  const carRoomFor = (trip: Trip) => {
+    const mine = [...hosting, ...riding].find((r) => String(r.ride.tripId) === String(trip.id));
+    if (!mine) return undefined;
+    // A car with no room yet is a car with nobody in it but you. Offering to
+    // tell it would be a button that does nothing, which is the failure this
+    // whole QA round existed to remove.
+    return channels.find((c) => String(c.id) === `ride:${String(mine.ride.id)}`);
+  };
+
+  const tellCar = (trip: Trip, stage: JourneyStage) => {
+    const room = carRoomFor(trip);
+    if (!room) return;
+    post(room, { kind: 'stage', stage });
+  };
 
   if (trips.length === 0) {
     return (
@@ -68,6 +98,10 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
           onOpen={onOpen}
           meId={String(me.id)}
           now={now}
+          stage={tripStages[String(trip.id)]}
+          onSetStage={(st) => setTripStage(String(trip.id), st)}
+          {...(carRoomFor(trip) ? { onTellCar: (st: JourneyStage) => tellCar(trip, st) } : {})}
+          onUndo={() => clearTripStage(String(trip.id))}
           cars={[...hosting, ...riding].filter((r) => String(r.ride.tripId) === String(trip.id))}
           onShareCar={() => setSharing(trip)}
           onToggleListing={() =>
@@ -142,6 +176,10 @@ function TripBlock({
   cars,
   meId,
   now,
+  stage,
+  onSetStage,
+  onTellCar,
+  onUndo,
   onToggleListing,
   onReopen,
   onRemove,
@@ -152,6 +190,10 @@ function TripBlock({
   cars: RideRow[];
   meId: string;
   now: ISODateTime;
+  stage?: StageUpdate;
+  onSetStage: (stage: JourneyStage) => void;
+  onTellCar?: (stage: JourneyStage) => void;
+  onUndo: () => void;
   onToggleListing: () => void;
   onReopen: () => void;
   onRemove: () => void;
@@ -265,6 +307,17 @@ function TripBlock({
         <button type="button" className="homesec__more" onClick={() => onOpen('#/discover')}>
           {bucketPhrase(onTrip.length)} worth meeting on this trip ›
         </button>
+      )}
+
+      {open && (
+        <JourneyRail
+          trip={trip}
+          now={now}
+          {...(stage ? { current: stage } : {})}
+          onSet={onSetStage}
+          {...(onTellCar ? { onTellCar } : {})}
+          onUndo={onUndo}
+        />
       )}
 
       {cars.length > 0 && (

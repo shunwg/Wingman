@@ -24,6 +24,8 @@ import type {
   RideClaim,
   RideDirection,
   RidePoint,
+  JourneyStage,
+  StageUpdate,
   SafetyReport,
   TimeWindow,
   TripId,
@@ -102,7 +104,7 @@ import { migratePersisted } from './persist/migrate';
 // intact; v1 and earlier are discarded. v4 → v5: the intent profile gains
 // interests, seeking, offering and the open switch, and the women_only
 // preset becomes the meet preference.
-export const STORE_VERSION = 6;
+export const STORE_VERSION = 7;
 
 /**
  * What the board is currently being filtered to.
@@ -175,6 +177,14 @@ export interface WingmanState {
    * made women-only keeps a seat held by someone the new rule excludes.
    */
   rides: Ride[];
+  /**
+   * Where you have said you are, per trip. Yours alone until you share it.
+   *
+   * Not derived from the clock, deliberately — see the note on the persisted
+   * slice. Rule 2 is satisfied either way: this is something you said, not
+   * something computed, so storing it is storing a fact.
+   */
+  tripStages: Record<string, StageUpdate>;
   /**
    * Groups opened on this device. Meet channels are derived from accepted
    * requests and circle channels from memberships, so neither is stored — a
@@ -305,6 +315,11 @@ export interface WingmanState {
   cancelRide: (rideId: string) => void;
   /** Open or refresh the car's group room. Called for you when a seat lands. */
   openRideRoom: (rideId: string) => void;
+
+  /** Say where you are on a trip. Private until you tell a car. */
+  setTripStage: (tripId: string, stage: JourneyStage, terminal?: string) => void;
+  /** Take it back — the rail is a claim about yourself, not a log. */
+  clearTripStage: (tripId: string) => void;
   markRead: (channelId: string) => void;
   muteChannel: (channelId: string) => void;
   unmuteChannel: (channelId: string) => void;
@@ -431,6 +446,7 @@ const slice = (s: WingmanState): PersistedSlice => ({
   myTrips: s.myTrips,
   requests: s.requests,
   rides: s.rides,
+  tripStages: s.tripStages,
   channels: s.channels,
   messages: s.messages,
   readAt: s.readAt,
@@ -695,6 +711,21 @@ export const useStore = create<WingmanState>()(
        * A `'group'` channel, not a new `ChannelKind`: the kind already exists,
        * already carries a member list, and already renders "N people".
        */
+      setTripStage: (tripId, stage, terminal) =>
+        set((s) => ({
+          tripStages: {
+            ...s.tripStages,
+            [tripId]: { stage, at: s.now, ...(terminal ? { terminal } : {}) },
+          },
+        })),
+
+      clearTripStage: (tripId) =>
+        set((s) => {
+          const next = { ...s.tripStages };
+          delete next[tripId];
+          return { tripStages: next };
+        }),
+
       openRideRoom: (rideId) => {
         const s = get();
         const ride = s.rides.find((r) => String(r.id) === rideId);
