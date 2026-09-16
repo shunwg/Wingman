@@ -1,6 +1,6 @@
 import { useId, useMemo, useState } from 'react';
 import type { RideAudience, RideDirection, Trip } from '@domain/index';
-import { anyAudience, asCircleId, localTime, utcFromLocal } from '@domain/index';
+import { addMinutes, anyAudience, asCircleId, localTime, utcFromLocal } from '@domain/index';
 import { airportIndex } from '@data/airports/index';
 import { Button } from '@design/primitives/Button';
 import { Field } from '@design/primitives/Field';
@@ -136,10 +136,7 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
       // An hour's window. Nobody knows their own pickup time to the minute
       // after a long flight, and a single instant would make two people who
       // could easily share a car look like they cannot.
-      window: { from, to: ((): typeof from => {
-        const plus = new Date(Date.parse(String(from)) + 60 * 60 * 1000).toISOString();
-        return plus as typeof from;
-      })() },
+      window: { from, to: addMinutes(from, 60) },
       seatsTotal: seats,
       audience,
     };

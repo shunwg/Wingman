@@ -60,6 +60,10 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
   const confirmSeat = useStore((s) => s.confirmSeat);
   const declineSeat = useStore((s) => s.declineSeat);
   const cancelRide = useStore((s) => s.cancelRide);
+  // Subscribed, not read once: taking a seat opens the room in the same tick,
+  // and a getState() read here left the button missing until something else
+  // happened to re-render the screen.
+  const channels = useStore((s) => s.channels);
   const [copied, setCopied] = useState(false);
 
   if (!row) {
@@ -82,7 +86,6 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
   const isHost = String(ride.hostPersonId) === String(me.id);
   const pending = isHost ? pendingSeats(ride) : [];
   const roomId = `ride:${String(ride.id)}`;
-  const hasRoom = useStore.getState().channels.some((c) => String(c.id) === roomId);
 
   return (
     <div className="screen ride">
@@ -176,7 +179,8 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
       )}
 
       <div className="ride__actions">
-        {hasRoom && (row.mine?.status === 'confirmed' || isHost) && (
+        {channels.some((c) => String(c.id) === roomId) &&
+          (row.mine?.status === 'confirmed' || isHost) && (
           <Button variant="quiet" onClick={() => onOpenRoom(roomId)}>
             Open the car&rsquo;s room
           </Button>
