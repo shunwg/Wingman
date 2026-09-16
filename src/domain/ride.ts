@@ -70,16 +70,6 @@ export type RideAudience =
   /** Only whoever holds the code, and they seat themselves. */
   | { kind: 'invite'; rules?: AudienceRule };
 
-/** An `AudienceRule` that constrains nothing — the open door's default. */
-export const ANYONE: AudienceRule = {
-  genders: 'any',
-  minAssurance: 0,
-  requiredStampKinds: [],
-  circles: 'any',
-  intents: 'any',
-  blocked: [],
-};
-
 /**
  * A seat's lifecycle.
  *

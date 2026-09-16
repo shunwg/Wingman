@@ -63,6 +63,12 @@ const COPY: Record<string, Record<Side, string>> = {
     yours: 'You only appear while you are travelling.',
     theirs: 'They only appear while they are travelling.',
   },
+  // Says the door is locked, not who is behind it. "Amélie's car is full" would
+  // confirm both that Amélie has a car and that someone else took the seat.
+  'ride.invite': {
+    yours: 'You shared this car by link only.',
+    theirs: 'This car is open to people with the link.',
+  },
 };
 
 /**

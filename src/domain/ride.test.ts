@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { asCircleId, asIata, asPersonId, asRideId, asTripId } from './ids';
 import type { ISODateTime } from './time';
-import { ANYONE, makeRide, rideIsJoinable, seatsLeft, sharesDirection, type Ride } from './ride';
+import { makeRide, rideIsJoinable, seatsLeft, sharesDirection, type Ride } from './ride';
+import { anyAudience } from './privacy';
 
 const t = (s: string) => s as ISODateTime;
 
@@ -15,7 +16,7 @@ function base(patch: Partial<Parameters<typeof makeRide>[0]> = {}): Ride {
     point: { lat: 48.4084, lon: 2.7019, label: 'Fontainebleau' },
     window: { from: t('2026-09-19T14:00:00Z'), to: t('2026-09-19T15:00:00Z') },
     seatsTotal: 4,
-    audience: { kind: 'open', rules: ANYONE },
+    audience: { kind: 'open', rules: anyAudience() },
     createdAt: t('2026-09-16T09:00:00Z'),
     ...patch,
   });

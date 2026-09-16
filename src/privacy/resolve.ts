@@ -25,7 +25,14 @@ interface RunResult {
   levelCap: DisclosureLevel;
 }
 
-function runRules(
+/**
+ * Engine-internal, and deliberately not re-exported from `index.ts`: a caller
+ * outside `privacy/` that could pick its own rule list could quietly evaluate a
+ * subset and call the answer a visibility verdict. `ride/audience.ts` uses it
+ * because it *is* inside the engine and does exactly that on purpose, with the
+ * subset named and justified in the registry.
+ */
+export function runRules(
   rules: typeof AUDIENCE_RULES,
   viewer: PersonFacets,
   subject: PersonFacets,

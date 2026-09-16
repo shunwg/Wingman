@@ -36,6 +36,12 @@ export {
 export { policyCopy, COPY_KEYS } from './copy';
 export { AUDIENCE_RULES, SEEKING_RULES, ALL_RULES } from './rules/registry';
 
+export {
+  evaluateRideAudience,
+  type RideAudienceInput,
+  type RideAudienceVerdict,
+} from './ride/audience';
+
 export { segmentsFor, MAX_SEGMENTS, type SegmentInput } from './audience/segments';
 export { estimateSize, withEstimates, basePopulation } from './audience/census';
 export { whoCanSeeMe, type AudienceInput } from './audience/report';

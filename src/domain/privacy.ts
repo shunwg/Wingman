@@ -34,6 +34,27 @@ export interface AudienceRule {
 }
 
 /**
+ * An audience rule that constrains nothing — the open door.
+ *
+ * A factory rather than a shared constant, because a compiled preset narrows a
+ * copy of this and callers push onto `blocked`. One shared array that somebody
+ * appends to is a privacy bug with a very long fuse: it would leak a block list
+ * between unrelated policies and nothing would fail loudly.
+ *
+ * Lives here, beside the type, so the privacy engine's `defaultAudienceRule()`
+ * and a ride's open door are provably the same permissive rule rather than two
+ * literals that agree today.
+ */
+export const anyAudience = (): AudienceRule => ({
+  genders: 'any',
+  minAssurance: 0,
+  requiredStampKinds: [],
+  circles: 'any',
+  intents: 'any',
+  blocked: [],
+});
+
+/**
  * The disclosure ladder.
  *
  * Identity is earned by mutuality; location is earned by confirmation; an exact
@@ -116,7 +137,17 @@ export type PolicyRuleId =
   | 'intent.axis'
   | 'proximity.surface'
   | 'trip.hidden'
-  | 'trip.offTrip';
+  | 'trip.offTrip'
+  /**
+   * A code-locked car, and the viewer does not hold the code.
+   *
+   * Evaluated in `privacy/ride/audience.ts` rather than by a `PolicyRule` in
+   * the registry, because whether someone arrived holding a link is a fact
+   * about this request, not a facet of either person — and widening
+   * `RuleContext` with a ride-shaped field to make it fit would put ride
+   * vocabulary into every unrelated rule's signature.
+   */
+  | 'ride.invite';
 
 export interface PolicyReason {
   ruleId: PolicyRuleId;

@@ -162,4 +162,29 @@ export const AUDIENCE_RULES: PolicyRule[] = [
 
 export const SEEKING_RULES: PolicyRule[] = [genderSeeking, assuranceSeeking];
 
+/**
+ * The subset that governs a seat in a shared car.
+ *
+ * The same rule *objects* as above, not copies — so "women only" on a car and
+ * "women only" on a profile cannot drift apart, however long the two surfaces
+ * evolve separately. That was the whole reason a ride's filters are expressed
+ * as an `AudienceRule` instead of a second, ride-shaped filter type.
+ *
+ * `offTrip` and `proximitySurface` are left out, and the omission is the
+ * interesting part: they answer "should this person appear on a board at all",
+ * which is a question about a *profile's* discoverability and is already
+ * answered before a ride is ever rendered. Re-running them here would mean a
+ * host who is discoverable only on their flight could not offer a car to
+ * someone in the same city — which is precisely the case the feature exists
+ * for.
+ */
+export const RIDE_AUDIENCE_RULES: PolicyRule[] = [
+  blockEither,
+  genderAudience,
+  assuranceFloor,
+  stampRequired,
+  circleScope,
+  intentAxis,
+];
+
 export const ALL_RULES: PolicyRule[] = [...AUDIENCE_RULES, ...SEEKING_RULES];

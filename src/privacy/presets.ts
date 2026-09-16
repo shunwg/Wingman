@@ -1,4 +1,5 @@
 import type { AudienceRule, CircleId, Gender, PrivacyPolicy, PrivacyPresetId } from '@domain/index';
+import { anyAudience } from '@domain/index';
 import { ASSURANCE } from '@domain/verification';
 
 /**
@@ -210,14 +211,8 @@ export function isAsymmetric(audience: AudienceRule, seeking: AudienceRule): boo
   return g || a;
 }
 
-export const defaultAudienceRule = (): AudienceRule => ({
-  genders: 'any',
-  minAssurance: 0,
-  requiredStampKinds: [],
-  circles: 'any',
-  intents: 'any',
-  blocked: [],
-});
+/** The permissive rule, defined once in the domain beside `AudienceRule`. */
+export const defaultAudienceRule = (): AudienceRule => anyAudience();
 
 /**
  * The starting policy for a new account.
