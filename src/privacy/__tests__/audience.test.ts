@@ -26,11 +26,39 @@ describe('whoCanSeeMe', () => {
     expect(proximities).toEqual(new Set(['same_flight', 'none']));
   });
 
-  it('shows an open profile as visible to the people around them', () => {
+  it('shows a profile with nothing set as visible to the verified people around them', () => {
+    /*
+     * This used to assert that *everyone* nearby could see a default profile,
+     * which stopped being true when `verified_only` became the default —
+     * closing a gap where the signup screen promised it was on and the policy
+     * shipped empty.
+     *
+     * So the assertion is now the default's actual meaning: verified people
+     * nearby can see you, unverified people cannot, and the report says so
+     * rather than showing a blank. A test that had simply been relaxed to
+     * `.some()` would have kept passing through the next regression too.
+     */
     const report = whoCanSeeMe(baseInput(woman()));
     const nearby = report.segments.filter((s) => s.segment.facets.proximity !== 'none');
-    expect(nearby.every((s) => s.visible)).toBe(true);
+    // `assurance` is `AssuranceLevel | '*'` — the wildcard is the row for "the
+    // policy does not read this facet", which cannot happen once a preset does.
+    const level = (s: (typeof nearby)[number]) => s.segment.facets.assurance;
+    const verifiedNearby = nearby.filter((s) => level(s) !== '*' && Number(level(s)) >= 1);
+    const unverifiedNearby = nearby.filter((s) => level(s) === 0);
+
+    expect(verifiedNearby.length).toBeGreaterThan(0);
+    expect(verifiedNearby.every((s) => s.visible)).toBe(true);
+    expect(unverifiedNearby.every((s) => !s.visible)).toBe(true);
     expect(report.visibleTotal).toBeGreaterThan(0);
+  });
+
+  it('shows a deliberately open profile as visible to everyone around them', () => {
+    // The fully-permissive case still has to work, and now has to be asked
+    // for by name instead of arriving as the default.
+    const open = withPolicy(woman(), { presets: [] });
+    const report = whoCanSeeMe(baseInput(open));
+    const nearby = report.segments.filter((s) => s.segment.facets.proximity !== 'none');
+    expect(nearby.every((s) => s.visible)).toBe(true);
   });
 
   describe('with women_only enabled', () => {

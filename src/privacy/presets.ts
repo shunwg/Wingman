@@ -223,7 +223,26 @@ export const defaultAudienceRule = (): AudienceRule => anyAudience();
  * a whole category of ambient exposure without anyone having to think about it.
  */
 export const defaultPolicy = (): PrivacyPolicy => ({
-  presets: [],
+  /*
+   * Verified-only, on.
+   *
+   * The signup step has said "On by default. Verify, and the people who chose
+   * this can see you back." since it was written, and its own header comment
+   * says "Verified-only is on by default for everyone" — while this list
+   * shipped empty. So the promise was made on two screens and kept on none:
+   * the You screen rendered all four options unselected, and the Safety
+   * preview showed an unverified stranger the whole card. Two independent
+   * persona walks found it from opposite directions, one by reading the
+   * screen and one by reading this file.
+   *
+   * Closing it in this direction rather than deleting the sentence, because
+   * the sentence is the product: `verified_only` is `ASSURANCE.social`, which
+   * one linked account clears, and it is symmetric — you see the people who
+   * can see you. The cost is real and is handled where it lands: somebody who
+   * skips verification is now invisible and sees nobody, so the board has to
+   * say *that* rather than simply be empty.
+   */
+  presets: ['verified_only'],
   audience: defaultAudienceRule(),
   seeking: defaultAudienceRule(),
   disclosure: {},

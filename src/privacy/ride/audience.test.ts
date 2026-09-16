@@ -8,7 +8,17 @@ import type { PersonFacets } from '../types';
 import { evaluateRideAudience } from './audience';
 
 const now = '2026-09-16T10:00:00Z' as ISODateTime;
-const hostPolicy = compilePolicy(defaultPolicy(), []);
+/*
+ * An explicitly permissive host.
+ *
+ * `defaultPolicy()` is no longer permissive — verified-only is on by default,
+ * which is what the signup screen has always promised — so a test about a host
+ * who restricts nothing has to build that host rather than inherit it. Leaving
+ * these relying on the default would have made them assertions about whatever
+ * the default happened to be, which is how a privacy test quietly stops
+ * testing anything.
+ */
+const hostPolicy = compilePolicy({ ...defaultPolicy(), presets: [] }, []);
 
 function facets(patch: Partial<PersonFacets> = {}): PersonFacets {
   return {

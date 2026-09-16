@@ -45,6 +45,19 @@ const ROUTES: {
    * that does not exist.
    */
   press?: string;
+  /**
+   * Shoot this route as a real signed-up account rather than the demo.
+   *
+   * Three persona walks independently concluded the app had lost its account
+   * deletion control. It had not — `YouScreen` shows "Reset the demo" in demo
+   * mode and "Delete my profile" plus a confirmation sheet for a real profile,
+   * which is exactly what the previous round asked for. Every screenshot was
+   * demo-mode, so the review set could not show the control that exists, and
+   * three reviewers agreed on the same wrong answer.
+   *
+   * A blind spot three independent reviewers share is not a reviewer problem.
+   */
+  account?: boolean;
 }[] = [
   { name: 'welcome', hash: '#/welcome', fresh: true },
   { name: 'signup-about', hash: '#/signup/about', fresh: true },
@@ -71,6 +84,9 @@ const ROUTES: {
   { name: 'circles-new', hash: '#/circles/new' },
   { name: 'you', hash: '#/you' },
   { name: 'you-edit', hash: '#/you/edit' },
+  // The same screen as a real profile: this is the one that carries "Delete my
+  // profile" and the confirmation sheet behind it.
+  { name: 'you-account', hash: '#/you', account: true },
   { name: 'design', hash: '#/_design' },
 ];
 
@@ -100,9 +116,9 @@ async function main() {
     });
     page.on('pageerror', (e) => errors.push(`[${vp.name}] ${String(e)}`));
 
-    let mode: 'fresh' | 'demo' | null = null;
+    let mode: 'fresh' | 'demo' | 'account' | null = null;
     for (const route of ROUTES) {
-      const want = route.fresh ? 'fresh' : 'demo';
+      const want = route.fresh ? 'fresh' : route.account ? 'account' : 'demo';
       if (mode !== want) {
         if (want === 'fresh') {
           await page.goto(`${BASE}/#/welcome`, { waitUntil: 'networkidle' });
@@ -110,6 +126,26 @@ async function main() {
           await page.goto(`${BASE}/#/welcome`, { waitUntil: 'networkidle' });
           await page.getByRole('button', { name: 'Create my profile' }).click();
           await page.waitForURL(/signup/);
+        } else if (want === 'account') {
+          /*
+           * The seeded world, held by a real profile rather than the demo.
+           *
+           * Set on the persisted blob instead of walked through signup: the
+           * only thing this mode exists to photograph is a screen whose
+           * content depends on `account.mode`, and driving six signup steps
+           * to get there made the capture depend on the welcome carousel's
+           * animation timing — which is how it broke the first time.
+           */
+          await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' });
+          await page.waitForURL(/#\/$/);
+          await page.evaluate(() => {
+            const raw = localStorage.getItem('wingman');
+            if (!raw) throw new Error('no persisted store to promote');
+            const blob = JSON.parse(raw) as { state: { account: { mode: string } } };
+            blob.state.account.mode = 'local';
+            localStorage.setItem('wingman', JSON.stringify(blob));
+          });
+          await page.reload({ waitUntil: 'networkidle' });
         } else {
           await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' });
           await page.waitForURL(/#\/$/);

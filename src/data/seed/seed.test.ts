@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MATCH_CONFIG_V1, findCandidates } from '@matching/index';
+import { MATCH_CONFIG_V1, findCandidates, relaxations } from '@matching/index';
 import { airportIndex } from '@data/airports/index';
 import { SEED_PEOPLE, RESPONSE_RATES } from './people';
 import { ME, MY_TRIPS, SEED_NOW, seedPool } from './trips';
@@ -27,6 +27,17 @@ const run = (me = ME, circleIds = ['insead']) =>
   });
 
 const ids = (r: ReturnType<typeof run>) => r.candidates.map((c) => String(c.person.id));
+
+/** The same person, with the default verified-only floor taken off. */
+const withoutVerifiedOnly = (p: typeof ME): typeof ME => ({
+  ...p,
+  privacy: {
+    ...p.privacy,
+    presets: p.privacy.presets.filter((x) => x !== 'verified_only'),
+    audience: { ...p.privacy.audience, minAssurance: 0 },
+    seeking: { ...p.privacy.seeking, minAssurance: 0 },
+  },
+});
 
 describe('the seeded world', () => {
   it('gives a first-run board that is worth looking at', () => {
@@ -100,9 +111,46 @@ describe('the seeded world', () => {
     expect(ids(run())).toContain('priya');
   });
 
-  it('finds someone landing at Changi just after you', () => {
-    const ayla = run().candidates.find((c) => String(c.person.id) === 'ayla');
+  it('finds someone landing at Changi just after you, once the default lets her in', () => {
+    /*
+     * Ayla is the seed's deliberate newcomer — `stamps: []`, "First time
+     * through Changi", `reliability: 'unproven'` — and `verified_only` is on
+     * by default, so she is correctly not on the board. That is the default
+     * doing its job, not a broken overlap: the travel maths is fine and the
+     * privacy floor is what removes her.
+     *
+     * So this asserts both halves, because either one alone would be
+     * misleading. Without the first, a genuinely broken overlap would look
+     * like a privacy decision. Without the second, a default that hid her
+     * with no way back would look correct.
+     */
+    expect(ids(run())).not.toContain('ayla');
+
+    const openToUnverified = withoutVerifiedOnly(ME);
+    const ayla = run(openToUnverified).candidates.find((c) => String(c.person.id) === 'ayla');
+    expect(ayla).toBeDefined();
     expect(ayla?.allOverlaps.some((o) => o.kind === 'same_airport_window')).toBe(true);
+  });
+
+  it('offers dropping the verified floor when that is what is hiding people', () => {
+    // The relaxation exists so an empty board can name the one setting that
+    // would fill it. An offer that unlocks nobody is never shown, so the
+    // presence of this one is itself the evidence that Ayla is reachable.
+    const offers = relaxations({
+      me: ME,
+      myTrip: MY_TRIPS[0]!,
+      myCircleIds: ['insead'],
+      pool: seedPool(),
+      now: SEED_NOW,
+      airports: airportIndex,
+      config: MATCH_CONFIG_V1,
+      seenCounts: {},
+      requestHistory: { active: [], denied: [] },
+    });
+    const floor = offers.find((o) => o.relaxation.kind === 'drop_assurance_floor');
+    expect(floor).toBeDefined();
+    expect(floor!.after).toBeGreaterThan(floor!.before);
+    expect(floor!.label).toMatch(/not verified an account/i);
   });
 });
 

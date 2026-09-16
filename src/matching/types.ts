@@ -231,6 +231,18 @@ export type Relaxation =
   | { kind: 'widen_days'; days: number }
   | { kind: 'allow_shorter_layovers'; minUsableMin: Minutes }
   | { kind: 'drop_circle_scope' }
+  /**
+   * Stop requiring the other person to be verified.
+   *
+   * Added when `verified_only` became the default — which the signup screen
+   * had promised all along while the policy shipped empty. Closing that gap
+   * without this would have been the worse bug: a new person who skipped the
+   * (deliberately skippable) verify step would see an empty board, with the
+   * one thing that would fix it neither named nor offered. An empty board that
+   * cannot explain itself is how a protective default gets read as a broken
+   * product.
+   */
+  | { kind: 'drop_assurance_floor' }
   | { kind: 'broaden_meet_kinds' };
 
 export interface RelaxationOutcome {

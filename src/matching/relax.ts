@@ -59,6 +59,25 @@ function apply(input: MatchInput, r: Relaxation): MatchInput {
         },
       };
 
+    case 'drop_assurance_floor':
+      // Both halves, because the preset is symmetric: the floor keeps you from
+      // seeing them *and* them from seeing you, so relaxing one half would
+      // report a number the board could not then deliver.
+      return {
+        ...input,
+        me: {
+          ...input.me,
+          privacy: {
+            ...input.me.privacy,
+            presets: input.me.privacy.presets.filter(
+              (p) => p !== 'verified_only' && p !== 'id_verified_only',
+            ),
+            audience: { ...input.me.privacy.audience, minAssurance: 0 },
+            seeking: { ...input.me.privacy.seeking, minAssurance: 0 },
+          },
+        },
+      };
+
     case 'widen_days':
       // Stretch every stay by N days at each end.
       return {
@@ -88,6 +107,9 @@ const LABEL: Record<Relaxation['kind'], (r: Relaxation, delta: number) => string
   allow_shorter_layovers: (_r, delta) =>
     `Counting shorter connections would add ${people(delta)}.`,
   drop_circle_scope: (_r, delta) => `Looking outside your circles would add ${people(delta)}.`,
+  // Names the setting, so the sentence is actionable rather than mysterious.
+  drop_assurance_floor: (_r, delta) =>
+    `Including people who have not verified an account would add ${people(delta)}.`,
   broaden_meet_kinds: (_r, delta) => `Being open to more kinds of meet would add ${people(delta)}.`,
 };
 
@@ -117,6 +139,7 @@ export function relaxations(input: MatchInput): RelaxationOutcome[] {
     { kind: 'allow_shorter_layovers', minUsableMin: 20 },
     { kind: 'broaden_meet_kinds' },
     { kind: 'drop_circle_scope' },
+    { kind: 'drop_assurance_floor' },
   ];
 
   return candidates
