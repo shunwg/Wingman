@@ -5,7 +5,7 @@ import { Chip } from '@design/primitives/Chip';
 import { Menu } from '@design/primitives/Menu';
 import { Sheet } from '@design/primitives/Sheet';
 import type { IanaZone, Message, PersonId } from '@domain/index';
-import { TEXT_CAP, fareEach, isRedacted, localTime, meetForRide } from '@domain/index';
+import { TEXT_CAP, isRedacted, localTime, meetForRide } from '@domain/index';
 import { buildVCard } from '@lib/vcard';
 import { STAGE_COPY, stagesFor } from '@data/copy/stages';
 import { PLAN_COPY } from '@data/copy/plans';
@@ -24,7 +24,7 @@ import { takeArriving } from './arrive';
 import { ProposeSheet, type ProposalDraft } from './ProposeSheet';
 import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { buildIcs } from '@lib/ics';
-import { money } from '@screens/money';
+import { fareCopy } from '@screens/rides/fareCopy';
 
 /**
  * One conversation — a meet room, a circle's General, or a group.
@@ -177,7 +177,10 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
             {ride.route.from} → {ride.route.to} · {ride.riders.length} sharing · {clock(String(ride.ride.window.from))}–
             {clock(String(ride.ride.window.to))}
           </a>
-          <span className="room__farenote">{fareLine(ride.ride, ride.riders.length)}</span>
+          <span className="room__farenote">
+            {fareCopy(ride.ride, ride.riders.length, true, String(ride.ride.hostPersonId) === String(me.id) ? 'You' : authorName(String(ride.ride.hostPersonId), String(me.id), me.firstName)).short}
+            {' · settle it between you'}
+          </span>
           {imInCar && ride.ride.pickupNote && (
             <p className="room__pickup">
               <span className="room__pickuplabel">Where to meet the car</span> {ride.ride.pickupNote}
@@ -612,15 +615,6 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
       )}
     </article>
   );
-}
-
-/** "About €50 each · split evenly, settle it between you". */
-function fareLine(ride: Parameters<typeof fareEach>[0], people: number): string {
-  if (ride.fareSplit === 'host_pays') return 'The host is covering this one';
-  const each = fareEach(ride, people);
-  return each !== undefined && ride.fare
-    ? `About ${money(each, ride.fare.currency)} each · settle it between you`
-    : 'Fare split evenly · settle it between you';
 }
 
 function Presence({ who }: { who: Participant }) {

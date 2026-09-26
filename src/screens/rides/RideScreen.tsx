@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import type { AvatarSpec, DisclosureLevel } from '@domain/index';
-import { localTime } from '@domain/time';
+import { PICKUP_NOTE_CAP } from '@domain/index';
 import { redact } from '@privacy/index';
 import { Button } from '@design/primitives/Button';
 import { Chip } from '@design/primitives/Chip';
 import { Avatar } from '@design/primitives/Avatar';
+import { Field } from '@design/primitives/Field';
+import { Sheet } from '@design/primitives/Sheet';
+import { FARE_CURRENCIES, currencyForAirport } from '@data/currency';
+import { windowLabel } from '@screens/whenLabel';
+import { fareCopy } from './fareCopy';
 import { airportIndex } from '@data/airports/index';
 import { personById } from '@data/seed/people';
 import { useRide, pendingSeats } from '@state/selectors/rides';
 import { useStore } from '@state/store';
-import { DOOR_COPY, RIDE_GROUND } from '@data/copy/rides';
+import { DOOR_COPY, RIDE_FARE_NOTE, RIDE_GROUND } from '@data/copy/rides';
 import { useCircles } from '@state/selectors/circles';
 import { rideInviteLink } from './link';
 
@@ -72,7 +77,13 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
   const channels = useStore((s) => s.channels);
   const circles = useCircles();
   const removeSeat = useStore((s) => s.removeSeat);
+  const setRideFare = useStore((s) => s.setRideFare);
+  const setPickupNote = useStore((s) => s.setPickupNote);
+  const now = useStore((s) => s.now);
   const [copied, setCopied] = useState(false);
+  const [editingFare, setEditingFare] = useState(false);
+  const [editingNote, setEditingNote] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   if (!row) {
     return (
@@ -90,10 +101,14 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
   // between passengers, so it does not release what an accepted request does.
   const rung: DisclosureLevel = mine?.status === 'confirmed' ? 1 : 0;
   const zone = airportIndex.zone(ride.airportIata);
-  const when = zone
-    ? `${localTime(ride.window.from, zone)} – ${localTime(ride.window.to, zone)}`
-    : `${String(ride.window.from).slice(11, 16)} – ${String(ride.window.to).slice(11, 16)}`;
+  // Dated, like the card: "Tomorrow 17:30 – 18:30". The screen said only the
+  // clock while the card that led here said the day, so the day vanished on
+  // the one screen where you decide.
+  const when = windowLabel(ride.window.from, ride.window.to, zone, now);
   const isHost = String(ride.hostPersonId) === String(me.id);
+  const inCar = isHost || mine?.status === 'confirmed';
+  const hostName = isHost ? 'You' : (riderCard(String(ride.hostPersonId), 0)?.first ?? 'The host');
+  const fare = fareCopy(ride, row.riders.length, inCar, hostName);
   const pending = isHost ? pendingSeats(ride) : [];
   const roomId = `ride:${String(ride.id)}`;
 
@@ -131,9 +146,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
               ? 'Full'
               : `${seatsLeft} of ${ride.seatsTotal} seat${ride.seatsTotal === 1 ? '' : 's'} free`}
           </Chip>
-          <Chip tone="neutral">
-            {ride.fareSplit === 'host_pays' ? 'Host is covering it' : 'Fare split evenly'}
-          </Chip>
+          <Chip tone="neutral">{fare.short}</Chip>
           {ride.status === 'cancelled' && <Chip tone="warn">Called off</Chip>}
         </div>
       </header>
@@ -173,6 +186,48 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
           })}
         </ul>
         <p className="panel__note">{RIDE_GROUND}</p>
+      </section>
+
+      <section className="panel" aria-label="What it costs">
+        <h3 className="panel__title">What it costs</h3>
+        {fare.each ? (
+          <p className="ride__fare">
+            <span className="ride__fareeach">{fare.each}</span> <span className="ride__faredetail">{fare.detail}</span>
+          </p>
+        ) : (
+          <p className="panel__note">{fare.detail}</p>
+        )}
+        <p className="panel__note">{RIDE_FARE_NOTE}</p>
+        {isHost && ride.fareSplit !== 'host_pays' && ride.status !== 'cancelled' && (
+          <Button size="sm" variant="quiet" onClick={() => setEditingFare(true)}>
+            {ride.fare ? 'Change the estimate' : 'Add an estimate'}
+          </Button>
+        )}
+      </section>
+
+      <section className="panel" aria-label="Where to meet the car">
+        <h3 className="panel__title">Where to meet the car</h3>
+        {/* The exact spot and the car are for the people in it. Gated on
+            being in, not on the car filling: a car that never fills still has
+            passengers who need to know where to stand. */}
+        {inCar ? (
+          ride.pickupNote ? (
+            <p className="ride__pickup">{ride.pickupNote}</p>
+          ) : (
+            <p className="panel__note">
+              {isHost
+                ? 'Add the exact spot and the car once you know them. Only the people in the car see this.'
+                : `${hostName} has not said yet. It appears here, and in the car\u2019s room, when they do.`}
+            </p>
+          )
+        ) : (
+          <p className="panel__note">The exact spot and the car are shared with the people in it, once you are.</p>
+        )}
+        {isHost && ride.status !== 'cancelled' && (
+          <Button size="sm" variant="quiet" onClick={() => setEditingNote(true)}>
+            {ride.pickupNote ? 'Edit the pickup details' : 'Add pickup details'}
+          </Button>
+        )}
       </section>
 
       {isHost && pending.length > 0 && (
@@ -262,7 +317,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
 
         {isHost && ride.status !== 'cancelled' && (
           <>
-            <Button variant="danger" onClick={() => cancelRide(rideId)}>
+            <Button variant="danger" onClick={() => setConfirmingCancel(true)}>
               Call off the car
             </Button>
             <p className="panel__note">
@@ -277,6 +332,179 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
           Back
         </Button>
       </div>
+
+      {editingFare && (
+        <FareSheet
+          {...(ride.fare ? { current: ride.fare } : {})}
+          fallbackCurrency={currencyForAirport(ride.airportIata)}
+          seats={ride.seatsTotal}
+          onClose={() => setEditingFare(false)}
+          onSave={(f) => {
+            setRideFare(rideId, f);
+            setEditingFare(false);
+          }}
+        />
+      )}
+      {editingNote && (
+        <PickupSheet
+          current={ride.pickupNote ?? ''}
+          onClose={() => setEditingNote(false)}
+          onSave={(note) => {
+            setPickupNote(rideId, note);
+            setEditingNote(false);
+          }}
+        />
+      )}
+      {confirmingCancel && (
+        <Sheet
+          open
+          title="Call off the car?"
+          onClose={() => setConfirmingCancel(false)}
+          actions={
+            <>
+              <Button variant="secondary" onClick={() => setConfirmingCancel(false)}>
+                Keep the car
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  cancelRide(rideId);
+                  setConfirmingCancel(false);
+                }}
+              >
+                Call it off
+              </Button>
+            </>
+          }
+        >
+          <p className="sheet__body">
+            {row.riders.length > 1
+              ? 'Everyone in the car is told in its room, and their seats end. This cannot be undone \u2014 you would offer a new car.'
+              : 'Nobody has a seat yet. The car stops showing on the board.'}
+          </p>
+        </Sheet>
+      )}
     </div>
+  );
+}
+
+/**
+ * The host's estimate for the whole car.
+ *
+ * One number and a currency. Clearing the field takes the estimate back. The
+ * hint shows the per-person figure while you type, because that is the number
+ * everyone else will read.
+ */
+function FareSheet({
+  current,
+  fallbackCurrency,
+  seats,
+  onClose,
+  onSave,
+}: {
+  current?: { amountMinor: number; currency: string };
+  fallbackCurrency: string;
+  seats: number;
+  onClose: () => void;
+  onSave: (fare: { amountMinor: number; currency: string } | null) => void;
+}) {
+  const [amount, setAmount] = useState(current ? String(Math.round(current.amountMinor / 100)) : '');
+  const [currency, setCurrency] = useState(current?.currency ?? fallbackCurrency);
+  const whole = Number(amount);
+  const empty = amount.trim() === '';
+  const valid = empty || (Number.isInteger(whole) && whole > 0);
+  const each = valid && !empty ? Math.ceil(whole / seats) : undefined;
+  return (
+    <Sheet
+      open
+      title="What the car should cost"
+      onClose={onClose}
+      actions={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button disabled={!valid} onClick={() => onSave(empty ? null : { amountMinor: whole * 100, currency })}>
+            Save
+          </Button>
+        </>
+      }
+    >
+      <Field
+        label="The whole car, roughly"
+        hint={
+          each !== undefined
+            ? `About ${each} ${currency} each if all ${seats} seats fill. Leave it empty to take the estimate back.`
+            : 'Your best guess at the meter. Leave it empty to take the estimate back.'
+        }
+      >
+        <div className="fareinput">
+          <input
+            className="input mono"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={amount}
+            aria-label="Amount"
+            onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))}
+          />
+          <select
+            className="input fareinput__currency"
+            value={currency}
+            aria-label="Currency"
+            onChange={(e) => setCurrency(e.target.value)}
+          >
+            {FARE_CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+      </Field>
+      <p className="panel__note">{RIDE_FARE_NOTE}</p>
+    </Sheet>
+  );
+}
+
+/** The exact spot and the car, for the people in it. */
+function PickupSheet({
+  current,
+  onClose,
+  onSave,
+}: {
+  current: string;
+  onClose: () => void;
+  onSave: (note: string) => void;
+}) {
+  const [note, setNote] = useState(current);
+  return (
+    <Sheet
+      open
+      title="Where to meet the car"
+      onClose={onClose}
+      actions={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={() => onSave(note)}>Save</Button>
+        </>
+      }
+    >
+      <Field
+        label="The spot and the car"
+        hint={`Only the people in the car see this. ${PICKUP_NOTE_CAP - note.length} characters left.`}
+      >
+        <textarea
+          className="field__input"
+          rows={3}
+          value={note}
+          maxLength={PICKUP_NOTE_CAP}
+          placeholder="Rank door 12. White estate, plate ends 4R."
+          onChange={(e) => setNote(e.target.value)}
+        />
+      </Field>
+      <p className="panel__note">A public place, never an address. Clear it to take the details down.</p>
+    </Sheet>
   );
 }

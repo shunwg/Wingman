@@ -9,6 +9,7 @@ import { Sheet } from '@design/primitives/Sheet';
 import { ToggleChip } from '@design/primitives/Chip';
 import { useCircles } from '@state/selectors/circles';
 import { DOOR_COPY } from '@data/copy/rides';
+import { FARE_CURRENCIES, currencyForAirport } from '@data/currency';
 import { useStore, type HostRideInput } from '@state/store';
 
 /**
@@ -50,6 +51,8 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
   const [seats, setSeats] = useState(3);
   const [label, setLabel] = useState('');
   const [time, setTime] = useState('');
+  const [fareAmount, setFareAmount] = useState('');
+  const [fareCurrency, setFareCurrency] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   /**
@@ -68,6 +71,8 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
 
   const end = ends[direction];
   const zone = end ? airportIndex.zone(end.iata) : undefined;
+  // The meter runs in the airport's country; the host can say otherwise.
+  const currency = fareCurrency ?? (end ? currencyForAirport(end.iata) : 'EUR');
   const dateOf = end && zone ? String(end.at).slice(0, 10) : undefined;
 
   /** The stay's own area, offered as the default so most people type nothing. */
@@ -140,6 +145,7 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
       window: { from, to: addMinutes(from, 60) },
       seatsTotal: seats,
       audience,
+      ...(fareAmount ? { fare: { amountMinor: Number(fareAmount) * 100, currency } } : {}),
     };
 
     try {
@@ -236,6 +242,40 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
         </div>
       </Field>
 
+      <Field
+        label="The whole car, roughly"
+        hint={
+          fareAmount
+            ? `About ${Math.ceil(Number(fareAmount) / seats)} ${currency} each if it fills. Optional.`
+            : 'Optional. People decide faster when they can see what they would pay.'
+        }
+        htmlFor={`${id}-fare`}
+      >
+        <div className="fareinput">
+          <input
+            id={`${id}-fare`}
+            className="input mono"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="0"
+            value={fareAmount}
+            onChange={(e) => setFareAmount(e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(0, 5))}
+          />
+          <select
+            className="input fareinput__currency"
+            value={currency}
+            aria-label="Currency"
+            onChange={(e) => setFareCurrency(e.target.value)}
+          >
+            {FARE_CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+      </Field>
+
       <Field label="Who can join">
         {/* Each option states its *consent* model, not its category. Two
             persona walks read "A circle" as a tightening and missed that it
@@ -303,6 +343,7 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
 
       <p className="panel__note">
         The fare is split evenly and stated, never charged. Wingman does not take money.
+        The exact spot and the car can be added later, for the people in it.
       </p>
     </Sheet>
   );

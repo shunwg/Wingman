@@ -50,6 +50,10 @@ export const SEED_RIDES: Ride[] = [
           // of the screen, and it needs no fictional passenger to produce.
           seatsTotal: 2,
           audience: { kind: 'circles', circleIds: [asCircleId('insead')] },
+          // A metered Changi–Marina Bay taxi with the airport surcharge; the
+          // host's guess, as every estimate in the app is.
+          fare: { amountMinor: 3600, currency: 'SGD' },
+          pickupNote: 'Taxi queue at T3 arrivals, by door 5. Look for the INSEAD tote.',
           createdAt: asUtc('2026-09-02T18:00:00Z'),
         }),
       ]
@@ -67,6 +71,7 @@ export const SEED_RIDES: Ride[] = [
           window: CHANGI_PICKUP,
           seatsTotal: 4,
           audience: { kind: 'open', rules: anyAudience() },
+          fare: { amountMinor: 3200, currency: 'SGD' },
           createdAt: asUtc('2026-09-02T19:20:00Z'),
         }),
       ]
@@ -88,6 +93,7 @@ export const SEED_RIDES: Ride[] = [
           window: { from: asUtc('2026-09-02T17:00:00Z'), to: asUtc('2026-09-02T18:00:00Z') },
           seatsTotal: 4,
           audience: { kind: 'open', rules: anyAudience() },
+          fare: { amountMinor: 9500, currency: 'GBP' },
           createdAt: asUtc('2026-09-02T09:00:00Z'),
         }),
       ]

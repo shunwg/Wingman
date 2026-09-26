@@ -808,7 +808,25 @@ export const useStore = create<WingmanState>()(
               ? transitionClaim(c, { to: 'revoked_by_policy', by: 'system', at: s.now })
               : c,
           );
-          return { rides: s.rides.map((r) => (String(r.id) === rideId ? { ...cancelled, claims } : r)) };
+          // The car screen promises the riders are told. They are, in the one
+          // place they are all already looking.
+          const room = rideChannelId(rideId);
+          const told = s.channels.some((c) => c.id === room)
+            ? [
+                ...s.messages,
+                {
+                  id: messageId(s.messages.length, s.now),
+                  channelId: room,
+                  from: s.me.id,
+                  at: s.now,
+                  body: { kind: 'system' as const, text: 'The host called the car off. Every seat in it has ended.' },
+                },
+              ]
+            : s.messages;
+          return {
+            rides: s.rides.map((r) => (String(r.id) === rideId ? { ...cancelled, claims } : r)),
+            messages: told,
+          };
         }),
 
       setRideFare: (rideId, fare) => {

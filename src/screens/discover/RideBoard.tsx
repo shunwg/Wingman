@@ -1,4 +1,5 @@
 import type { DisclosureLevel, ISODateTime } from '@domain/index';
+import { fareCopy } from '@screens/rides/fareCopy';
 import { redact } from '@privacy/index';
 import { windowLabel } from '@screens/whenLabel';
 import { RideCard } from '@design/patterns/RideCard';
@@ -118,7 +119,7 @@ export function cardProps(row: RideRow, meId: string, now: ISODateTime) {
     seatsLeft: row.seatsLeft,
     seatsTotal: ride.seatsTotal,
     riders,
-    fareNote: ride.fareSplit === 'host_pays' ? `${hostName} is covering it` : 'Fare split evenly',
+    fareNote: fareCopy(ride, row.riders.length, String(ride.hostPersonId) === meId || row.mine?.status === 'confirmed', hostName).short,
     context,
     door: ride.audience.kind,
     ...(row.mine?.status === 'confirmed'

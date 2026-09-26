@@ -386,6 +386,16 @@ function TripBlock({
   );
 }
 
+/**
+ * "Café · The coffee bar by the departures board" — the kind, then the words,
+ * unless the words already say the kind ("Taxi rank · SIN" needs no second
+ * "Taxi rank" in front of it).
+ */
+function placeLine(place: { kind: keyof typeof PLACE_KIND_LABEL; label: string }): string {
+  const kind = PLACE_KIND_LABEL[place.kind];
+  return place.label.toLowerCase().includes(kind.toLowerCase()) ? place.label : `${kind} · ${place.label}`;
+}
+
 /** The arrival half of the rail runs to the car into town; give it the evening. */
 const RAIL_AFTER_LANDING_MIN = 6 * 60;
 
@@ -416,9 +426,7 @@ function TripPlans({ trip, now, onOpen }: { trip: Trip; now: ISODateTime; onOpen
                 <span className="tripplan__when mono">{whenLabel(p.meet.window.from, zone, now)}</span>
                 <span className="tripplan__body">
                   <span className="tripplan__title">{p.title}</span>
-                  <span className="tripplan__place">
-                    {PLACE_KIND_LABEL[p.meet.place.kind]} · {p.meet.place.label}
-                  </span>
+                  <span className="tripplan__place">{placeLine(p.meet.place)}</span>
                 </span>
                 <span className="tripplan__chevron" aria-hidden="true">
                   ›
