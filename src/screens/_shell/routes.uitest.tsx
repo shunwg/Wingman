@@ -46,7 +46,10 @@ describe('Router gate', () => {
   it('the design gallery is reachable with a blank store', async () => {
     window.location.hash = '#/_design';
     render(<Router />);
-    await screen.findByRole('heading', { name: 'Wingman design' });
+    // The gallery is a lazy chunk that imports every primitive; under a full
+    // parallel run it can take longer than findBy's 1s default to arrive. This
+    // test is about reachability, not load time.
+    await screen.findByRole('heading', { name: 'Wingman design' }, { timeout: 5000 });
     expect(window.location.hash).toBe('#/_design');
   });
 });
