@@ -8,9 +8,14 @@ import type { MeetKind } from '@domain/intent';
 import { useBoard } from '@state/selectors/board';
 import { useStore } from '@state/store';
 import { PersonMenu } from '@screens/safety/PersonMenu';
-import { addMinutes } from '@domain/time';
+import { addMinutes, epoch } from '@domain/time';
 import { asTripId } from '@domain/ids';
 import { HelloSheet } from './HelloSheet';
+import { helloWindow } from '@state/requests/helloWindow';
+
+/** Said on the screen, so the demo never pretends somebody is typing. */
+const DEMO_ANSWER_NOTE =
+  'This is the demo, so they will answer on their own in a few seconds. In a real account, only a real person can.';
 
 /**
  * One person, and the decision to say hello.
@@ -40,6 +45,8 @@ export function PersonScreen({
   const sendRequest = useStore((s) => s.sendRequest);
   const me = useStore((s) => s.me);
   const now = useStore((s) => s.now);
+  const myTrips = useStore((s) => s.myTrips);
+  const demo = useStore((s) => s.account.mode === 'demo');
   const saved = useStore((s) => s.saved);
   const toggleSaved = useStore((s) => s.toggleSaved);
 
@@ -56,6 +63,7 @@ export function PersonScreen({
           You will hear back if they say yes. If they would rather not, you will simply see this
           close. No reason, and nothing to read into it.
         </p>
+        {demo && <p className="empty__body">{DEMO_ANSWER_NOTE}</p>}
         <Button variant="secondary" onClick={onBack}>
           Back
         </Button>
@@ -88,7 +96,12 @@ export function PersonScreen({
   )?.circleId;
 
   const send = (kind: MeetKind, message: string) => {
-    const window = { from: now, to: addMinutes(now, 90) };
+    // When and where the hello is about, from how the two trips touch — not
+    // "the next ninety minutes" whatever the overlap. See helloWindow.ts.
+    const myTrip = myTrips.find((t) => String(t.id) === candidate.viaTripId);
+    const about = helloWindow(candidate.overlap, kind, myTrip?.segments ?? [], now);
+    const window = about.window;
+    const ref = overlapRefOf(candidate.overlap);
     sendRequest({
       fromPersonId: me.id,
       toPersonId: p.id,
@@ -97,10 +110,14 @@ export function PersonScreen({
       tripId: asTripId(candidate.viaTripId),
       // A shared live circle is the organiser's report, so it is recorded here.
       ...(sharedCircle ? { circleId: sharedCircle } : {}),
-      overlapRef: overlapRefOf(candidate.overlap),
+      // A same-flight overlap names a flight, not a place; the hello's own
+      // airport anchors the plan it may become.
+      overlapRef: ref.airport || !about.airport ? ref : { ...ref, airport: about.airport },
       proposal: { kind, window },
       message,
-      expiresAt: addMinutes(now, 60 * 24),
+      // A day at most, and never past the thing it asks about: a coffee
+      // before boarding cannot still be answered after the doors close.
+      expiresAt: epoch(window.to) < epoch(addMinutes(now, 60 * 24)) ? window.to : addMinutes(now, 60 * 24),
     });
     setAsking(false);
     setSent(true);
@@ -188,6 +205,7 @@ export function PersonScreen({
               You will hear back if they say yes. If they would rather not, you will simply see
               this close. No reason, and nothing to read into it.
             </p>
+            {demo && <p className="sentnote__body">{DEMO_ANSWER_NOTE}</p>}
           </div>
         ) : (
           <div className="person__cta">

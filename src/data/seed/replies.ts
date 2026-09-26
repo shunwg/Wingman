@@ -42,7 +42,9 @@ export function scriptedReply(kind: ChannelKind, turn: number): string {
  */
 export function scriptedProposal(request: MeetRequest, now: ISODateTime): ProposalBody {
   const w = request.proposal.window;
-  const opens = epoch(w.from) > epoch(now) ? w.from : roundUp(now, 15);
+  // Strictly after now: a suggestion that starts this minute is one nobody
+  // can say yes to, since agreeing to a time that has started is refused.
+  const opens = epoch(w.from) > epoch(now) ? w.from : roundUp(addMinutes(now, 1), 15);
   const from = epoch(opens) < epoch(w.to) ? opens : w.from;
   const to = addMinutes(from, 30);
   const airport = request.overlapRef.airport ? String(request.overlapRef.airport) : '';

@@ -84,6 +84,9 @@
 .journey__route { font-size: var(--text-xl); font-weight: 600; letter-spacing: -0.01em; }
 .journey__meta { font-size: var(--text-sm); color: var(--muted); }
 .journey .chip { margin-top: var(--sp-1); }
+/* Within a day of leaving, the departure is the one time anyone checks — so it
+   is the one line on the card set in the amber the app keeps for "soon". */
+.journey__leaves { font-size: var(--text-sm); font-weight: 600; color: var(--warn); }
 
 .homelist { display: flex; flex-direction: column; border-top: 1px solid var(--hairline); }
 .homerow {
@@ -94,6 +97,10 @@
 }
 .homerow:active { background: var(--surface-sunk); }
 .homerow--ask { background: var(--accent-wash); border: 0; border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); }
+/* A yes you were waiting for: the trust family, like every agreed thing, so it
+   reads as settled good news rather than as another thing asking for you. */
+.homerow--yes { background: var(--trust-wash); border: 1px solid var(--trust); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); }
+.homerow--yes .homerow__title { color: var(--trust); }
 .homerow__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .homerow__title { font-weight: 600; }
 .homerow__meta { font-size: var(--text-sm); color: var(--muted); }

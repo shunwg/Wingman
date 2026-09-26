@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
+import { useDemoAnswers } from './useDemoAnswers';
 import { AppShell } from './AppShell';
 import { HomeScreen } from '@screens/home/HomeScreen';
 const BoardScreen = lazy(() => import('@screens/discover/BoardScreen').then((m) => ({ default: m.BoardScreen })));
@@ -173,6 +174,7 @@ export function Router() {
 }
 
 function Routes() {
+  useDemoAnswers();
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
   const onboarded = useStore((s) => s.onboarded);
   const setReturnTo = useStore((s) => s.setReturnTo);

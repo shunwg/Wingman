@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { MY_TRIPS } from '@data/seed/trips';
 import { SEED_CIRCLES } from '@data/seed/circles';
-import { destinationEvents, nextTrip, topMatch } from './home';
+import { destinationEvents, nextJourney, nextTrip, topMatch } from './home';
+import { SEED_NOW } from '@data/seed/trips';
 import type { BoardCandidate } from './board';
 
 describe('nextTrip', () => {
@@ -14,6 +15,20 @@ describe('nextTrip', () => {
     const hidden = { ...MY_TRIPS[0]!, visibility: { listing: 'hidden' as const } };
     expect(String(nextTrip([hidden, MY_TRIPS[1]!])?.id)).toBe(String(MY_TRIPS[1]!.id));
     expect(nextTrip([])).toBeUndefined();
+  });
+});
+
+describe('nextJourney', () => {
+  it('keeps tonight’s flight as the next journey after it is settled — settling stops the board, not the trip', () => {
+    const settled = { ...MY_TRIPS[0]!, outcome: { settledWith: 'jonas' as never, at: SEED_NOW } };
+    expect(String(nextJourney([settled, MY_TRIPS[1]!], SEED_NOW)?.id)).toBe(String(MY_TRIPS[0]!.id));
+    // …while the board's own pick moves on, as it should.
+    expect(String(nextTrip([settled, MY_TRIPS[1]!])?.id)).toBe(String(MY_TRIPS[1]!.id));
+  });
+
+  it('moves on once a trip has landed', () => {
+    const later = '2026-09-04T00:00:00Z' as never;
+    expect(String(nextJourney([...MY_TRIPS], later)?.id)).toBe(String(MY_TRIPS[1]!.id));
   });
 });
 

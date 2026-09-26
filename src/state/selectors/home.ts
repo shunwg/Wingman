@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { Circle, Trip } from '@domain/index';
 import { tripIsOpen, tripStart } from '@domain/trip';
+import { epoch, type ISODateTime } from '@domain/time';
 import { circleIsLive } from '@data/seed/circles';
 import { useStore } from '../store';
 import { allCircles } from './circles';
@@ -20,6 +21,24 @@ import { useBoard, type BoardCandidate } from './board';
 export function nextTrip(trips: Trip[]): Trip | undefined {
   return trips
     .filter(tripIsOpen)
+    .map((t) => ({ t, at: tripStart(t) ?? '' }))
+    .sort((a, b) => a.at.localeCompare(b.at))[0]?.t;
+}
+
+/**
+ * The next journey you are actually taking, whatever the board thinks of it.
+ *
+ * Not `nextTrip`. That one skips a trip once it is settled or hidden, which is
+ * right for "who is worth meeting" and wrong for "where am I going": agreeing
+ * to share a car on tonight's flight made Home announce a trip a fortnight
+ * away as your next journey. A trip stays next until it has landed.
+ */
+export function nextJourney(trips: Trip[], now: ISODateTime): Trip | undefined {
+  return trips
+    .filter((t) => {
+      const last = t.segments.at(-1);
+      return !last || epoch(last.arriveUtc) > epoch(now);
+    })
     .map((t) => ({ t, at: tripStart(t) ?? '' }))
     .sort((a, b) => a.at.localeCompare(b.at))[0]?.t;
 }
@@ -53,7 +72,10 @@ export function destinationEvents(trip: Trip | undefined, circles: Circle[]): Ci
 }
 
 export interface Home {
+  /** The next open trip — the one the board is still finding people for. */
   trip: Trip | undefined;
+  /** The next trip you are taking at all, settled or not. */
+  journey: Trip | undefined;
   match: BoardCandidate | undefined;
   /** Everyone else on that trip, for "see all" counts. */
   othersOnTrip: number;
@@ -70,13 +92,16 @@ export function useHome(): Home {
 
   return useMemo(() => {
     const trip = nextTrip(myTrips);
+    const journey = nextJourney(myTrips, now);
     const match = trip ? topMatch(board.candidates, String(trip.id)) : undefined;
     const othersOnTrip = trip
       ? board.candidates.filter((c) => c.viaTripId === String(trip.id)).length - (match ? 1 : 0)
       : 0;
-    const events = destinationEvents(trip, allCircles(myCircles));
+    // Events where you are going next — the journey, not merely the trip
+    // the board is still working on.
+    const events = destinationEvents(journey ?? trip, allCircles(myCircles));
     const today = String(now).slice(0, 10);
     const liveEventIds = new Set(events.filter((c) => circleIsLive(c, today)).map((c) => String(c.id)));
-    return { trip, match, othersOnTrip, events, liveEventIds };
+    return { trip, journey, match, othersOnTrip, events, liveEventIds };
   }, [myTrips, myCircles, now, board]);
 }

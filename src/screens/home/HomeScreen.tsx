@@ -10,8 +10,11 @@ import { tripHueClass } from '@design/tokens/tripHue';
 import { bucketPhrase } from '@lib/bucket';
 import { airportIndex, cityByKey } from '@data/airports/index';
 import { useHome } from '@state/selectors/home';
+import { whenLabel } from '@screens/whenLabel';
 import { useEventBoards } from '@state/selectors/event';
-import { useIncomingCards, expiresIn } from '@state/selectors/requests';
+import { useIncomingCards, useSaidYes, expiresIn } from '@state/selectors/requests';
+import { markArriving } from '@screens/inbox/arrive';
+import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { useStore } from '@state/store';
 import { takeMoment } from './moment';
 
@@ -24,9 +27,10 @@ import { takeMoment } from './moment';
  * is the screen.
  */
 export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
-  const { trip, match, othersOnTrip, events, liveEventIds } = useHome();
+  const { trip, journey, match, othersOnTrip, events, liveEventIds } = useHome();
   const live = useEventBoards();
   const incoming = useIncomingCards();
+  const saidYes = useSaidYes();
   const now = useStore((s) => s.now);
   const myTrips = useStore((s) => s.myTrips);
 
@@ -63,20 +67,57 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
         </button>
       )}
 
-      {trip && (
+      {/* Someone said yes to you. The rarest good news the app has, so it sits
+          at the top and opens the room with the one moment that animates. It
+          goes away once the room has been opened — derived from when you last
+          read it, so nothing is stored to say it was shown. */}
+      {saidYes.map((y) => {
+        const name = typeof y.card.displayName === 'string' ? y.card.displayName.split(' ')[0]! : 'They';
+        return (
+          <button
+            key={y.channelId}
+            type="button"
+            className="homerow homerow--yes"
+            onClick={() => {
+              markArriving(y.channelId);
+              onOpen(`#/inbox/${y.channelId}`);
+            }}
+          >
+            <Avatar spec={y.card.avatar} size="sm" />
+            <span className="homerow__body">
+              <span className="homerow__title">{name} said yes</span>
+              <span className="homerow__meta">
+                {MEET_KIND_LABEL[y.request.proposal.kind]} · the room is open
+              </span>
+            </span>
+            <span className="homerow__chevron" aria-hidden="true">
+              ›
+            </span>
+          </button>
+        );
+      })}
+
+      {journey && (
         <section className="homesec">
           <h2 className="homesec__title">Your next journey</h2>
-          <button type="button" className={`journey ${tripHueClass(tripCode(trip))}`} onClick={() => onOpen('#/trip')}>
+          <button type="button" className={`journey ${tripHueClass(tripCode(journey))}`} onClick={() => onOpen('#/trip')}>
             <span className="journey__route mono">
-              {[trip.segments[0]?.from, ...trip.segments.map((s) => s.to)].filter(Boolean).join(' → ')}
+              {[journey.segments[0]?.from, ...journey.segments.map((s) => s.to)].filter(Boolean).join(' → ')}
             </span>
             <span className="journey__meta">
-              {tripDates(trip)}
+              {tripDates(journey)}
               {' · '}
-              {trip.segments.length === 1 ? '1 flight' : `${trip.segments.length} flights`}
-              {trip.layovers[0] ? ` · ${trip.layovers[0].usableMin} min in ${trip.layovers[0].airport}` : ''}
+              {journey.segments.length === 1 ? '1 flight' : `${journey.segments.length} flights`}
+              {journey.layovers[0] ? ` · ${journey.layovers[0].usableMin} min in ${journey.layovers[0].airport}` : ''}
             </span>
-            <Chip tone="trust">Looking</Chip>
+            <DepartureLine trip={journey} now={now} />
+            {journey.outcome ? (
+              <Chip tone="trust">Sorted</Chip>
+            ) : journey.visibility.listing === 'hidden' ? (
+              <Chip tone="warn">Hidden</Chip>
+            ) : (
+              <Chip tone="trust">Looking</Chip>
+            )}
           </button>
         </section>
       )}
@@ -176,6 +217,24 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
         </section>
       )}
     </>
+  );
+}
+
+/**
+ * "Leaves LHR 21:00 tonight" — the one time a traveller checks on the way to
+ * the gate, in the airport's own clock. Only within a day: a departure a week
+ * out is already in the dates above and repeating it is noise.
+ */
+function DepartureLine({ trip, now }: { trip: Parameters<typeof tripDestination>[0]; now: string }) {
+  const next = trip.segments.find((s) => Date.parse(String(s.departUtc)) > Date.parse(now));
+  if (!next) return null;
+  const hoursAway = (Date.parse(String(next.departUtc)) - Date.parse(now)) / 3_600_000;
+  if (hoursAway > 24) return null;
+  const zone = airportIndex.zone(next.from);
+  return (
+    <span className="journey__leaves mono">
+      Leaves {String(next.from)} {whenLabel(next.departUtc, zone, now as never).toLowerCase().replace(/^(\w+) (.+)$/, '$2 $1')}
+    </span>
   );
 }
 
