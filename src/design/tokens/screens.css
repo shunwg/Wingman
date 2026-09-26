@@ -695,6 +695,27 @@
   font-size: var(--text-2xl);
 }
 
+/* The handle and the title are the drag zone. `touch-action: none` hands the
+   gesture to the sheet instead of the page; the body keeps its own scrolling. */
+.sheet__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-top: calc(var(--sp-3) * -1);
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+.sheet__head:active { cursor: grabbing; }
+.sheet__grab {
+  align-self: center;
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--faint);
+  opacity: 0.45;
+}
+
 .sheet__body {
   color: var(--muted);
   font-size: var(--text-sm);
