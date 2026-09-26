@@ -31,6 +31,8 @@ test('a car going your way can be joined, and taking the seat fills it', async (
   await expect(circleCar).toContainText('Circle seats itself');
   // And the card is dated: the board mixes trips weeks apart.
   await expect(circleCar).toContainText(/Tomorrow|Tonight|Today|\d{1,2} \w{3}/);
+  // And it says what *you* would pay — the pitch of a shared cab, as a number.
+  await expect(circleCar).toContainText(/About SGD.18 each with you in/);
   await circleCar.locator('.ridecard__body').click();
 
   await page.waitForURL(/#\/car\//);
@@ -41,11 +43,16 @@ test('a car going your way can be joined, and taking the seat fills it', async (
   await expect(page.getByText('Full')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Give up the seat' })).toBeVisible();
 
+  // Only now, in the car, does the pickup spot appear.
+  await expect(page.getByText(/INSEAD tote/)).toBeVisible();
+
   // The room exists and carries the fare line, which is the one thing nobody
-  // in a shared cab wants to be the first to mention.
+  // in a shared cab wants to be the first to mention — with the amount on it
+  // now, and the spot to stand.
   await page.getByRole('button', { name: /Open the car/ }).click();
   await page.waitForURL(/#\/inbox\/ride:/);
-  await expect(page.locator('.room__fare')).toContainText('Fare split evenly');
+  await expect(page.locator('.room__fare')).toContainText(/About SGD.18 each/);
+  await expect(page.locator('.room__fare')).toContainText(/INSEAD tote/);
 
   // And a full car is off the board.
   await page.goto('/#/discover');
