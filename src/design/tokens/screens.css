@@ -430,6 +430,42 @@
 .proposal__title { font-weight: 600; font-size: var(--text-lg); }
 .proposal__meta { font-size: var(--text-sm); color: var(--muted); }
 .proposal__actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; padding-top: var(--sp-1); }
+/* The agreed card carries the trust edge the strip does; a replaced or passed
+   one steps back so the live offer is the obvious thing to answer. Colour is
+   never the only signal — each state also says what it is in words. */
+.proposal--agreed { border-color: var(--trust); background: var(--trust-wash); }
+.proposal--stale { opacity: 0.62; box-shadow: none; }
+.proposal__note { font-size: var(--text-xs); color: var(--muted); align-self: center; }
+.msg--agreed .msg__stage { color: var(--trust); font-weight: 500; }
+
+/* ── The agreed plan ─────────────────────────────────────────────────────
+   Pinned under the room header once there is one. The one fact in the room
+   that must never be wrong, so it gets the room's only trust-coloured panel. */
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--trust);
+  border-radius: var(--r-md);
+  background: var(--trust-wash);
+}
+.plan__label { margin: 0; }
+.plan__title { margin: 0; font-weight: 600; font-size: var(--text-lg); color: var(--ink); }
+.plan__meta { margin: 0; font-size: var(--text-sm); color: var(--muted); }
+.plan__pending { margin: var(--sp-1) 0 0; font-size: var(--text-sm); color: var(--ink); }
+.plan__actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; padding-top: var(--sp-2); }
+
+/* Choosing whom to rate in a car. */
+.riderpick { display: flex; flex-direction: column; gap: var(--sp-1); }
+.riderpick__row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  min-height: 48px; padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--hairline); border-radius: var(--r-md);
+  background: var(--surface); color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+  transition: transform var(--dur-press) var(--ease-out);
+}
+.riderpick__row:active { transform: scale(0.97); }
 
 /* ── Route receipt ───────────────────────────────────────────────────────── */
 
@@ -2587,6 +2623,22 @@ textarea.field__input {
   color: var(--muted);
 }
 
+/* Only people in the car see this, so it can be specific. */
+.room__pickup {
+  margin: var(--sp-2) 0 0;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--hairline);
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+.room__pickuplabel {
+  display: block;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
 /* ── Place photography ───────────────────────────────────────────────────────
  *
  * The photographs of places come from 37 different cameras and carry 37
@@ -2913,3 +2965,41 @@ textarea.field__input {
     transition: background-color var(--dur-screen) var(--ease-out);
   }
 }
+
+/* ── Plans on a trip ─────────────────────────────────────────────────────
+   The agreed plans for this journey, soonest first. Rows, not cards: the trip
+   block is already a card, and a card inside a card inside a list is how a
+   screen stops being scannable. */
+.tripplans { display: flex; flex-direction: column; gap: var(--sp-2); }
+.tripplans__title {
+  margin: 0;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.tripplans__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-1); }
+.tripplan {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 52px;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--trust);
+  border-radius: var(--r-md);
+  background: var(--trust-wash);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform var(--dur-press) var(--ease-out);
+}
+.tripplan:active { transform: scale(0.97); }
+.tripplan__when { font-size: var(--text-sm); color: var(--trust); font-weight: 600; white-space: nowrap; }
+.tripplan__body { display: flex; flex-direction: column; min-width: 0; }
+.tripplan__title { font-weight: 600; font-size: var(--text-sm); }
+.tripplan__place { font-size: var(--text-xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tripplan__chevron { color: var(--muted); }

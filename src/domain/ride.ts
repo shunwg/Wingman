@@ -148,6 +148,16 @@ export interface RideEvent {
   to: RideStatus;
 }
 
+export interface RideFare {
+  /** The whole car, in minor units — 15000 is €150.00. */
+  amountMinor: number;
+  /** ISO 4217, upper case. */
+  currency: string;
+}
+
+/** A spot and a car, not a message thread. */
+export const PICKUP_NOTE_CAP = 160;
+
 export interface Ride {
   id: RideId;
   hostPersonId: PersonId;
@@ -169,6 +179,24 @@ export interface Ride {
   inviteCode?: string;
   /** What the host said about money. A stated intention, never a transaction. */
   fareSplit: 'even' | 'host_pays';
+  /**
+   * What the whole car should cost, as the host guesses it. Minor units and an
+   * ISO 4217 code. Optional because a host often does not know until the
+   * driver quotes — and a car with no number is still a car worth sharing.
+   *
+   * It exists because "cheaper split three ways than two" is the entire pitch
+   * of a shared cab, and until v9 the app could say *that* it would be split
+   * but never *what* anyone would pay.
+   */
+  fare?: RideFare;
+  /**
+   * The exact spot and the car — "Rank door 12, white estate, plate ends 4R".
+   *
+   * Shown to the people in the car and nobody else. Gated on being confirmed,
+   * not on the car filling: a car that never fills still has passengers who
+   * need to know where to stand.
+   */
+  pickupNote?: string;
   status: RideStatus;
   /** Append-only. The ride FSM's only source of truth. */
   history: RideEvent[];
@@ -197,6 +225,8 @@ export function makeRide(input: {
   createdAt: ISODateTime;
   inviteCode?: string;
   fareSplit?: Ride['fareSplit'];
+  fare?: RideFare;
+  pickupNote?: string;
 }): Ride {
   if (input.seatsTotal < 2) {
     throw new Error('A shared car needs room for at least one passenger besides the host.');
@@ -209,6 +239,11 @@ export function makeRide(input: {
   }
   if (input.audience.kind === 'circles' && input.audience.circleIds.length === 0) {
     throw new Error('A circles-only car with no circles admits nobody. Name a circle, or open the car.');
+  }
+  if (input.fare) assertFare(input.fare);
+  const note = input.pickupNote?.trim();
+  if (note && note.length > PICKUP_NOTE_CAP) {
+    throw new Error(`A pickup note is a spot and a car, at most ${PICKUP_NOTE_CAP} characters.`);
   }
   return {
     id: input.id,
@@ -223,11 +258,37 @@ export function makeRide(input: {
     audience: input.audience,
     ...(input.inviteCode ? { inviteCode: input.inviteCode } : {}),
     fareSplit: input.fareSplit ?? 'even',
+    ...(input.fare ? { fare: { amountMinor: input.fare.amountMinor, currency: input.fare.currency } } : {}),
+    ...(note ? { pickupNote: note } : {}),
     status: 'open',
     history: [],
     createdAt: input.createdAt,
     expiresAt: input.window.to,
   };
+}
+
+/** Refuses an estimate nobody could pay: zero, negative, fractional, or in no currency. */
+export function assertFare(fare: RideFare): void {
+  if (!Number.isInteger(fare.amountMinor) || fare.amountMinor <= 0) {
+    throw new Error('A fare estimate is a positive whole number of minor units.');
+  }
+  if (!/^[A-Z]{3}$/.test(fare.currency)) {
+    throw new Error(`A currency is a three-letter ISO code, not ${JSON.stringify(fare.currency)}.`);
+  }
+}
+
+/**
+ * Each person's share of the estimate, with `people` in the car.
+ *
+ * Rounded *up* to a whole unit: quoting someone €33 for a €100 car split three
+ * ways is quoting them less than they will pay, and the one thing a number on
+ * this screen must never do is get cheaper at the kerb. `host_pays` is nothing
+ * each; no estimate, or nobody in the car, is unknown rather than zero.
+ */
+export function fareEach(r: Ride, people: number): number | undefined {
+  if (r.fareSplit === 'host_pays') return 0;
+  if (!r.fare || people <= 0) return undefined;
+  return Math.ceil(r.fare.amountMinor / people / 100) * 100;
 }
 
 /** Seats still available. The host occupies one; live claims take the rest. */

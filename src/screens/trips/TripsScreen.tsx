@@ -4,7 +4,10 @@ import { Button } from '@design/primitives/Button';
 import { RideCard } from '@design/patterns/RideCard';
 import { cardProps } from '@screens/discover/RideBoard';
 import { RideSheet } from '@screens/rides/RideSheet';
-import { useMyRides, type RideRow } from '@state/selectors/rides';
+import { tripForRide, useMyRides, type RideRow } from '@state/selectors/rides';
+import { usePlansForTrip } from '@state/selectors/plans';
+import { PLAN_COPY, PLACE_KIND_LABEL } from '@data/copy/plans';
+import { whenLabel } from '@screens/whenLabel';
 import { Sheet } from '@design/primitives/Sheet';
 import { Timeline, type TimelineRow } from '@design/patterns/Timeline';
 import { PlaceBand, atmosphere, cityPhoto, destinationPhoto } from '@screens/placePhoto';
@@ -62,8 +65,13 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
    * invented and the people in the car see it in the place they are already
    * looking.
    */
+  // Which of *your* trips each car serves — the host's trip id names the
+  // host's journey, not yours, so a seat you took never matched on it.
+  const carsFor = (trip: Trip) =>
+    [...hosting, ...riding].filter((r) => String(tripForRide(r.ride, trips, String(me.id))?.id) === String(trip.id));
+
   const carRoomFor = (trip: Trip) => {
-    const mine = [...hosting, ...riding].find((r) => String(r.ride.tripId) === String(trip.id));
+    const mine = carsFor(trip).find((r) => r.mine?.status !== 'requested');
     if (!mine) return undefined;
     // A car with no room yet is a car with nobody in it but you. Offering to
     // tell it would be a button that does nothing, which is the failure this
@@ -102,7 +110,7 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
           onSetStage={(st) => setTripStage(String(trip.id), st)}
           {...(carRoomFor(trip) ? { onTellCar: (st: JourneyStage) => tellCar(trip, st) } : {})}
           onUndo={() => clearTripStage(String(trip.id))}
-          cars={[...hosting, ...riding].filter((r) => String(r.ride.tripId) === String(trip.id))}
+          cars={carsFor(trip)}
           onShareCar={() => setSharing(trip)}
           onToggleListing={() =>
             upsertTrip({
@@ -200,6 +208,16 @@ function TripBlock({
 }) {
   const settledWith = trip.outcome ? personById(String(trip.outcome.settledWith)) : undefined;
   const open = tripIsOpen(trip);
+  /*
+   * Whether the journey itself is still happening — a different question from
+   * `open`, which asks whether the board is still suggesting people for it.
+   * The rail used to hang off `open`, so agreeing to a coffee with Priya
+   * "settled" the trip and took away the one control for telling her you were
+   * through security. A trip is over a few hours after its last landing, not
+   * when you find someone on it.
+   */
+  const lastLanding = trip.segments.at(-1)?.arriveUtc;
+  const underway = !lastLanding || minutesBetween(now, lastLanding) > -RAIL_AFTER_LANDING_MIN;
   const board = useBoard();
   const circles = useCircles();
   const onTrip = board.candidates.filter((c) => c.viaTripId === String(trip.id));
@@ -309,7 +327,7 @@ function TripBlock({
         </button>
       )}
 
-      {open && (
+      {underway && (
         <JourneyRail
           trip={trip}
           now={now}
@@ -319,6 +337,8 @@ function TripBlock({
           onUndo={onUndo}
         />
       )}
+
+      <TripPlans trip={trip} now={now} onOpen={onOpen} />
 
       {cars.length > 0 && (
         <div className="tripblock__cars">
@@ -348,7 +368,9 @@ function TripBlock({
             {trip.visibility.listing === 'listed' ? 'Hide this trip' : 'List this trip again'}
           </Button>
         )}
-        {!trip.outcome && (
+        {/* A plan for coffee at the gate is not a way into town. Settling a
+            trip stops the board; it does not stop you needing a car. */}
+        {underway && (
           <Button size="sm" variant="secondary" onClick={onShareCar}>
             Share a car
           </Button>
@@ -361,6 +383,52 @@ function TripBlock({
         </Button>
       </div>
     </article>
+  );
+}
+
+/** The arrival half of the rail runs to the car into town; give it the evening. */
+const RAIL_AFTER_LANDING_MIN = 6 * 60;
+
+/**
+ * What you have actually agreed to on this trip, soonest first.
+ *
+ * Derived on every render from the rooms and the cars — a plan called off a
+ * moment ago is already gone from here. The room is where a plan is made; the
+ * trip is where you look when you are working out your evening, so it is where
+ * a plan has to be findable without remembering which conversation it was in.
+ */
+function TripPlans({ trip, now, onOpen }: { trip: Trip; now: ISODateTime; onOpen: (hash: string) => void }) {
+  const plans = usePlansForTrip(trip);
+  if (plans.length === 0) return null;
+  return (
+    <section className="tripplans" aria-label={PLAN_COPY.trip.title}>
+      <h3 className="tripplans__title">{PLAN_COPY.trip.title}</h3>
+      <ul className="tripplans__list">
+        {plans.map((p) => {
+          const zone = p.meet.place.airportIata
+            ? airportIndex.zone(p.meet.place.airportIata)
+            : p.meet.place.cityKey
+              ? airportIndex.cityZone(p.meet.place.cityKey)
+              : undefined;
+          return (
+            <li key={p.key}>
+              <button type="button" className="tripplan" onClick={() => onOpen(`#/inbox/${p.channelId}`)}>
+                <span className="tripplan__when mono">{whenLabel(p.meet.window.from, zone, now)}</span>
+                <span className="tripplan__body">
+                  <span className="tripplan__title">{p.title}</span>
+                  <span className="tripplan__place">
+                    {PLACE_KIND_LABEL[p.meet.place.kind]} · {p.meet.place.label}
+                  </span>
+                </span>
+                <span className="tripplan__chevron" aria-hidden="true">
+                  ›
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

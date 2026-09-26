@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { Ride, RideClaim, Trip } from '@domain/index';
 import { riders, rideRoute, seatsLeft, tripIsOpen } from '@domain/index';
-import { addMinutes } from '@domain/time';
+import { addMinutes, intersectWindows } from '@domain/time';
 import { filterRides, type RideNeed } from '@matching/index';
 import { bucketPhrase } from '@lib/bucket';
 import { tripFor } from '@data/seed/trips';
@@ -226,11 +226,27 @@ export function useRide(rideId: string | undefined): RideRow | undefined {
 export const pendingSeats = (ride: Ride): RideClaim[] =>
   ride.claims.filter((c) => c.status === 'requested');
 
-/** The per-person share, as an estimate and never a charge. */
-export function fareShare(ride: Ride, estimateMinor: number): number | undefined {
-  if (ride.fareSplit === 'host_pays') return 0;
-  const n = riders(ride).length;
-  return n > 0 ? Math.round(estimateMinor / n) : undefined;
+/**
+ * Which of *your* trips a car belongs to.
+ *
+ * For a host, the trip the car was offered on. For a passenger it cannot be
+ * `ride.tripId` — that is the host's trip, which is not in your list — and
+ * filtering on it is why a seat you took never appeared on your own trip, and
+ * why "Tell the car" never appeared for anyone but the host. A passenger's car
+ * belongs to the trip it serves: same airport, same direction, a window that
+ * overlaps when you land or leave. Joinability is deliberately not checked —
+ * a full car you are in is still your car.
+ */
+export function tripForRide(ride: Ride, myTrips: readonly Trip[], meId: string): Trip | undefined {
+  if (String(ride.hostPersonId) === meId) return myTrips.find((t) => String(t.id) === String(ride.tripId));
+  return myTrips.find((t) =>
+    needsForTrip(t).some(
+      (need) =>
+        need.direction === ride.direction &&
+        String(need.airportIata) === String(ride.airportIata) &&
+        intersectWindows(need.window, ride.window) !== null,
+    ),
+  );
 }
 
 

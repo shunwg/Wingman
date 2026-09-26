@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { asCircleId, asIata, asPersonId, asRideId, asTripId } from './ids';
 import type { ISODateTime } from './time';
-import { makeRide, rideIsJoinable, seatsLeft, seatsPending, sharesDirection, type Ride } from './ride';
+import { PICKUP_NOTE_CAP, fareEach, makeRide, rideIsJoinable, seatsLeft, seatsPending, sharesDirection, type Ride } from './ride';
 import { anyAudience } from './privacy';
 
 const t = (s: string) => s as ISODateTime;
@@ -137,5 +137,44 @@ describe('the circles audience', () => {
   it('keeps its circle list', () => {
     const r = base({ audience: { kind: 'circles', circleIds: [asCircleId('insead')] } });
     expect(r.audience).toEqual({ kind: 'circles', circleIds: [asCircleId('insead')] });
+  });
+});
+
+describe('the car\'s money — an estimate the host states, never a charge', () => {
+  const fare = { amountMinor: 15000, currency: 'EUR' };
+
+  it('keeps a stated estimate and a pickup note', () => {
+    const r = base({ fare, pickupNote: 'Rank door 12, white estate' });
+    expect(r.fare).toEqual(fare);
+    expect(r.pickupNote).toBe('Rank door 12, white estate');
+  });
+
+  it('refuses an estimate that is not a positive whole amount', () => {
+    expect(() => base({ fare: { amountMinor: 0, currency: 'EUR' } })).toThrow();
+    expect(() => base({ fare: { amountMinor: -500, currency: 'EUR' } })).toThrow();
+    expect(() => base({ fare: { amountMinor: 49.5, currency: 'EUR' } })).toThrow();
+  });
+
+  it('refuses a currency that is not an ISO code', () => {
+    expect(() => base({ fare: { amountMinor: 15000, currency: 'euro' } })).toThrow();
+    expect(() => base({ fare: { amountMinor: 15000, currency: 'eu' } })).toThrow();
+  });
+
+  it('caps the pickup note — a spot and a car, not a message thread', () => {
+    expect(() => base({ pickupNote: 'x'.repeat(PICKUP_NOTE_CAP + 1) })).toThrow();
+    expect(base({ pickupNote: '   ' }).pickupNote).toBeUndefined();
+  });
+
+  it('splits evenly across the people in the car, rounding up so nobody is quoted less than they pay', () => {
+    const r = base({ fare: { amountMinor: 10000, currency: 'EUR' } });
+    expect(fareEach(r, 3)).toBe(3400);
+    expect(fareEach(r, 2)).toBe(5000);
+    expect(fareEach(r, 4)).toBe(2500);
+  });
+
+  it('is nothing each when the host is paying, and unknown without an estimate', () => {
+    expect(fareEach(base({ fare, fareSplit: 'host_pays' }), 3)).toBe(0);
+    expect(fareEach(base(), 3)).toBeUndefined();
+    expect(fareEach(base({ fare }), 0)).toBeUndefined();
   });
 });

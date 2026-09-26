@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { MeetRequest, RedactedPerson } from '@domain/index';
-import { minutesBetween } from '@domain/time';
+import { meetChannelId } from '@domain/index';
+import { epoch, minutesBetween } from '@domain/time';
 import { personById } from '@data/seed/people';
 import { redact } from '@privacy/index';
 import { expireIfDue } from '../machines/meetRequest';
@@ -66,4 +67,32 @@ export function useRequests(): RequestsView {
       accepted: all.filter((r) => r.status === 'accepted'),
     };
   }, [requests, me.id, now]);
+}
+
+/**
+ * Hellos you sent that came back yes, and whose room you have not opened since.
+ *
+ * Derived from the request's own history and `readAt` — nothing is stored to
+ * say "notice shown". Opening the room is what clears it, which is the only
+ * thing that should: the notice exists to get you there.
+ */
+export function useSaidYes(): { request: MeetRequest; channelId: string; card: RedactedPerson }[] {
+  const { outgoing } = useRequests();
+  const readAt = useStore((s) => s.readAt);
+
+  return useMemo(
+    () =>
+      outgoing.flatMap((request) => {
+        if (request.status !== 'accepted') return [];
+        const yes = [...request.history].reverse().find((e) => e.to === 'accepted');
+        if (!yes) return [];
+        const channelId = String(meetChannelId(request.id));
+        const read = readAt[channelId];
+        if (read && epoch(read) >= epoch(yes.at)) return [];
+        const p = personById(String(request.toPersonId));
+        // Rung 2: they said yes, so the accepted card is theirs to show.
+        return p ? [{ request, channelId, card: redact(p, 2) }] : [];
+      }),
+    [outgoing, readAt],
+  );
 }

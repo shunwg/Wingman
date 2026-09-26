@@ -1,5 +1,5 @@
 import type {
-  CircleId, CityKey, IataCode, MeetId, MeetRequestId, PersonId, RatingId, RideId, TripId } from './ids';
+  CircleId, CityKey, IataCode, MeetId, MeetRequestId, MessageId, PersonId, RatingId, RideId, TripId } from './ids';
 import type { GuardianSessionId } from './ids';
 import type { ISODateTime, TimeWindow } from './time';
 import type { MeetKind } from './intent';
@@ -40,7 +40,14 @@ export interface PublicPlace {
     | 'restaurant'
     | 'taxi_rank'
     | 'station'
-    | 'hotel_lobby';
+    | 'hotel_lobby'
+    /**
+     * Where a shared car collects people on the way to the airport. Always a
+     * `RidePoint`, which is a neighbourhood centroid by construction — so this
+     * kind names a street corner everyone can find and still cannot hold
+     * anybody's address.
+     */
+    | 'pickup_point';
   airportIata?: IataCode;
   cityKey?: CityKey;
   /** Human wayfinding, e.g. "Gate C12 — the window bench". */
@@ -218,7 +225,26 @@ export type MeetMessageBody =
    * purpose is to produce one of these; the other side adds it to a calendar
    * or answers with another. The place is a label, never coordinates.
    */
-  | { kind: 'proposal'; meetKind: MeetKind; window: TimeWindow; placeLabel: string }
+  | {
+      kind: 'proposal';
+      meetKind: MeetKind;
+      window: TimeWindow;
+      placeLabel: string;
+      /**
+       * What sort of public place the label names. Optional because every
+       * suggestion written before v9 lacks it; those read as a landmark, the
+       * vaguest public kind, rather than as something more specific than was
+       * ever said.
+       */
+      placeKind?: PublicPlace['kind'];
+    }
+  /**
+   * Yes to one suggestion. The plan is derived from these, never stored —
+   * see `domain/plan.ts`. Only the person who did not suggest it can say it.
+   */
+  | { kind: 'agreed'; proposalId: MessageId }
+  /** The plan that stood is off. Names it, so a stale tap cannot cancel a newer one. */
+  | { kind: 'plan_off'; proposalId: MessageId }
   /**
    * Free text, capped short.
    *

@@ -64,3 +64,11 @@ describe('makeMeet', () => {
     }
   });
 });
+
+describe('pickup_point', () => {
+  it('is public ground a car can collect people from on the way to the airport', () => {
+    const p = makePublicPlace({ kind: 'pickup_point', label: 'Indre By', airportIata: asIata('CPH'), lat: 55.68, lon: 12.57 });
+    expect(p.isPublicGround).toBe(true);
+    expect(p.kind).toBe('pickup_point');
+  });
+});

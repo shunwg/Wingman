@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import type { AvatarSpec, Channel, ChannelId, ISODateTime, MeetRequest, Message, PersonId } from '@domain/index';
 import { circleChannelId, meetChannelId } from '@domain/index';
-import { SEED_CHANNELS, SEED_MESSAGES } from '@data/seed/channels';
+import { SEED_CHANNELS } from '@data/seed/channels';
 import { personById } from '@data/seed/people';
 import { STAGE_COPY } from '@data/copy/stages';
 import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
+import { PLAN_COPY } from '@data/copy/plans';
 import { useStore } from '../store';
 import { allCircles } from './circles';
 import { useRequests } from './requests';
@@ -85,17 +86,16 @@ export function channelsFor(
   return [...meets, ...circles, ...groups];
 }
 
-export function messagesFor(channelId: ChannelId, stored: Message[]): Message[] {
-  return [...SEED_MESSAGES, ...stored]
-    .filter((m) => m.channelId === channelId)
-    .sort((a, b) => String(a.at).localeCompare(String(b.at)));
-}
+import { messagesFor } from '../log';
+export { messagesFor };
 
 export function lastLine(m: Message | undefined, meId: PersonId): string {
   if (!m) return 'Nothing yet.';
   if (m.body.kind === 'text') return m.body.text;
   if (m.body.kind === 'system') return m.body.text;
   if (m.body.kind === 'proposal') return `Suggested ${MEET_KIND_LABEL[m.body.meetKind].toLowerCase()} at ${m.body.placeLabel}`;
+  if (m.body.kind === 'agreed') return PLAN_COPY.preview.agreed;
+  if (m.body.kind === 'plan_off') return PLAN_COPY.preview.off;
   const who = m.from === meId ? undefined : personById(String(m.from))?.firstName;
   const copy = STAGE_COPY[m.body.stage];
   return m.from === meId ? copy.mine : `${who ?? 'They'} ${copy.theirs}`;

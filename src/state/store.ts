@@ -21,6 +21,7 @@ import type {
   Rating,
   Ride,
   RideAudience,
+  RideFare,
   RideClaim,
   RideDirection,
   RidePoint,
@@ -37,14 +38,18 @@ import {
   asChannelId,
   asCircleId,
   asGuardianSessionId,
-  asMeetId,
   asMeetRequestId,
   asMessageId,
   asRatingId,
   asRideId,
   asUtc,
+  assertFare,
+  canAgree,
   codeFromSeed,
+  agreedPlan,
   makeRide,
+  meetIdForChannel,
+  PICKUP_NOTE_CAP,
   meetChannelId,
   rideChannelId,
   rideRoute,
@@ -60,12 +65,14 @@ import {
   type GuardianPresetId,
   withMeetPreference,
 } from '@privacy/index';
-import { scriptedReply } from '@data/seed/replies';
+import { scriptedProposal, scriptedReply } from '@data/seed/replies';
 import { SEED_MESSAGES } from '@data/seed/channels';
 import type { ISODateTime } from '@domain/time';
 import { SEED_NOW } from '@data/seed/trips';
 import { layoversFor, MATCH_CONFIG_V1 } from '@matching/index';
 import { transition } from './machines/meetRequest';
+import { assertCanAgree, assertCanCallOff, PlanRefusedError } from './machines/plan';
+import { messagesFor } from './log';
 import { revokeClaimByPolicy, transitionClaim, transitionRide } from './machines/rideSeat';
 import { canClaim, type RideViewer } from './rides/eligibility';
 import type { Account } from './account/types';
@@ -280,6 +287,16 @@ export interface WingmanState {
 
   /** Say something in a channel. Text is capped by kind; a stage carries its terminal. */
   post: (channel: Channel, body: MessageBody) => void;
+  /**
+   * Say yes to a suggested time in a meet room.
+   *
+   * Throws if the rules in `domain/plan.ts` refuse it — your own suggestion, a
+   * time that has started, one a newer suggestion replaced. The plan is then
+   * whatever the log says; nothing else is written.
+   */
+  agreeTo: (channelId: string, proposalId: string) => void;
+  /** Call off the plan that stands. Either of you can; the room stays open. */
+  callOffPlan: (channelId: string) => void;
   /** A group inside a circle, with an explicit member list. */
   openGroup: (circleId: string, title: string, memberIds: PersonId[]) => Channel;
 
@@ -313,6 +330,10 @@ export interface WingmanState {
   removeSeat: (rideId: string, personId: PersonId) => void;
   /** Host: call the whole car off. */
   cancelRide: (rideId: string) => void;
+  /** Host: what the whole car should cost, or null to take the estimate back. */
+  setRideFare: (rideId: string, fare: RideFare | null) => void;
+  /** Host: the exact spot and the car, for the people in it. Empty clears it. */
+  setPickupNote: (rideId: string, note: string) => void;
   /** Open or refresh the car's group room. Called for you when a seat lands. */
   openRideRoom: (rideId: string) => void;
 
@@ -351,6 +372,15 @@ export interface WingmanState {
   ) => void;
 
   sendRequest: (input: Omit<MeetRequest, 'id' | 'status' | 'history' | 'createdAt'>) => MeetRequest;
+  /**
+   * Demo only: the seeded person you said hello to says yes.
+   *
+   * Nobody is on the other end of a demo, so without this the sender's half of
+   * the product — waiting, a yes arriving, the room opening — was unreachable.
+   * It goes through the request FSM like any other answer. In a real account it
+   * does nothing, because there nobody has answered.
+   */
+  answerDemoRequest: (requestId: string) => void;
   advanceRequest: (id: string, to: MeetRequestStatus, by: PersonId | 'system', note?: string) => void;
   denyRequest: (id: string, denial: DenialRecord) => void;
   blockPerson: (id: PersonId) => void;
@@ -382,6 +412,22 @@ export interface HostRideInput {
   seatsTotal: number;
   audience: RideAudience;
   fareSplit?: Ride['fareSplit'];
+  fare?: RideFare;
+  pickupNote?: string;
+}
+
+/** The next message id. The simulated clock does not move, so the count keeps them apart. */
+const messageId = (count: number, now: ISODateTime) => asMessageId('m_' + (count + 1) + '_' + Date.parse(String(now)));
+
+/**
+ * Whether this is a meet room you are in: a `meet:` room whose request is
+ * accepted and has you on one side. A yes in anyone else's room, or in a car's
+ * — whose time the host sets — is refused before the log is even read.
+ */
+function isMyMeetRoom(s: Pick<WingmanState, 'requests' | 'me'>, channelId: string): boolean {
+  if (!channelId.startsWith('meet:')) return false;
+  const r = s.requests.find((x) => String(meetChannelId(x.id)) === channelId);
+  return Boolean(r && r.status === 'accepted' && (r.fromPersonId === s.me.id || r.toPersonId === s.me.id));
 }
 
 /** A six-character key for a link-only car, in the circle-invite format. */
@@ -611,8 +657,66 @@ export const useStore = create<WingmanState>()(
               });
             }
           }
+          /*
+           * A scripted yes to a suggested time, for the same reason. It passes
+           * the same `canAgree` the real write does, so the demo cannot produce
+           * a plan the app would have refused.
+           */
+          if (b.kind === 'proposal' && s.account.mode === 'demo' && channel.kind === 'meet') {
+            const other = channel.memberIds.find((id) => id !== s.me.id);
+            if (other && canAgree(messagesFor(channel.id, out), String(mine.id), other, s.now) === null) {
+              out.push({
+                id: messageId(out.length, s.now),
+                channelId: channel.id,
+                from: other,
+                at: s.now,
+                body: { kind: 'agreed', proposalId: mine.id },
+              });
+            }
+          }
           return { messages: out, readAt: { ...s.readAt, [String(channel.id)]: s.now } };
         }),
+
+      agreeTo: (channelId, proposalId) => {
+        const s = get();
+        if (!isMyMeetRoom(s, channelId)) throw new PlanRefusedError('not_a_meet');
+        assertCanAgree(messagesFor(channelId, s.messages), proposalId, s.me.id, s.now);
+        set({
+          messages: [
+            ...s.messages,
+            {
+              id: messageId(s.messages.length, s.now),
+              channelId: asChannelId(channelId),
+              from: s.me.id,
+              at: s.now,
+              body: { kind: 'agreed', proposalId: asMessageId(proposalId) },
+            },
+          ],
+          readAt: { ...s.readAt, [channelId]: s.now },
+        });
+      },
+
+      callOffPlan: (channelId) => {
+        const s = get();
+        if (!isMyMeetRoom(s, channelId)) throw new PlanRefusedError('not_a_meet');
+        const log = messagesFor(channelId, s.messages);
+        const plan = agreedPlan(log);
+        if (!plan) throw new PlanRefusedError('no_plan');
+        assertCanCallOff(log, String(plan.proposal.id));
+        set({
+          messages: [
+            ...s.messages,
+            {
+              id: messageId(s.messages.length, s.now),
+              channelId: asChannelId(channelId),
+              from: s.me.id,
+              at: s.now,
+              body: { kind: 'plan_off', proposalId: plan.proposal.id },
+            },
+          ],
+          readAt: { ...s.readAt, [channelId]: s.now },
+        });
+      },
 
       hostRide: (input) => {
         const s = get();
@@ -628,6 +732,8 @@ export const useStore = create<WingmanState>()(
           audience: input.audience,
           createdAt: s.now,
           ...(input.fareSplit ? { fareSplit: input.fareSplit } : {}),
+          ...(input.fare ? { fare: input.fare } : {}),
+          ...(input.pickupNote ? { pickupNote: input.pickupNote } : {}),
           // A link car needs a link. Derived from the id rather than random,
           // because ESLint bans Math.random() in the engines and a code you
           // cannot reproduce from state is a code you cannot test.
@@ -704,6 +810,67 @@ export const useStore = create<WingmanState>()(
           );
           return { rides: s.rides.map((r) => (String(r.id) === rideId ? { ...cancelled, claims } : r)) };
         }),
+
+      setRideFare: (rideId, fare) => {
+        const s = get();
+        const ride = s.rides.find((r) => String(r.id) === rideId);
+        if (!ride) return;
+        if (String(ride.hostPersonId) !== String(s.me.id)) {
+          throw new Error('Only the host states what the car should cost.');
+        }
+        if (fare) assertFare(fare);
+        const next: Ride = { ...ride };
+        delete next.fare;
+        set({
+          rides: s.rides.map((r) =>
+            r === ride ? (fare ? { ...next, fare: { amountMinor: fare.amountMinor, currency: fare.currency } } : next) : r,
+          ),
+        });
+      },
+
+      setPickupNote: (rideId, note) => {
+        const s = get();
+        const ride = s.rides.find((r) => String(r.id) === rideId);
+        if (!ride) return;
+        if (String(ride.hostPersonId) !== String(s.me.id)) {
+          throw new Error('Only the host says where the car is.');
+        }
+        const text = note.trim();
+        if (text.length > PICKUP_NOTE_CAP) {
+          throw new Error(`A pickup note is at most ${PICKUP_NOTE_CAP} characters.`);
+        }
+        if ((ride.pickupNote ?? '') === text) return;
+        const next: Ride = { ...ride };
+        delete next.pickupNote;
+        const room = rideChannelId(rideId);
+        /*
+         * The note itself lives on the car, shown to the people in it. The room
+         * gets a line saying it changed — not the note — so the inbox lights up
+         * for the riders without the text being copied somewhere a later edit
+         * would leave stale.
+         */
+        const inRoom = s.channels.some((c) => c.id === room);
+        set({
+          rides: s.rides.map((r) => (r === ride ? (text ? { ...next, pickupNote: text } : next) : r)),
+          ...(inRoom
+            ? {
+                messages: [
+                  ...s.messages,
+                  {
+                    id: messageId(s.messages.length, s.now),
+                    channelId: room,
+                    from: s.me.id,
+                    at: s.now,
+                    body: {
+                      kind: 'system' as const,
+                      text: text ? 'The host updated where to meet the car.' : 'The host took the pickup details down.',
+                    },
+                  },
+                ],
+              }
+            : {}),
+        });
+      },
 
       /**
        * The car's room, opened once it holds more than its host.
@@ -806,9 +973,12 @@ export const useStore = create<WingmanState>()(
 
       armGuardianFor: (channelId, contact, preset, window) => {
         const s = get();
+        const meetId = meetIdForChannel(channelId);
+        // A guardian watches a meet. A circle's General is not one.
+        if (!meetId) return;
         const session = armGuardian({
           id: asGuardianSessionId('g_' + Date.parse(String(s.now))),
-          meetId: asMeetId(channelId),
+          meetId,
           travellerId: s.me.id,
           guardian: contact,
           scope: GUARDIAN_PRESETS[preset].build(window.to),
@@ -827,19 +997,25 @@ export const useStore = create<WingmanState>()(
         set((s) => ({ guardian: s.guardian ? escalateGuardian(s.guardian, s.now) : null })),
 
       rate: (channelId, rateeId, input) =>
-        set((s) => ({
+        set((s) => {
+          const meetId = meetIdForChannel(channelId);
+          if (!meetId) return {};
+          return {
           ratings: [
-            ...s.ratings.filter((r) => String(r.meetId) !== channelId),
+            // Per person, not per meet: in a car you rate each rider, and
+            // replacing every rating for the meet erased the one before.
+            ...s.ratings.filter((r) => !(r.meetId === meetId && r.rateeId === rateeId)),
             {
-              id: asRatingId('rt_' + Date.parse(String(s.now))),
-              meetId: asMeetId(channelId),
+              id: asRatingId('rt_' + Date.parse(String(s.now)) + '_' + String(rateeId)),
+              meetId,
               raterId: s.me.id,
               rateeId,
               submittedAt: s.now,
               ...input,
             },
           ],
-        })),
+          };
+        }),
 
       addVerification: (record) =>
         set((s) => ({
@@ -974,6 +1150,17 @@ export const useStore = create<WingmanState>()(
         return sent;
       },
 
+      answerDemoRequest: (requestId) => {
+        const s = get();
+        if (s.account.mode !== 'demo') return;
+        const r = s.requests.find((x) => String(x.id) === requestId);
+        if (!r || r.fromPersonId !== s.me.id) return;
+        if (r.status !== 'sent' && r.status !== 'viewed') return;
+        if (String(s.now) >= String(r.expiresAt)) return;
+        if (r.status === 'sent') get().advanceRequest(requestId, 'viewed', r.toPersonId);
+        get().advanceRequest(requestId, 'accepted', r.toPersonId);
+      },
+
       advanceRequest: (id, to, by, note) =>
         set((s) => {
           const requests = s.requests.map((r) =>
@@ -1010,15 +1197,30 @@ export const useStore = create<WingmanState>()(
             messages: [
               ...s.messages,
               {
-                id: asMessageId('m_' + (s.messages.length + 1) + '_' + Date.parse(String(s.now))),
+                id: messageId(s.messages.length, s.now),
                 channelId: meetChannelId(accepted.id),
                 from: s.me.id,
                 at: s.now,
                 body: {
-                  kind: 'system',
+                  kind: 'system' as const,
                   text: 'You both said yes. Nothing else is shared until you choose to.',
                 },
               },
+              /*
+               * Demo only: they open with a time, so the first room anyone
+               * opens has something to say yes to. See `scriptedProposal`.
+               */
+              ...(s.account.mode === 'demo'
+                ? [
+                    {
+                      id: messageId(s.messages.length + 1, s.now),
+                      channelId: meetChannelId(accepted.id),
+                      from: other,
+                      at: s.now,
+                      body: scriptedProposal(accepted, s.now),
+                    },
+                  ]
+                : []),
             ],
           };
         }),

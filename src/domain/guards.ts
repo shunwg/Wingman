@@ -20,6 +20,7 @@ const PUBLIC_KINDS: ReadonlySet<PublicPlace['kind']> = new Set([
   'taxi_rank',
   'station',
   'hotel_lobby',
+  'pickup_point',
 ]);
 
 /**

@@ -3,13 +3,17 @@ import { Avatar } from '@design/primitives/Avatar';
 import { Button } from '@design/primitives/Button';
 import { Chip } from '@design/primitives/Chip';
 import { Menu } from '@design/primitives/Menu';
-import type { Message, PersonId } from '@domain/index';
-import { TEXT_CAP, isRedacted } from '@domain/index';
+import { Sheet } from '@design/primitives/Sheet';
+import type { IanaZone, Message, PersonId } from '@domain/index';
+import { TEXT_CAP, fareEach, isRedacted, localTime, meetForRide } from '@domain/index';
 import { buildVCard } from '@lib/vcard';
 import { STAGE_COPY, stagesFor } from '@data/copy/stages';
+import { PLAN_COPY } from '@data/copy/plans';
+import { airportIndex } from '@data/airports/index';
 import { isLive } from '@privacy/index';
 import { bucketPhrase } from '@lib/bucket';
 import { authorName, useChannel, type Participant } from '@state/selectors/channel';
+import { usePlanForChannel, type ProposalState } from '@state/selectors/plans';
 import { useRideForChannel } from '@state/selectors/rides';
 import { useStore } from '@state/store';
 import { PersonMenu } from '@screens/safety/PersonMenu';
@@ -20,6 +24,7 @@ import { takeArriving } from './arrive';
 import { ProposeSheet, type ProposalDraft } from './ProposeSheet';
 import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { buildIcs } from '@lib/ics';
+import { money } from '@screens/money';
 
 /**
  * One conversation — a meet room, a circle's General, or a group.
@@ -29,11 +34,17 @@ import { buildIcs } from '@lib/ics';
  * box at the top would invite a conversation that should be happening in
  * person twenty minutes later. A circle leads with the organiser's pin. A
  * group is the circle layout without it.
+ *
+ * A meet's whole job is to turn a yes into a time and a place. The agreed plan
+ * sits at the top once there is one — derived from the log, never stored — and
+ * it moves only when the other person says yes to a different time.
  */
 export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack: () => void }) {
   const view = useChannel(channelId);
   const me = useStore((s) => s.me);
   const post = useStore((s) => s.post);
+  const agreeTo = useStore((s) => s.agreeTo);
+  const callOffPlan = useStore((s) => s.callOffPlan);
   const markRead = useStore((s) => s.markRead);
   const muted = useStore((s) => s.muted);
   const muteChannel = useStore((s) => s.muteChannel);
@@ -43,11 +54,21 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
   const [draft, setDraft] = useState('');
   const [reporting, setReporting] = useState<Message | null>(null);
   const [guarding, setGuarding] = useState(false);
-  const [afterMeet, setAfterMeet] = useState(false);
+  const [afterMeet, setAfterMeet] = useState<Participant | null>(null);
+  const [choosingRider, setChoosingRider] = useState(false);
   const [proposing, setProposing] = useState(false);
+  const [callingOff, setCallingOff] = useState(false);
   const log = useRef<HTMLOListElement>(null);
   // Taken once, on the first render of a room you have just said yes to.
   const arrive = useRef(takeArriving(channelId)).current;
+  const roomPlan = usePlanForChannel(channelId);
+  /*
+   * A car's room carries a persistent strip rather than a message about money.
+   * The split is the one fact everybody in a shared cab wants and nobody wants
+   * to raise, so the room states it and keeps stating it — and states equally
+   * plainly that Wingman is not settling it.
+   */
+  const ride = useRideForChannel(channelId);
 
   const messageCount = view?.messages.length ?? 0;
   useEffect(() => {
@@ -73,22 +94,55 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
 
   const { channel, messages, mine, theirs, theirsCard, sameTerminal, circle } = view;
   const isMeet = channel.kind === 'meet';
-  /*
-   * A car's room carries a persistent strip rather than a message about money.
-   * The split is the one fact everybody in a shared cab wants and nobody wants
-   * to raise, so the room states it and keeps stating it — and states equally
-   * plainly that Wingman is not settling it. The prototype's version of this
-   * looked like a charge; this one cannot be mistaken for one.
-   */
-  const ride = useRideForChannel(channelId);
   const isMuted = muted.includes(channelId);
   const watching = guardian && String(guardian.meetId) === channelId && isLive(guardian, now) ? guardian : null;
   const title = channel.kind === 'circle' && circle ? `${circle.shortName} · General` : channel.title;
+  const plan = roomPlan?.plan ?? null;
+  const carMeet = ride ? meetForRide(ride.ride) : null;
+  const imInCar = ride ? ride.riders.some((id) => String(id) === String(me.id)) : false;
+
+  /*
+   * Local time, at the airport the room is about.
+   *
+   * This used to be `iso.slice(11, 16)` — the UTC clock. A coffee agreed for
+   * 19:30 at Heathrow read "18:30" in summer, and the agreed time is the one
+   * number in this room that has to be right.
+   */
+  const zone: IanaZone | undefined =
+    (ride ? airportIndex.zone(ride.ride.airportIata) : undefined) ??
+    (roomPlan?.meet?.place.airportIata ? airportIndex.zone(roomPlan.meet.place.airportIata) : undefined) ??
+    (mine?.airportIata ? airportIndex.zone(mine.airportIata as never) : undefined) ??
+    (roomPlan?.meet?.place.cityKey ? airportIndex.cityZone(roomPlan.meet.place.cityKey) : undefined);
+  const clock = (iso: string): string => (zone ? localTime(iso as never, zone) : iso.slice(11, 16));
 
   const send = () => {
     post(channel, { kind: 'text', text: draft });
     setDraft('');
   };
+
+  const calendar = (m: { id: string; meetKind: keyof typeof MEET_KIND_LABEL; from: string; to: string; place: string }) => {
+    const other = theirs?.firstName ?? 'them';
+    const ics = buildIcs(
+      {
+        uid: `${m.id}@wingman`,
+        title: `${MEET_KIND_LABEL[m.meetKind]} with ${other}`,
+        start: m.from,
+        end: m.to,
+        location: m.place,
+        description: 'Arranged through Wingman',
+      },
+      String(now),
+    );
+    const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'wingman-meet.ics';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const planBody = plan?.proposal.body;
+  const riders = view.participants.filter((p) => !p.isMe);
 
   return (
     <article className="room">
@@ -118,16 +172,54 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
       )}
 
       {ride && (
-        <a className="room__fare" href={`#/car/${String(ride.ride.id)}`}>
-          <span className="room__farelabel">
-            {ride.route.from} → {ride.route.to} · {ride.riders.length} sharing
-          </span>
-          <span className="room__farenote">
-            {ride.ride.fareSplit === 'host_pays'
-              ? 'The host is covering this one'
-              : 'Fare split evenly · settle it between you'}
-          </span>
-        </a>
+        <section className="room__fare" aria-label="The car">
+          <a className="room__farelabel" href={`#/car/${String(ride.ride.id)}`}>
+            {ride.route.from} → {ride.route.to} · {ride.riders.length} sharing · {clock(String(ride.ride.window.from))}–
+            {clock(String(ride.ride.window.to))}
+          </a>
+          <span className="room__farenote">{fareLine(ride.ride, ride.riders.length)}</span>
+          {imInCar && ride.ride.pickupNote && (
+            <p className="room__pickup">
+              <span className="room__pickuplabel">Where to meet the car</span> {ride.ride.pickupNote}
+            </p>
+          )}
+        </section>
+      )}
+
+      {isMeet && plan && planBody && (
+        <section className="plan" aria-label="The agreed plan">
+          <p className="plan__label">
+            <Chip tone="trust">{PLAN_COPY.strip.label}</Chip>
+          </p>
+          <p className="plan__title">{MEET_KIND_LABEL[planBody.meetKind]}</p>
+          <p className="plan__meta mono">
+            {clock(String(planBody.window.from))}–{clock(String(planBody.window.to))} · {planBody.placeLabel}
+          </p>
+          {roomPlan?.offer && theirs && <p className="plan__pending">{PLAN_COPY.pending(theirs.firstName)}</p>}
+          <div className="plan__actions">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() =>
+                calendar({
+                  id: String(plan.proposal.id),
+                  meetKind: planBody.meetKind,
+                  from: String(planBody.window.from),
+                  to: String(planBody.window.to),
+                  place: planBody.placeLabel,
+                })
+              }
+            >
+              {PLAN_COPY.strip.calendar}
+            </Button>
+            <Button size="sm" variant="quiet" onClick={() => setProposing(true)}>
+              {PLAN_COPY.strip.change}
+            </Button>
+            <Button size="sm" variant="quiet" onClick={() => setCallingOff(true)}>
+              {PLAN_COPY.strip.off}
+            </Button>
+          </div>
+        </section>
       )}
 
       {channel.pinned && (
@@ -150,14 +242,14 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
           )}
           {watching ? (
             <div className="room__guardian">
-              <Chip tone="guard">{watching.guardian.label} is watching until {String(watching.endsAt).slice(11, 16)}</Chip>
-              <Button size="sm" variant="secondary" onClick={() => setAfterMeet(true)}>
+              <Chip tone="guard">{watching.guardian.label} is watching until {clock(String(watching.endsAt))}</Chip>
+              <Button size="sm" variant="secondary" onClick={() => setAfterMeet(theirs)}>
                 I&rsquo;m safe
               </Button>
             </div>
           ) : (
             <div className="room__guardian">
-              {view.request && (
+              {view.request && !plan && (
                 <Button size="sm" variant="secondary" onClick={() => setProposing(true)}>
                   Suggest a time
                 </Button>
@@ -165,7 +257,7 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
               <Button size="sm" variant="quiet" onClick={() => setGuarding(true)}>
                 Tell someone where you are
               </Button>
-              <Button size="sm" variant="quiet" onClick={() => setAfterMeet(true)}>
+              <Button size="sm" variant="quiet" onClick={() => setAfterMeet(theirs)}>
                 We&rsquo;ve met
               </Button>
             </div>
@@ -242,6 +334,33 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
         </>
       )}
 
+      {/* A car is the one meet you cannot walk out of, so it gets the same
+          safety tools a coffee has — watching over its pickup window, and
+          rating each person in it afterwards. */}
+      {ride && carMeet && imInCar && (
+        <div className="room__guardian">
+          {watching ? (
+            <>
+              <Chip tone="guard">{watching.guardian.label} is watching until {clock(String(watching.endsAt))}</Chip>
+              <Button size="sm" variant="secondary" onClick={() => setChoosingRider(true)}>
+                I&rsquo;m safe
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button size="sm" variant="quiet" onClick={() => setGuarding(true)}>
+                Tell someone where you are
+              </Button>
+              {riders.length > 0 && (
+                <Button size="sm" variant="quiet" onClick={() => setChoosingRider(true)}>
+                  We&rsquo;ve met
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       <section className="room__log">
         {messages.length === 0 ? (
           <p className="room__empty">
@@ -255,6 +374,7 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
               const prev = messages[i - 1];
               const isMine = String(m.from) === String(me.id);
               const grouped = prev && prev.from === m.from && prev.body.kind === 'text' && m.body.kind === 'text';
+              const who = isMine ? 'You' : authorName(String(m.from), String(me.id), me.firstName);
               if (m.body.kind === 'system') {
                 return (
                   <li key={String(m.id)} className="msg msg--system">
@@ -262,46 +382,78 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
                   </li>
                 );
               }
+              if (m.body.kind === 'agreed' || m.body.kind === 'plan_off') {
+                const target = m.body.proposalId;
+                const about = messages.find((x) => x.id === target);
+                const detail =
+                  about?.body.kind === 'proposal'
+                    ? ` ${MEET_KIND_LABEL[about.body.meetKind]}, ${clock(String(about.body.window.from))} at ${about.body.placeLabel}.`
+                    : '';
+                const line =
+                  m.body.kind === 'agreed'
+                    ? (isMine ? PLAN_COPY.log.agreedMine : PLAN_COPY.log.agreedTheirs(who)) + detail
+                    : isMine
+                      ? PLAN_COPY.log.offMine
+                      : PLAN_COPY.log.offTheirs(who);
+                return (
+                  <li key={String(m.id)} className={`msg msg--system ${m.body.kind === 'agreed' ? 'msg--agreed' : ''}`}>
+                    <span className="msg__stage">{line}</span>
+                  </li>
+                );
+              }
               if (m.body.kind === 'proposal') {
                 const b = m.body;
-                const who = isMine ? 'You' : authorName(String(m.from), String(me.id), me.firstName);
-                const title = MEET_KIND_LABEL[b.meetKind];
+                const state: ProposalState | undefined = roomPlan?.states.get(String(m.id));
+                const other = theirs?.firstName ?? 'them';
                 return (
                   <li key={String(m.id)} className={`msg msg--proposal ${isMine ? 'msg--mine' : ''}`}>
-                    <div className="proposal">
-                      <p className="proposal__who">{who} suggested</p>
-                      <p className="proposal__title">{title}</p>
+                    <div
+                      className={`proposal ${state === 'agreed' ? 'proposal--agreed' : ''} ${
+                        state === 'replaced' || state === 'passed' ? 'proposal--stale' : ''
+                      }`}
+                    >
+                      <p className="proposal__who">
+                        {who} suggested
+                        {state === 'agreed' && (
+                          <>
+                            {' '}
+                            <Chip tone="trust">{PLAN_COPY.card.agreed}</Chip>
+                          </>
+                        )}
+                      </p>
+                      <p className="proposal__title">{MEET_KIND_LABEL[b.meetKind]}</p>
                       <p className="proposal__meta mono">
                         {b.placeLabel} · {clock(String(b.window.from))}–{clock(String(b.window.to))}
                       </p>
                       <div className="proposal__actions">
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            const ics = buildIcs(
-                              {
-                                uid: `${String(m.id)}@wingman`,
-                                title: `${title} with ${isMine && theirs ? theirs.firstName : who === 'You' ? 'them' : who}`,
-                                start: String(b.window.from),
-                                end: String(b.window.to),
-                                location: b.placeLabel,
-                                description: 'Arranged through Wingman',
-                              },
-                              String(now),
-                            );
-                            const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = 'wingman-meet.ics';
-                            a.click();
-                            URL.revokeObjectURL(url);
-                          }}
-                        >
-                          Add to calendar
-                        </Button>
-                        {!isMine && (
-                          <Button size="sm" variant="quiet" onClick={() => setProposing(true)}>
-                            Propose another time
+                        {state === 'agreeable' && (
+                          <>
+                            <Button size="sm" onClick={() => agreeTo(channelId, String(m.id))}>
+                              {PLAN_COPY.card.agree}
+                            </Button>
+                            <Button size="sm" variant="quiet" onClick={() => setProposing(true)}>
+                              Suggest another time
+                            </Button>
+                          </>
+                        )}
+                        {state === 'waiting' && <span className="proposal__note">{PLAN_COPY.card.waiting(other)}</span>}
+                        {state === 'passed' && <span className="proposal__note">{PLAN_COPY.card.passed}</span>}
+                        {state === 'replaced' && <span className="proposal__note">{PLAN_COPY.card.replaced}</span>}
+                        {(state === 'waiting' || state === undefined) && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() =>
+                              calendar({
+                                id: String(m.id),
+                                meetKind: b.meetKind,
+                                from: String(b.window.from),
+                                to: String(b.window.to),
+                                place: b.placeLabel,
+                              })
+                            }
+                          >
+                            Add to calendar
                           </Button>
                         )}
                       </div>
@@ -312,7 +464,6 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
               }
               if (m.body.kind === 'stage') {
                 const copy = STAGE_COPY[m.body.stage];
-                const who = authorName(String(m.from), String(me.id), me.firstName);
                 return (
                   <li key={String(m.id)} className={`msg msg--stage ${copy.tone === 'warn' ? 'msg--warn' : ''}`}>
                     <span className="msg__dot" aria-hidden="true" />
@@ -326,9 +477,7 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
               }
               return (
                 <li key={String(m.id)} className={`msg msg--text ${isMine ? 'msg--mine' : ''} ${grouped ? 'msg--grouped' : ''}`}>
-                  {!isMine && !grouped && channel.kind !== 'meet' && (
-                    <span className="msg__author">{authorName(String(m.from), String(me.id), me.firstName)}</span>
-                  )}
+                  {!isMine && !grouped && channel.kind !== 'meet' && <span className="msg__author">{who}</span>}
                   <span className="msg__row">
                     <p className="msg__bubble">{m.body.text}</p>
                     {!isMine && (
@@ -385,10 +534,13 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
           onClose={() => setReporting(null)}
         />
       )}
-      {guarding && view.request && (
+      {guarding && (view.request || carMeet) && (
         <GuardianSheet
           channelId={channelId}
-          window={view.request.proposal.window}
+          // The agreed window when there is one — not the one first asked for,
+          // which is what this watched before a plan existed. A car's is the
+          // host's pickup window.
+          window={carMeet?.window ?? roomPlan?.meet?.window ?? view.request!.proposal.window}
           onClose={() => setGuarding(false)}
         />
       )}
@@ -404,16 +556,71 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
           }}
         />
       )}
-      {afterMeet && theirs && (
+      {callingOff && plan && (
+        <Sheet
+          open
+          title={PLAN_COPY.strip.off}
+          onClose={() => setCallingOff(false)}
+          actions={
+            <>
+              <Button variant="secondary" onClick={() => setCallingOff(false)}>
+                Keep the plan
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  callOffPlan(channelId);
+                  setCallingOff(false);
+                }}
+              >
+                {PLAN_COPY.strip.off}
+              </Button>
+            </>
+          }
+        >
+          <p className="sheet__body">{PLAN_COPY.offConfirm}</p>
+        </Sheet>
+      )}
+      {choosingRider && (
+        <Sheet open title="Who do you want to rate?" onClose={() => setChoosingRider(false)}>
+          <p className="sheet__body">One at a time. Nobody sees what you said until they have rated you too.</p>
+          <div className="riderpick">
+            {riders.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="riderpick__row"
+                onClick={() => {
+                  setChoosingRider(false);
+                  setAfterMeet(p);
+                }}
+              >
+                <Avatar spec={p.avatar} size="sm" label={p.firstName} />
+                <span>{p.firstName}</span>
+              </button>
+            ))}
+          </div>
+        </Sheet>
+      )}
+      {afterMeet && (
         <AfterMeetSheet
           channelId={channelId}
-          otherId={theirs.id as PersonId}
-          firstName={theirs.firstName}
-          onClose={() => setAfterMeet(false)}
+          otherId={afterMeet.id as PersonId}
+          firstName={afterMeet.firstName}
+          onClose={() => setAfterMeet(null)}
         />
       )}
     </article>
   );
+}
+
+/** "About €50 each · split evenly, settle it between you". */
+function fareLine(ride: Parameters<typeof fareEach>[0], people: number): string {
+  if (ride.fareSplit === 'host_pays') return 'The host is covering this one';
+  const each = fareEach(ride, people);
+  return each !== undefined && ride.fare
+    ? `About ${money(each, ride.fare.currency)} each · settle it between you`
+    : 'Fare split evenly · settle it between you';
 }
 
 function Presence({ who }: { who: Participant }) {
@@ -443,9 +650,4 @@ function Presence({ who }: { who: Participant }) {
       </div>
     </div>
   );
-}
-
-/** 18:42 — the only part of a timestamp that matters inside an airport. */
-function clock(iso: string): string {
-  return iso.slice(11, 16);
 }
