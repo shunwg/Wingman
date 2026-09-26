@@ -25,6 +25,8 @@ const VIEWPORTS = process.env.SHOOT_ALL
     ]
   : [{ name: 'mobile', width: 402, height: 874 }];
 
+type Step = { press: string; within?: string; exact?: boolean } | { goto: string } | { wait: number };
+
 const THEMES = (process.env.SHOOT_ALL || process.env.SHOOT_DARK ? ['light', 'dark'] : ['light']) as ('light' | 'dark')[];
 
 /**
@@ -58,6 +60,13 @@ const ROUTES: {
    * A blind spot three independent reviewers share is not a reviewer problem.
    */
   account?: boolean;
+  /**
+   * A short walk to reach a state no URL can name — a plan agreed in a room, a
+   * seat taken, a yes arriving. Run in order after arriving at `hash`, and the
+   * demo's state carries forward to the routes after it, so their order is
+   * part of the script.
+   */
+  steps?: Step[];
 }[] = [
   { name: 'welcome', hash: '#/welcome', fresh: true },
   { name: 'signup-about', hash: '#/signup/about', fresh: true },
@@ -86,6 +95,32 @@ const ROUTES: {
   { name: 'you-edit', hash: '#/you/edit' },
   // The same screen as a real profile: this is the one that carries "Delete my
   // profile" and the confirmation sheet behind it.
+  // v9 — states reached by doing, in the order a person would do them.
+  // First: saying yes to Priya settles tonight's trip, and a settled trip
+  // stops suggesting people — by design — so Jonas must be greeted before.
+  {
+    name: 'home-said-yes',
+    hash: '#/person/jonas',
+    steps: [
+      { press: 'Say hello' },
+      { press: 'Share the ride in', within: '.sheet', exact: true },
+      { press: 'Say hello', within: '.sheet' },
+      { goto: '#/' },
+      // The demo answers after DEMO_ANSWER_MS; give it a margin.
+      { wait: 5500 },
+    ],
+  },
+  {
+    name: 'room-offer',
+    hash: '#/inbox',
+    steps: [{ press: 'Yes', exact: true }, { press: 'Yes, meet', within: '.sheet' }],
+  },
+  { name: 'room-plan', hash: '#/inbox/meet:req_seed_priya', steps: [{ press: 'That works' }] },
+  { name: 'propose', hash: '#/inbox/meet:req_seed_priya', steps: [{ press: 'Suggest a change' }] },
+  { name: 'trip-plans', hash: '#/trip' },
+  { name: 'car-seated', hash: '#/car/ride_jonas_marina', steps: [{ press: 'Take the seat' }] },
+  { name: 'room-car', hash: '#/inbox/ride:ride_jonas_marina' },
+  { name: 'car-fare', hash: '#/car/ride_you_cph', steps: [{ press: 'Add an estimate' }] },
   { name: 'you-account', hash: '#/you', account: true },
   { name: 'design', hash: '#/_design' },
 ];
@@ -156,6 +191,17 @@ async function main() {
       if (route.press) {
         await page.getByRole('button', { name: route.press, exact: true }).click();
         await page.waitForTimeout(150);
+      }
+      for (const step of route.steps ?? []) {
+        if ('goto' in step) {
+          await page.goto(`${BASE}/${step.goto}`, { waitUntil: 'networkidle' });
+        } else if ('wait' in step) {
+          await page.waitForTimeout(step.wait);
+        } else {
+          const scope = step.within ? page.locator(step.within) : page;
+          await scope.getByRole('button', { name: step.press, exact: step.exact ?? false }).first().click();
+          await page.waitForTimeout(250);
+        }
       }
       // Webfonts change metrics; waiting avoids capturing a fallback-font frame.
       await page.evaluate(() => document.fonts.ready);
