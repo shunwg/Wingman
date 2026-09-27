@@ -56,5 +56,9 @@ test('a delegate in the city sees the event with no flight', async ({ page }) =>
 
   await page.goto('/#/');
   await expect(page.getByText('At Grid Week').first()).toBeVisible();
-  await expect(page.locator('.eventboard .pcard').first()).toBeVisible();
+  // A new, unverified delegate: every member here shows only to verified
+  // travellers (their default), so the board is honest about why it is empty
+  // rather than listing them anyway — round 4's privacy blocker.
+  await expect(page.locator('.eventboard .pcard')).toHaveCount(0);
+  await expect(page.getByText(/Nobody here is showing to you yet/).first()).toBeVisible();
 });

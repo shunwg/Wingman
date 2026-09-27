@@ -10,6 +10,7 @@ import { circleIsLive } from '@data/seed/circles';
 import { bucketPhrase } from '@lib/bucket';
 import { useCircle, useCircleMembers } from '@state/selectors/circles';
 import { useStore } from '@state/store';
+import { LISTING_EMPTY } from '@data/copy/listings';
 
 /**
  * A circle's home.
@@ -133,7 +134,7 @@ export function CircleScreen({ id, onBack }: { id: string; onBack: () => void })
       <section className="panel">
         <h3 className="panel__title">Members you may see</h3>
         {members.length === 0 ? (
-          <p className="panel__note">Nobody here has chosen to show the badge yet.</p>
+          <p className="panel__note">{LISTING_EMPTY}</p>
         ) : (
           <div className="panel__stack">
             {members.map((p) => (

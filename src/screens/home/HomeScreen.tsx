@@ -19,6 +19,7 @@ import { markArriving } from '@screens/inbox/arrive';
 import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { useStore } from '@state/store';
 import { takeMoment } from './moment';
+import { LISTING_EMPTY } from '@data/copy/listings';
 
 /**
  * Home.
@@ -202,7 +203,7 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
             </span>
           </div>
           {e.members.length === 0 ? (
-            <p className="panel__note">Nobody here has chosen to be seen yet.</p>
+            <p className="panel__note">{LISTING_EMPTY}</p>
           ) : (
             <div className="board">
               {e.members.slice(0, 3).map((p) => (

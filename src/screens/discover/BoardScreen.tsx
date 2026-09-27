@@ -15,6 +15,7 @@ import { SuppressionNote } from './SuppressionNote';
 import { useEventBoards } from '@state/selectors/event';
 import { CircleCrest } from '@design/patterns/CircleCrest';
 import { VenueBand } from '@screens/placePhoto';
+import { LISTING_EMPTY } from '@data/copy/listings';
 
 /**
  * The board.
@@ -68,7 +69,7 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
         </div>
       </div>
       {e.members.length === 0 ? (
-        <p className="panel__note">Nobody here has chosen to be seen yet.</p>
+        <p className="panel__note">{LISTING_EMPTY}</p>
       ) : (
         <div className="board">
           {e.members.map((p) => (
