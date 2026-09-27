@@ -54,7 +54,10 @@ export function GuardianSheet({
         They get a link that works for this meet and a little after, then dies. No account
         needed on their side.
       </p>
-      <Field label="Who" hint="What you call them. Mum, Priya, my flatmate.">
+      {/* The examples used to include "Priya" — the seeded person you are
+          meeting — which read as though this told *her* where you are. It is
+          for someone who is not there. */}
+      <Field label="Who" hint="Someone who is not at the meet. Mum, a flatmate, a friend at home.">
         <input
           className="field__input"
           value={label}

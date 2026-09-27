@@ -116,9 +116,9 @@ const ROUTES: {
     steps: [{ press: 'Yes', exact: true }, { press: 'Yes, meet', within: '.sheet' }],
   },
   { name: 'room-plan', hash: '#/inbox/meet:req_seed_priya', steps: [{ press: 'That works' }] },
-  { name: 'propose', hash: '#/inbox/meet:req_seed_priya', steps: [{ press: 'Suggest a change' }] },
-  { name: 'trip-plans', hash: '#/trip' },
+  { name: 'propose', hash: '#/inbox/meet:req_seed_priya', steps: [{ press: 'Change time' }] },
   { name: 'car-seated', hash: '#/car/ride_jonas_marina', steps: [{ press: 'Take the seat' }] },
+  { name: 'trip-plans', hash: '#/trip' },
   { name: 'room-car', hash: '#/inbox/ride:ride_jonas_marina' },
   { name: 'car-fare', hash: '#/car/ride_you_cph', steps: [{ press: 'Add an estimate' }] },
   { name: 'you-account', hash: '#/you', account: true },
@@ -131,6 +131,22 @@ async function setTheme(page: Page, theme: 'light' | 'dark') {
   }, theme);
   // Let the token swap paint before capturing.
   await page.waitForTimeout(120);
+}
+
+/**
+ * Wait until the screen has actually rendered.
+ *
+ * A hash change is a same-document navigation, so `networkidle` resolves
+ * before the route's lazy chunk has even been requested — and the router's
+ * Suspense boundary paints nothing in that gap. Fourteen light captures came
+ * out as the same blank 2,835-byte frame that way, and two persona walks were
+ * run against them before anyone noticed. Wait for text on the page instead.
+ */
+async function painted(page: Page): Promise<void> {
+  await page.waitForFunction(() => (document.getElementById('root')?.innerText.trim().length ?? 0) > 20, undefined, {
+    timeout: 15_000,
+  });
+  await page.waitForLoadState('networkidle');
 }
 
 async function main() {
@@ -188,6 +204,7 @@ async function main() {
         mode = want;
       }
       await page.goto(`${BASE}/${route.hash}`, { waitUntil: 'networkidle' });
+      await painted(page);
       if (route.press) {
         await page.getByRole('button', { name: route.press, exact: true }).click();
         await page.waitForTimeout(150);
@@ -195,6 +212,7 @@ async function main() {
       for (const step of route.steps ?? []) {
         if ('goto' in step) {
           await page.goto(`${BASE}/${step.goto}`, { waitUntil: 'networkidle' });
+          await painted(page);
         } else if ('wait' in step) {
           await page.waitForTimeout(step.wait);
         } else {

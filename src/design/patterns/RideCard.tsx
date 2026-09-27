@@ -113,7 +113,7 @@ export function RideCard({
         className="ridecard__body"
         onClick={onOpen}
         disabled={!onOpen}
-        aria-label={`${route.from} to ${route.to}, ${when}, ${seatText}${
+        aria-label={`${route.from} to ${route.to}, ${when}, ${seatText}, ${fareNote}${
           door ? `, ${DOOR_LABEL[door]}` : ''
         }`}
       >

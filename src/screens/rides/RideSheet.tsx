@@ -1,6 +1,6 @@
 import { useId, useMemo, useState } from 'react';
 import type { RideAudience, RideDirection, Trip } from '@domain/index';
-import { addMinutes, anyAudience, asCircleId, localTime, utcFromLocal } from '@domain/index';
+import { addMinutes, anyAudience, asCircleId, localDate, localTime, utcFromLocal } from '@domain/index';
 import { airportIndex } from '@data/airports/index';
 import { Button } from '@design/primitives/Button';
 import { Field } from '@design/primitives/Field';
@@ -73,7 +73,9 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
   const zone = end ? airportIndex.zone(end.iata) : undefined;
   // The meter runs in the airport's country; the host can say otherwise.
   const currency = fareCurrency ?? (end ? currencyForAirport(end.iata) : 'EUR');
-  const dateOf = end && zone ? String(end.at).slice(0, 10) : undefined;
+  // The *local* date at that airport. The UTC date put a car for a landing
+  // before 08:00 in Singapore on the previous day.
+  const dateOf = end && zone ? String(localDate(end.at, zone)) : undefined;
 
   /** The stay's own area, offered as the default so most people type nothing. */
   const suggested = trip.stays.find((s) => s.destination)?.destination;
@@ -203,7 +205,7 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
       >
         <input
           id={`${id}-label`}
-          className="input"
+          className="field__input"
           value={label}
           placeholder={suggested?.label ?? 'Marina Bay'}
           onChange={(e) => {
@@ -216,7 +218,7 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
       <Field label="Leaving around" hint="Local time. An hour's window either side." htmlFor={`${id}-time`}>
         <input
           id={`${id}-time`}
-          className="input mono"
+          className="field__input mono"
           type="time"
           value={time}
           onChange={(e) => {
@@ -254,7 +256,7 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
         <div className="fareinput">
           <input
             id={`${id}-fare`}
-            className="input mono"
+            className="field__input mono"
             inputMode="numeric"
             pattern="[0-9]*"
             placeholder="0"
@@ -262,7 +264,7 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
             onChange={(e) => setFareAmount(e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(0, 5))}
           />
           <select
-            className="input fareinput__currency"
+            className="field__input fareinput__currency"
             value={currency}
             aria-label="Currency"
             onChange={(e) => setFareCurrency(e.target.value)}

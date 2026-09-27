@@ -40,7 +40,7 @@ export const PLAN_COPY = {
   },
   strip: {
     label: 'Agreed',
-    change: 'Suggest a change',
+    change: 'Change time',
     off: 'Call it off',
     calendar: 'Add to calendar',
   },
@@ -57,6 +57,10 @@ export const PLAN_COPY = {
     offMine: 'You called it off.',
     offTheirs: (name: string) => `${name} called it off.`,
   },
+  /** They said they can't make it, after the yes. */
+  theyCant: (name: string) => `${name} can’t make it. Call it off, or suggest another time.`,
+  /** You said so. */
+  iCant: (name: string) => `You said you can’t make it. Call it off so ${name} is not left waiting.`,
   /** A plan stands and a different time is on the table. */
   pending: (name: string) => `${name} suggested a change. The plan stands until one of you says yes to it.`,
   none: 'No plan yet. Suggest a time, or say yes to one.',

@@ -14,7 +14,8 @@ import { airportIndex } from '@data/airports/index';
 import { personById } from '@data/seed/people';
 import { useRide, pendingSeats } from '@state/selectors/rides';
 import { useStore } from '@state/store';
-import { DOOR_COPY, RIDE_FARE_NOTE, RIDE_GROUND } from '@data/copy/rides';
+import { DOOR_COPY, RIDE_FARE_NOTE, rideGround } from '@data/copy/rides';
+import { StampBadge } from '@design/patterns/StampBadge';
 import { useCircles } from '@state/selectors/circles';
 import { rideInviteLink } from './link';
 
@@ -85,6 +86,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
   const [editingFare, setEditingFare] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [givingUp, setGivingUp] = useState(false);
 
   if (!row) {
     return (
@@ -152,10 +154,55 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
         </div>
       </header>
 
+      {/* First, for a host: somebody is waiting on them, and it used to sit
+          below two new panels and the fold. */}
+      {isHost && pending.length > 0 && (
+        <section className="panel">
+          <h3 className="panel__title">
+            {pending.length === 1 ? 'One person is asking' : `${pending.length} people are asking`}
+          </h3>
+          <ul className="ride__riders">
+            {pending.map((c) => {
+              // Somebody asking for a seat has not been accepted yet, so they
+              // read at the browsing rung — the same as they do on the board.
+              const r = riderCard(String(c.personId), 0);
+              return (
+                <li key={String(c.personId)} className="ride__rider">
+                  {r ? <Avatar spec={r.card.avatar} size="sm" /> : <span className="ride__blank" />}
+                  <span className="ride__askwho">
+                    <span className="ride__askname">{r?.first ?? 'Someone'}</span>
+                    {/* What the ladder already allows at this rung — a line and
+                        their stamps. A first name and a face was all a host had
+                        to decide who sits beside her. */}
+                    {r && 'headline' in r.card && typeof r.card.headline === 'string' && r.card.headline && (
+                      <span className="ride__askline">{r.card.headline}</span>
+                    )}
+                    {r && 'stamps' in r.card && r.card.stamps.length > 0 && (
+                      <span className="ride__askstamps">
+                        {r.card.stamps.slice(0, 3).map((st, i) => (
+                          <StampBadge key={`${st.kind}-${i}`} stamp={st} compact />
+                        ))}
+                      </span>
+                    )}
+                  </span>
+                  {c.note && <span className="panel__note">{c.note}</span>}
+                  <Button size="sm" onClick={() => confirmSeat(rideId, c.personId)}>
+                    Yes
+                  </Button>
+                  <Button size="sm" variant="quiet" onClick={() => declineSeat(rideId, c.personId)}>
+                    No
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       <section className="panel">
         <h3 className="panel__title">Who can join</h3>
         <p className="ride__door">
-          <Chip tone="neutral">{DOOR_COPY[ride.audience.kind].chip}</Chip>
+          <Chip tone="neutral">{isHost ? DOOR_COPY[ride.audience.kind].chip : DOOR_COPY[ride.audience.kind].guestChip}</Chip>
           {circleName && <Chip tone="neutral">{circleName}</Chip>}
         </p>
         <p className="panel__note">
@@ -186,7 +233,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
             );
           })}
         </ul>
-        <p className="panel__note">{RIDE_GROUND}</p>
+        <p className="panel__note">{rideGround(ride.direction)}</p>
       </section>
 
       <section className="panel" aria-label="What it costs">
@@ -198,7 +245,9 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
         ) : (
           <p className="panel__note">{fare.detail}</p>
         )}
-        <p className="panel__note">{RIDE_FARE_NOTE}</p>
+        {/* Only when it is split: under "the host is covering it" this line
+            contradicted the one above it. */}
+        {ride.fareSplit !== 'host_pays' && <p className="panel__note">{RIDE_FARE_NOTE}</p>}
         {isHost && ride.fareSplit !== 'host_pays' && ride.status !== 'cancelled' && (
           <Button size="sm" variant="quiet" onClick={() => setEditingFare(true)}>
             {ride.fare ? 'Change the estimate' : 'Add an estimate'}
@@ -230,34 +279,6 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
           </Button>
         )}
       </section>
-
-      {isHost && pending.length > 0 && (
-        <section className="panel">
-          <h3 className="panel__title">
-            {pending.length === 1 ? 'One person is asking' : `${pending.length} people are asking`}
-          </h3>
-          <ul className="ride__riders">
-            {pending.map((c) => {
-              // Somebody asking for a seat has not been accepted yet, so they
-              // read at the browsing rung — the same as they do on the board.
-              const r = riderCard(String(c.personId), 0);
-              return (
-                <li key={String(c.personId)} className="ride__rider">
-                  {r ? <Avatar spec={r.card.avatar} size="sm" /> : <span className="ride__blank" />}
-                  <span className="ride__askname">{r?.first ?? 'Someone'}</span>
-                  {c.note && <span className="panel__note">{c.note}</span>}
-                  <Button size="sm" onClick={() => confirmSeat(rideId, c.personId)}>
-                    Yes
-                  </Button>
-                  <Button size="sm" variant="quiet" onClick={() => declineSeat(rideId, c.personId)}>
-                    No
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
 
       {isHost && ride.inviteCode && (
         <section className="panel">
@@ -292,9 +313,13 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
         )}
 
         {!isHost && !mine && refusal === null && (
-          <Button full onClick={() => claimSeat(rideId)}>
-            {row.seatsAutomatically ? 'Take the seat' : 'Ask for a seat'}
-          </Button>
+          // Pinned above the tab bar: the two new panels pushed this below
+          // the fold on the one screen where it is the whole point.
+          <div className="ride__cta">
+            <Button full onClick={() => claimSeat(rideId)}>
+              {row.seatsAutomatically ? 'Take the seat' : 'Ask for a seat'}
+            </Button>
+          </div>
         )}
 
         {!isHost && !mine && refusal !== null && REFUSAL_COPY[refusal] && (
@@ -311,7 +336,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
         )}
 
         {mine?.status === 'confirmed' && (
-          <Button variant="quiet" onClick={() => withdrawSeat(rideId)}>
+          <Button variant="quiet" onClick={() => setGivingUp(true)}>
             Give up the seat
           </Button>
         )}
@@ -355,6 +380,33 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
             setEditingNote(false);
           }}
         />
+      )}
+      {givingUp && (
+        <Sheet
+          open
+          title="Give up your seat?"
+          onClose={() => setGivingUp(false)}
+          actions={
+            <>
+              <Button variant="secondary" onClick={() => setGivingUp(false)}>
+                Keep it
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  withdrawSeat(rideId);
+                  setGivingUp(false);
+                }}
+              >
+                Give it up
+              </Button>
+            </>
+          }
+        >
+          <p className="sheet__body">
+            The car is told you are no longer in it, and you leave its room. While a seat is free you can ask again.
+          </p>
+        </Sheet>
       )}
       {confirmingCancel && (
         <Sheet
@@ -431,27 +483,23 @@ function FareSheet({
         </>
       }
     >
-      <Field
-        label="The whole car, roughly"
-        hint={
-          each !== undefined
-            ? `About ${each} ${currency} each if all ${seats} seats fill. Leave it empty to take the estimate back.`
-            : 'Your best guess at the meter. Leave it empty to take the estimate back.'
-        }
-      >
-        <div className="fareinput">
+      <div className="fareinput">
+        <Field label="The whole car, roughly" htmlFor="fare-amount">
           <input
-            className="input mono"
+            id="fare-amount"
+            className="field__input mono"
             inputMode="numeric"
             pattern="[0-9]*"
             value={amount}
-            aria-label="Amount"
+            aria-describedby="fare-each"
             onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))}
           />
+        </Field>
+        <Field label="Currency" htmlFor="fare-currency">
           <select
-            className="input fareinput__currency"
+            id="fare-currency"
+            className="field__input fareinput__currency"
             value={currency}
-            aria-label="Currency"
             onChange={(e) => setCurrency(e.target.value)}
           >
             {FARE_CURRENCIES.map((c) => (
@@ -460,8 +508,13 @@ function FareSheet({
               </option>
             ))}
           </select>
-        </div>
-      </Field>
+        </Field>
+      </div>
+      <p className="field__hint" id="fare-each">
+        {each !== undefined
+          ? `About ${each} ${currency} each if all ${seats} seats fill. Leave it empty to take the estimate back.`
+          : 'Your best guess at the meter. Leave it empty to take the estimate back.'}
+      </p>
       <p className="panel__note">{RIDE_FARE_NOTE}</p>
     </Sheet>
   );
@@ -494,7 +547,7 @@ function PickupSheet({
     >
       <Field
         label="The spot and the car"
-        hint={`Only the people in the car see this. ${PICKUP_NOTE_CAP - note.length} characters left.`}
+        hint={`Only the people in the car see this — including anyone who takes a seat later. ${PICKUP_NOTE_CAP - note.length} characters left.`}
       >
         <textarea
           className="field__input"

@@ -25,6 +25,7 @@ import { ProposeSheet, type ProposalDraft } from './ProposeSheet';
 import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { buildIcs } from '@lib/ics';
 import { fareCopy } from '@screens/rides/fareCopy';
+import { windowLabel } from '@screens/whenLabel';
 
 /**
  * One conversation — a meet room, a circle's General, or a group.
@@ -50,6 +51,7 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
   const muteChannel = useStore((s) => s.muteChannel);
   const unmuteChannel = useStore((s) => s.unmuteChannel);
   const guardian = useStore((s) => s.guardian);
+  const checkOut = useStore((s) => s.checkOut);
   const now = useStore((s) => s.now);
   const [draft, setDraft] = useState('');
   const [reporting, setReporting] = useState<Message | null>(null);
@@ -144,6 +146,32 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
   const planBody = plan?.proposal.body;
   const riders = view.participants.filter((p) => !p.isMe);
 
+  /*
+   * "Can't make it" after the yes.
+   *
+   * It is one tap, deliberately — and it used to leave the strip saying
+   * "Agreed · 19:10" above it, so the room said two opposite things at once.
+   * The strip now says it plainly and points at the way out.
+   */
+  let agreedAt = -1;
+  if (plan) {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const b = messages[i]!.body;
+      if (b.kind === 'agreed' && b.proposalId === plan.proposal.id) {
+        agreedAt = i;
+        break;
+      }
+    }
+  }
+  const cantMakeIt = plan
+    ? messages
+        .slice(agreedAt + 1)
+        .filter((m) => m.body.kind === 'stage' && m.body.stage === 'cannot_make_it')
+        .map((m) => String(m.from))
+    : [];
+  const iCant = cantMakeIt.includes(String(me.id));
+  const theyCant = theirs ? cantMakeIt.includes(String(theirs.id)) : false;
+
   return (
     <article className="room">
       <header className="room__head">
@@ -179,7 +207,7 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
           </a>
           <span className="room__farenote">
             {fareCopy(ride.ride, ride.riders.length, true, String(ride.ride.hostPersonId) === String(me.id) ? 'You' : authorName(String(ride.ride.hostPersonId), String(me.id), me.firstName)).short}
-            {' · settle it between you'}
+            {ride.ride.fareSplit === 'host_pays' ? '' : ' · settle it between you'}
           </span>
           {imInCar && ride.ride.pickupNote && (
             <p className="room__pickup">
@@ -190,14 +218,23 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
       )}
 
       {isMeet && plan && planBody && (
-        <section className="plan" aria-label="The agreed plan">
-          <p className="plan__label">
+        <section className={`plan ${iCant || theyCant ? 'plan--doubt' : ''}`} aria-label="The agreed plan">
+          {/* Pinned while the log scrolls under it: the room opens at its
+              newest message, and a strip that scrolled away with the log was a
+              plan nobody could see after tapping That works. The time is the
+              headline because it is the fact people check; the kind and the
+              place follow. */}
+          <p className="plan__when">
             <Chip tone="trust">{PLAN_COPY.strip.label}</Chip>
+            <span className="plan__time">
+              {windowLabel(planBody.window.from, planBody.window.to, zone, now)}
+            </span>
           </p>
-          <p className="plan__title">{MEET_KIND_LABEL[planBody.meetKind]}</p>
-          <p className="plan__meta mono">
-            {clock(String(planBody.window.from))}–{clock(String(planBody.window.to))} · {planBody.placeLabel}
+          <p className="plan__what">
+            {MEET_KIND_LABEL[planBody.meetKind]} · {planBody.placeLabel}
           </p>
+          {theyCant && theirs && <p className="plan__warn">{PLAN_COPY.theyCant(theirs.firstName)}</p>}
+          {iCant && theirs && <p className="plan__warn">{PLAN_COPY.iCant(theirs.firstName)}</p>}
           {roomPlan?.offer && theirs && <p className="plan__pending">{PLAN_COPY.pending(theirs.firstName)}</p>}
           <div className="plan__actions">
             <Button
@@ -246,7 +283,16 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
           {watching ? (
             <div className="room__guardian">
               <Chip tone="guard">{watching.guardian.label} is watching until {clock(String(watching.endsAt))}</Chip>
-              <Button size="sm" variant="secondary" onClick={() => setAfterMeet(theirs)}>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  // Safe means the watch ends now — not when a rating is
+                  // submitted. "Later" on the rating used to leave it running.
+                  checkOut();
+                  setAfterMeet(theirs);
+                }}
+              >
                 I&rsquo;m safe
               </Button>
             </div>
@@ -313,21 +359,27 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
             </section>
           )}
           <section className="room__stages">
-            <h3 className="room__label">Tell them where you are</h3>
+            {/* Named, so it cannot be mistaken for "Tell someone where you
+                are" above it — that one is a link for a friend; this one is
+                for the person you are meeting. */}
+            <h3 className="room__label">Tell {theirs.firstName} where you are</h3>
             <div className="room__buttons">
               {stagesFor(mine.stage).map((stage) => (
                 <button
                   key={stage}
                   type="button"
                   className={`stagebtn ${STAGE_COPY[stage].tone === 'warn' ? 'stagebtn--warn' : ''}`}
-                  onClick={() =>
+                  onClick={() => {
                     post(channel, {
                       kind: 'stage',
                       stage,
                       ...(mine.terminal ? { terminal: mine.terminal } : {}),
                       ...(mine.airportIata ? { airportIata: mine.airportIata as never } : {}),
-                    })
-                  }
+                    });
+                    // Can't make it, with a plan standing: offer the real way
+                    // out straight away rather than leave "Agreed" up.
+                    if (stage === 'cannot_make_it' && plan) setCallingOff(true);
+                  }}
                 >
                   {STAGE_COPY[stage].button}
                 </button>
@@ -345,7 +397,14 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
           {watching ? (
             <>
               <Chip tone="guard">{watching.guardian.label} is watching until {clock(String(watching.endsAt))}</Chip>
-              <Button size="sm" variant="secondary" onClick={() => setChoosingRider(true)}>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  checkOut();
+                  if (riders.length > 0) setChoosingRider(true);
+                }}
+              >
                 I&rsquo;m safe
               </Button>
             </>
@@ -416,6 +475,16 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
                       }`}
                     >
                       <p className="proposal__who">
+                        {!isMine && (
+                          <button
+                            type="button"
+                            className="msg__more proposal__more"
+                            aria-label="Report this suggestion"
+                            onClick={() => setReporting(m)}
+                          >
+                            ⋯
+                          </button>
+                        )}
                         {who} suggested
                         {state === 'agreed' && (
                           <>
@@ -525,8 +594,9 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
       </form>
 
       <p className="room__fineprint">
-        Messages live on this device. Hide or report anyone from the menu at the top. A yes is
-        not a commitment to keep talking.
+        {isMeet
+          ? 'Messages live on this device. Hide or report anyone from the menu at the top. A yes is not a commitment to keep talking.'
+          : 'Messages live on this device. Report a message from the ⋯ beside it.'}
       </p>
 
       {reporting && (

@@ -39,7 +39,7 @@ describe('RideScreen — money and the pickup note', () => {
   it('lets the host state an estimate, and shows each person’s share of it', () => {
     open('ride_you_cph');
     fireEvent.click(screen.getByRole('button', { name: 'Add an estimate' }));
-    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '400' } });
+    fireEvent.change(screen.getByLabelText('The whole car, roughly'), { target: { value: '400' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(useStore.getState().rides.find((r) => String(r.id) === 'ride_you_cph')?.fare).toEqual({
       amountMinor: 40000,

@@ -51,9 +51,14 @@ export function windowLabel(
 ): string {
   const day = whenLabel(from, zone, now);
   if (!zone) return day;
-  // `whenLabel` already ends in the opening time, so only the closing one is
-  // appended — "Tonight 17:30 – 18:30" rather than "Tonight 17:30 17:30–18:30".
-  return `${day} – ${localTime(to, zone)}`;
+  const open = localTime(from, zone);
+  // Within the week `whenLabel` already ends in the opening time, so only the
+  // closing one is appended — "Tonight 17:30 – 18:30". Past a week it gives
+  // the date alone, and appending only the close produced "20 Sept – 14:30":
+  // a car that seemed to leave at half past two. Both ends, then.
+  return day.endsWith(open)
+    ? `${day} – ${localTime(to, zone)}`
+    : `${day}, ${open} – ${localTime(to, zone)}`;
 }
 
 /** Whole days from today to `t`, on the viewer's own calendar — the render edge. */

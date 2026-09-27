@@ -441,7 +441,11 @@
    one steps back so the live offer is the obvious thing to answer. Colour is
    never the only signal — each state also says what it is in words. */
 .proposal--agreed { border-color: var(--trust); background: var(--trust-wash); }
-.proposal--stale { opacity: 0.62; box-shadow: none; }
+/* No opacity: at 0.62 "That time has passed" fell to 2.9:1. A stale card
+   steps back with a sunk ground and a dashed edge, and keeps readable text. */
+.proposal--stale { background: var(--surface-sunk); border-style: dashed; box-shadow: none; }
+.proposal--stale .proposal__title { color: var(--muted); }
+.proposal__more { float: right; margin: -4px -6px 0 var(--sp-2); }
 .proposal__note { font-size: var(--text-xs); color: var(--muted); align-self: center; }
 .msg--agreed .msg__stage { color: var(--trust); font-weight: 500; }
 
@@ -456,12 +460,32 @@
   border: 1px solid var(--trust);
   border-radius: var(--r-md);
   background: var(--trust-wash);
+  /* Stays in view while the log scrolls under it. */
+  position: sticky;
+  top: var(--sp-2);
+  z-index: 2;
+  box-shadow: var(--shadow-card);
 }
-.plan__label { margin: 0; }
-.plan__title { margin: 0; font-weight: 600; font-size: var(--text-lg); color: var(--ink); }
-.plan__meta { margin: 0; font-size: var(--text-sm); color: var(--muted); }
+.plan__when { margin: 0; display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.plan__time {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.plan__what {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plan__warn { margin: var(--sp-1) 0 0; font-size: var(--text-sm); font-weight: 600; color: var(--warn); }
+.plan--doubt { border-color: var(--warn); background: var(--warn-wash); }
 .plan__pending { margin: var(--sp-1) 0 0; font-size: var(--text-sm); color: var(--ink); }
-.plan__actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; padding-top: var(--sp-2); }
+.plan__actions { display: flex; gap: var(--sp-1); flex-wrap: wrap; padding-top: var(--sp-1); }
+.plan__actions .btn { flex: 0 1 auto; white-space: nowrap; }
 
 /* Choosing whom to rate in a car. */
 .riderpick { display: flex; flex-direction: column; gap: var(--sp-1); }
@@ -3059,5 +3083,16 @@ textarea.field__input {
   font-size: var(--text-sm);
   line-height: 1.5;
 }
-.fareinput { display: grid; grid-template-columns: 1fr auto; gap: var(--sp-2); }
-.fareinput__currency { width: auto; min-width: 84px; }
+.fareinput { display: grid; grid-template-columns: 1fr 108px; gap: var(--sp-2); align-items: end; }
+.fareinput .field { min-width: 0; }
+.fareinput__currency { width: 100%; }
+
+/* The one decision on a car you are not in, kept in reach above the tab bar. */
+.ride__cta {
+  position: sticky;
+  bottom: calc(var(--tabbar-height) + var(--sp-3) + env(safe-area-inset-bottom, 0px));
+  z-index: 2;
+}
+.ride__askwho { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.ride__askline { font-size: var(--text-xs); color: var(--muted); }
+.ride__askstamps { display: flex; gap: var(--sp-1); }

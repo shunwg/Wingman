@@ -1,4 +1,4 @@
-import type { RideAudience } from '@domain/index';
+import type { RideAudience, RideDirection } from '@domain/index';
 
 /**
  * What a car's door actually means, in words.
@@ -17,8 +17,10 @@ import type { RideAudience } from '@domain/index';
  */
 
 export interface DoorCopy {
-  /** The short label on a chip. */
+  /** The short label on a chip, in the host's voice. */
   chip: string;
+  /** The same chip on somebody else's car — "You approve" is wrong there. */
+  guestChip: string;
   /** What the host is agreeing to, on her own car. */
   host: string;
   /** What a would-be passenger is being told. */
@@ -32,6 +34,7 @@ export interface DoorCopy {
 export const DOOR_COPY: Record<RideAudience['kind'], DoorCopy> = {
   open: {
     chip: 'You approve each person',
+    guestChip: 'The host approves each person',
     host: 'Anyone whose journey matches can ask. Nobody gets in without your yes.',
     guest: 'The host approves each passenger. Asking does not take the seat.',
     action: 'Ask for a seat',
@@ -39,6 +42,7 @@ export const DOOR_COPY: Record<RideAudience['kind'], DoorCopy> = {
   },
   circles: {
     chip: 'Circle members seat themselves',
+    guestChip: 'Circle members seat themselves',
     // The word "only" is deliberately not the whole story here. It is true
     // that nobody outside the circle sees the car, and it is also true that
     // anybody inside it can get in without asking — and the second half is
@@ -50,6 +54,7 @@ export const DOOR_COPY: Record<RideAudience['kind'], DoorCopy> = {
   },
   invite: {
     chip: 'Anyone with the link seats themselves',
+    guestChip: 'Anyone with the link seats themselves',
     host: 'Whoever you send the link to can take a seat without asking you first. The car is invisible to everyone else.',
     guest: 'You followed the host’s link, so the seat is yours to take.',
     action: 'Take the seat',
@@ -65,8 +70,15 @@ export const DOOR_COPY: Record<RideAudience['kind'], DoorCopy> = {
  * the one surface in this product you cannot walk away from. Saying otherwise
  * was the only place the app addressed the difference and it got it backwards.
  */
-export const RIDE_GROUND =
-  'You meet at the taxi rank, which is public, and Wingman never shares an address. The car itself is not — it is the one meet you cannot walk out of, so you choose who is in it and you can change your mind up to the kerb.';
+export function rideGround(direction: RideDirection): string {
+  // A car heading for the airport has no taxi rank at its start; it said it
+  // did, and the app's own plan for that car put it at the pickup point.
+  const where =
+    direction === 'from_airport'
+      ? 'You meet at the taxi rank, which is public'
+      : 'You meet at the pickup point, a neighbourhood the host named';
+  return `${where}, and Wingman never shares an address. The car itself is not public — it is the one meet you cannot walk out of, so you choose who is in it and you can change your mind up to the kerb.`;
+}
 
 /** What the fare line promises, and what it does not. */
 export const RIDE_FARE_NOTE =
