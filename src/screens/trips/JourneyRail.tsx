@@ -45,6 +45,8 @@ export interface JourneyRailProps {
   onSet: (stage: JourneyStage) => void;
   /** Present when this trip has a car whose room you could tell. */
   onTellCar?: (stage: JourneyStage) => void;
+  /** Which car — "Tell the car to Marina Bay" — so nobody tells the wrong one. */
+  tellCarTo?: string;
   /** Step back — a rail you cannot correct is a rail people stop using. */
   onUndo?: () => void;
 }
@@ -84,7 +86,7 @@ function railFor(trip: Trip, now: ISODateTime, current?: StageUpdate): JourneySt
   return DEPARTURE_RAIL;
 }
 
-export function JourneyRail({ trip, now, current, onSet, onTellCar, onUndo }: JourneyRailProps) {
+export function JourneyRail({ trip, now, current, onSet, onTellCar, tellCarTo, onUndo }: JourneyRailProps) {
   const rail = railFor(trip, now, current);
   const at = current ? rail.indexOf(current.stage) : -1;
   const next = rail[at + 1];
@@ -148,7 +150,7 @@ export function JourneyRail({ trip, now, current, onSet, onTellCar, onUndo }: Jo
         )}
         {current && onTellCar && (
           <Button size="sm" variant="quiet" onClick={() => onTellCar(current.stage)}>
-            Tell the car
+            {tellCarTo ? `Tell the car to ${tellCarTo}` : 'Tell the car'}
           </Button>
         )}
         {/* The last step is still a step, and a mis-tap is the common case —

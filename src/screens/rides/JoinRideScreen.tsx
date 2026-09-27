@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { parseInvite } from '@domain/invite';
 import { localTime } from '@domain/time';
-import { latestClaim, seatsLeft } from '@domain/index';
+import { cameBack, latestClaim, seatsLeft, seatsAutomatically } from '@domain/index';
 import { redact } from '@privacy/index';
 import { Button } from '@design/primitives/Button';
 import { Chip } from '@design/primitives/Chip';
@@ -199,7 +199,7 @@ export function JoinRideScreen({ code, onOpen, onDone }: JoinRideScreenProps) {
             setTried(true);
           }}
         >
-          Take the seat
+          {seatsAutomatically(ride.audience) && !cameBack(ride, me.id) ? 'Take the seat' : 'Ask for a seat'}
         </Button>
         <Button variant="quiet" onClick={onDone}>
           Not this time

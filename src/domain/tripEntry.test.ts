@@ -3,6 +3,7 @@ import { airportIndex } from '@data/airports';
 import { asPersonId, asTripId } from './ids';
 import type { ISODateTime } from './time';
 import { buildTripFromEntry, validateTripEntry, type TripEntry } from './tripEntry';
+import { tripIsOver } from './trip';
 
 const NOW = '2026-09-02T16:30:00Z' as ISODateTime;
 const ids = { tripId: asTripId('t_test'), personId: asPersonId('you'), now: NOW };
@@ -80,5 +81,25 @@ describe('validateTripEntry', () => {
     expect(validateTripEntry(broken, airportIndex, NOW).map((e) => e.field)).toContain('segments.1.from');
     const early = { ...two, segments: [two.segments[0]!, { ...second, departLocal: '09:00' }] } as unknown as TripEntry;
     expect(validateTripEntry(early, airportIndex, NOW).map((e) => e.field)).toContain('segments.1.departLocal');
+  });
+});
+
+/**
+ * Round 4 (cohort sharer): the form asks for the day a stay ends, not a time.
+ * It used to be stored as a noon nobody entered, and the board looked for a
+ * car back to the airport only in the six hours before it.
+ */
+describe('a stay that ends on a day, not at a time', () => {
+  const trip = buildTripFromEntry(oslCph, airportIndex, ids);
+  const stay = trip.stays[0]!;
+
+  it('keeps the whole local day at the airport', () => {
+    // Copenhagen is UTC+2 in September.
+    expect(stay.departDay).toEqual({ from: '2026-09-19T22:00:00Z', to: '2026-09-20T21:59:00Z' });
+  });
+
+  it('keeps the trip open until that day is over', () => {
+    expect(tripIsOver(trip, '2026-09-20T19:00:00Z' as ISODateTime)).toBe(false);
+    expect(tripIsOver(trip, '2026-09-21T06:00:00Z' as ISODateTime)).toBe(true);
   });
 });

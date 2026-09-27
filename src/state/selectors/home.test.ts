@@ -16,6 +16,11 @@ describe('nextTrip', () => {
     expect(String(nextTrip([hidden, MY_TRIPS[1]!])?.id)).toBe(String(MY_TRIPS[1]!.id));
     expect(nextTrip([])).toBeUndefined();
   });
+
+  it('skips a trip that is over once it knows the time (round 4)', () => {
+    // Singapore, 2–6 Sept, read on the 20th.
+    expect(String(nextTrip(MY_TRIPS, '2026-09-20T10:00:00Z' as never)?.id)).not.toBe(String(MY_TRIPS[0]!.id));
+  });
 });
 
 describe('nextJourney', () => {

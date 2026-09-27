@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Circle, Trip } from '@domain/index';
-import { tripIsOpen, tripStart } from '@domain/trip';
+import { tripIsOpen, tripIsOver, tripStart } from '@domain/trip';
 import { epoch, type ISODateTime } from '@domain/time';
 import { circleIsLive } from '@data/seed/circles';
 import { personById } from '@data/seed/people';
@@ -20,9 +20,11 @@ import { useBoard, type BoardCandidate } from './board';
  */
 
 /** The next open trip by first departure. Insertion order is not an order. */
-export function nextTrip(trips: Trip[]): Trip | undefined {
+export function nextTrip(trips: Trip[], now?: ISODateTime): Trip | undefined {
   return trips
-    .filter(tripIsOpen)
+    // Not one that is over: on 20 Sept, Home still offered "Your paths cross
+    // in Singapore · 2–6 Sept".
+    .filter((t) => tripIsOpen(t) && (!now || !tripIsOver(t, now)))
     .map((t) => ({ t, at: tripStart(t) ?? '' }))
     .sort((a, b) => a.at.localeCompare(b.at))[0]?.t;
 }
@@ -111,7 +113,7 @@ export function useHome(): Home {
   const board = useBoard();
 
   return useMemo(() => {
-    const trip = nextTrip(myTrips);
+    const trip = nextTrip(myTrips, now);
     const journey = nextJourney(myTrips, now);
     const match = trip ? topMatch(board.candidates, String(trip.id)) : undefined;
     const othersOnTrip = trip

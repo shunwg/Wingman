@@ -10,7 +10,8 @@ import type {
   RedactedPerson,
 } from '@domain/index';
 import { redact } from '@privacy/index';
-import { rideChannelId } from '@domain/index';
+import { latestClaim, rideChannelId } from '@domain/index';
+import { epoch } from '@domain/time';
 import { seedPool } from '@data/seed/trips';
 import { personById } from '@data/seed/people';
 import { useStore } from '../store';
@@ -115,6 +116,14 @@ export interface ChannelView {
   theirsCard?: RedactedPerson;
   sameTerminal: boolean;
   muted: boolean;
+  /**
+   * How many people read this room, you included — hidden people too. A group
+   * or a car. The header used to count only the people you can see, so a
+   * hide made the room look smaller than the audience you were writing to.
+   */
+  readers?: number;
+  /** Someone you hid is in this room, out of your view but not out of it. */
+  hiddenHere?: boolean;
 }
 
 export function useChannel(channelId: string): ChannelView | undefined {
@@ -126,6 +135,7 @@ export function useChannel(channelId: string): ChannelView | undefined {
   const muted = useStore((s) => s.muted);
   const announcements = useStore((s) => s.announcements);
   const rides = useStore((s) => s.rides);
+  const now = useStore((s) => s.now);
   const { accepted } = useRequests();
 
   return useMemo(() => {
@@ -213,12 +223,34 @@ export function useChannel(channelId: string): ChannelView | undefined {
         }
       }
       if (joined >= 0) visible = visible.slice(joined);
-      // No join line (a seat taken before these existed): fail closed — the
-      // car's own notices and what you said yourself, not the history.
-      else visible = visible.filter((m) => m.body.kind === 'seat' || m.body.kind === 'system' || String(m.from) === String(me.id));
+      else {
+        // No join line (a seat taken before these existed): read from the
+        // moment the seat was confirmed. Keeping every seat and system line
+        // instead showed the whole roster from before you were in the car.
+        const claim = latestClaim(ride, me.id);
+        const since = claim?.history.find((h) => h.to === 'confirmed')?.at ?? now;
+        visible = visible.filter((m) => epoch(m.at) >= epoch(since) || String(m.from) === String(me.id));
+      }
     }
-    return { channel, messages: visible, ...(circle ? { circle } : {}), participants, sameTerminal: false, muted: isMuted };
-  }, [channelId, me, myTrips, myCircles, stored, allMessages, muted, announcements, accepted, rides]);
+    // A hide is yours: they stop showing here, and they still read the room.
+    // Say so, in any room that holds them — a circle's General by its members.
+    const hiddenHere =
+      channel.kind === 'circle'
+        ? seedPool().some(
+            (e) => blocked.has(String(e.person.id)) && (e.circleIds ?? []).map(String).includes(String(channel.circleId)),
+          )
+        : channel.memberIds.some((id) => blocked.has(String(id)));
+    return {
+      channel,
+      messages: visible,
+      ...(circle ? { circle } : {}),
+      participants,
+      sameTerminal: false,
+      muted: isMuted,
+      ...(channel.kind === 'circle' ? {} : { readers: channel.memberIds.length }),
+      hiddenHere,
+    };
+  }, [channelId, me, myTrips, myCircles, stored, allMessages, muted, announcements, accepted, rides, now]);
 }
 
 /** Who wrote a message, for a bubble's name line. */

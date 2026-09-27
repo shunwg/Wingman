@@ -24,6 +24,9 @@ import { epoch, localTime } from '@domain/time';
 export function whenLabel(at: ISODateTime, zone: IanaZone | undefined, now: ISODateTime): string {
   const clock = zone ? localTime(at, zone) : undefined;
   const ahead = daysAhead(now, at);
+  // A day gone by is its date, not "Today": a car from the 6th read as
+  // today's on the 20th.
+  if (ahead < 0) return [datePart(at, zone, { day: 'numeric', month: 'short' }), clock].filter(Boolean).join(' ');
   if (ahead <= 0) {
     if (!clock) return 'Today';
     return `${Number(clock.slice(0, 2)) >= 18 ? 'Tonight' : 'Today'} ${clock}`;

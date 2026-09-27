@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
-import type { Circle, RedactedPerson } from '@domain/index';
-import { redact } from '@privacy/index';
-import { SEED_PEOPLE } from '@data/seed/people';
+import type { Circle, Person, RedactedPerson } from '@domain/index';
+import type { ISODateTime } from '@domain/time';
 import { circleIsLive } from '@data/seed/circles';
 import { useStore } from '../store';
-import { allCircles, decoratePerson } from './circles';
+import { allCircles, listedMembers } from './circles';
 
 /**
  * The event board.
@@ -22,11 +21,8 @@ export interface EventBoard {
   members: RedactedPerson[];
 }
 
-export function eventBoards(
-  me: { id: string; memberships: { circleId: unknown; display: string }[] },
-  circles: Circle[],
-  today: string,
-): EventBoard[] {
+export function eventBoards(me: Person, circles: Circle[], now: ISODateTime): EventBoard[] {
+  const today = String(now).slice(0, 10);
   return circles
     .filter(
       (c) =>
@@ -38,13 +34,11 @@ export function eventBoards(
     )
     .map((circle) => {
       const end = new Date(`${circle.runs!.to}T00:00:00Z`).getTime();
-      const now = new Date(`${today}T00:00:00Z`).getTime();
-      const daysLeft = Math.max(0, Math.round((end - now) / 86_400_000));
-      const members = SEED_PEOPLE.filter(
-        (p) =>
-          String(p.id) !== me.id &&
-          p.memberships.some((m) => String(m.circleId) === String(circle.id) && m.display === 'show_badge'),
-      ).map((p) => decoratePerson(redact(p, 0), circles));
+      const start = new Date(`${today}T00:00:00Z`).getTime();
+      const daysLeft = Math.max(0, Math.round((end - start) / 86_400_000));
+      // The circle page's list, not a second one: a person you hid, or whose
+      // audience does not admit you, is off both.
+      const members = listedMembers(String(circle.id), me, now, circles);
       return { circle, daysLeft, members };
     });
 }
@@ -53,8 +47,5 @@ export function useEventBoards(): EventBoard[] {
   const me = useStore((s) => s.me);
   const now = useStore((s) => s.now);
   const myCircles = useStore((s) => s.myCircles);
-  return useMemo(
-    () => eventBoards({ id: String(me.id), memberships: me.memberships }, allCircles(myCircles), String(now).slice(0, 10)),
-    [me, now, myCircles],
-  );
+  return useMemo(() => eventBoards(me, allCircles(myCircles), now), [me, now, myCircles]);
 }

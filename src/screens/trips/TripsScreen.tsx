@@ -70,22 +70,32 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
   const carsFor = (trip: Trip) =>
     [...hosting, ...riding].filter((r) => String(tripForRide(r.ride, trips, String(me.id))?.id) === String(trip.id));
 
-  const carRoomFor = (trip: Trip) => {
+  const carFor = (trip: Trip) => {
     // Not a called-off car: its room keeps the people whose seats ended, and
     // "Tell the car" would have sent them where you are.
-    const mine = carsFor(trip).find(
+    const live = carsFor(trip).filter(
       (r) =>
         r.mine?.status !== 'requested' &&
         r.ride.status !== 'cancelled' &&
         // Not into a room someone you hid can still read.
         !roomMembers(r.ride).some((p) => me.blocked.includes(p)),
     );
+    // The car nearest in time — the one this stage is about — not whichever
+    // was stored first: a car back to the airport on Sunday was told you were
+    // through security on Thursday.
+    const at = Date.parse(String(now));
+    const mine = [...live].sort(
+      (a, b) =>
+        Math.abs(Date.parse(String(a.ride.window.from)) - at) - Math.abs(Date.parse(String(b.ride.window.from)) - at),
+    )[0];
     if (!mine) return undefined;
     // A car with no room yet is a car with nobody in it but you. Offering to
     // tell it would be a button that does nothing, which is the failure this
     // whole QA round existed to remove.
-    return channels.find((c) => String(c.id) === `ride:${String(mine.ride.id)}`);
+    const room = channels.find((c) => String(c.id) === `ride:${String(mine.ride.id)}`);
+    return room ? { room, to: mine.route.to } : undefined;
   };
+  const carRoomFor = (trip: Trip) => carFor(trip)?.room;
 
   const tellCar = (trip: Trip, stage: JourneyStage) => {
     const room = carRoomFor(trip);
@@ -116,7 +126,9 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
           now={now}
           stage={tripStages[String(trip.id)]}
           onSetStage={(st) => setTripStage(String(trip.id), st)}
-          {...(carRoomFor(trip) ? { onTellCar: (st: JourneyStage) => tellCar(trip, st) } : {})}
+          {...(carFor(trip)
+            ? { onTellCar: (st: JourneyStage) => tellCar(trip, st), tellCarTo: carFor(trip)!.to }
+            : {})}
           onUndo={() => clearTripStage(String(trip.id))}
           cars={carsFor(trip)}
           onShareCar={() => setSharing(trip)}
@@ -198,6 +210,7 @@ function TripBlock({
   stage,
   onSetStage,
   onTellCar,
+  tellCarTo,
   onUndo,
   onToggleListing,
   onReopen,
@@ -212,6 +225,8 @@ function TripBlock({
   stage?: StageUpdate;
   onSetStage: (stage: JourneyStage) => void;
   onTellCar?: (stage: JourneyStage) => void;
+  /** Where the car being told is going, for the button. */
+  tellCarTo?: string;
   onUndo: () => void;
   onToggleListing: () => void;
   onReopen: () => void;
@@ -345,6 +360,7 @@ function TripBlock({
           {...(stage ? { current: stage } : {})}
           onSet={onSetStage}
           {...(onTellCar ? { onTellCar } : {})}
+          {...(tellCarTo ? { tellCarTo } : {})}
           onUndo={onUndo}
         />
       )}

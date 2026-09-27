@@ -11,7 +11,14 @@
  */
 
 export { compilePolicy } from './compile';
-export { canSee, resolveMutual, disclosureLevelFor, levelForRelationship, admitsViewer } from './resolve';
+export {
+  canSee,
+  resolveMutual,
+  disclosureLevelFor,
+  levelForRelationship,
+  admitsViewer,
+  admitsListing,
+} from './resolve';
 export { redact, redactFully, type RedactContext } from './redact';
 export {
   FIELD_LEVEL,

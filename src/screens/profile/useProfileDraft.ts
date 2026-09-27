@@ -1,5 +1,6 @@
 import type { IntentAxis, IntentProfile, MeetKind, ProfessionalCard, TagId } from '@domain/index';
 import { useStore } from '@state/store';
+import { cleanName } from '@lib/names';
 
 /**
  * What the profile forms hold while someone is typing.
@@ -44,7 +45,9 @@ export const HEADLINE_MAX = 80;
 
 export function validateProfile(d: ProfileDraft): Partial<Record<keyof ProfileDraft, string>> {
   const errs: Partial<Record<keyof ProfileDraft, string>> = {};
-  if (d.displayName.trim().length < 2) errs.displayName = 'At least two characters.';
+  // Counted as other people will see it: a name of zero-width spaces is two
+  // characters long and nothing at all on someone else's screen.
+  if (cleanName(d.displayName, 60).length < 2) errs.displayName = 'At least two letters.';
   const h = d.headline.trim().length;
   if (h < HEADLINE_MIN) errs.headline = 'One real sentence, eight characters or more.';
   else if (h > HEADLINE_MAX) errs.headline = `Keep it under ${HEADLINE_MAX} characters.`;
@@ -110,7 +113,7 @@ export function useSaveProfile() {
 
   return {
     saveProfile(d: ProfileDraft) {
-      const firstName = d.firstName.trim() || firstNameOf(d.displayName);
+      const firstName = cleanName(d.firstName, 30) || firstNameOf(cleanName(d.displayName, 60));
       setMe({
         displayName: d.displayName.trim(),
         firstName,

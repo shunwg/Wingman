@@ -111,6 +111,33 @@ describe('looksLikeAddress — an address is not a meeting point', () => {
     '59.9139, 10.7522',
     '///index.home.raft',
     'https://maps.app.goo.gl/abc',
+    // Round 4.
+    'Radisson Blu, room 412',
+    'Hilton room 412',
+    'room 305',
+    'come to room 406',
+    'Room 412, Marina Bay Sands',
+    'rm 1412',
+    'Frederiksberg Allé 5',
+    'Schönhauser Allee 36',
+    'Via Roma 12',
+    'C/ Mayor 5',
+    '350 5th Ave',
+    '12 W 34th St',
+    '22 Priory Grove',
+    'room no. 412',
+    '10 quai de Conti',
+    '22 allée des Cygnes',
+    'Kastanienallee 12',
+    'Alexanderplatz 1',
+    '4 Queens Gate',
+    '3 Cheyne Walk',
+    '14 Elm Park Gardens',
+    '742 Evergreen Terrace',
+    // Invisible characters and other digit sets.
+    'Karl Johans ga­te 22',
+    'Karl Johans gate 2⁢2',
+    'Storgata ١٢',
   ])('refuses %s', (text) => {
     expect(looksLikeAddress(text)).toBe(true);
   });
@@ -135,6 +162,18 @@ describe('looksLikeAddress — an address is not a meeting point', () => {
     'Schengen gate 12',
     'Oslo Airport gate 12',
     'Meeting room 101, Hall B',
+    // Round 4: rooms at a conference, and airport phrases near the new words.
+    'Conference room 204',
+    'Board room 305, level 3',
+    'Coffee via Gate 12',
+    'Level 3 food court',
+    'Terminal 2 car park',
+    '5 minutes walk from gate B4',
+    'Level 3 Food Court',
+    'Terminal 2 Car Park',
+    'Terminal 1 Departure Gate',
+    'Jewel Level 1 Canopy Park',
+    'Level 2 Arrivals Hall Close to Costa',
   ])('lets %s through', (text) => {
     expect(looksLikeAddress(text)).toBe(false);
   });

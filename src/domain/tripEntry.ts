@@ -157,6 +157,8 @@ export function buildTripFromEntry(
       dates: { from: localDate(last.arriveUtc, zone), to: e.stay.until },
       arriveUtc: last.arriveUtc,
       departUtc: utcFromLocal(e.stay.until, '12:00', zone),
+      // The form asks for a day, not a time: say so, and keep the whole day.
+      departDay: { from: utcFromLocal(e.stay.until, '00:00', zone), to: utcFromLocal(e.stay.until, '23:59', zone) },
       // The city centroid: coarse on purpose. An area label is a label only —
       // it is never geocoded, so nothing precise enough to find a door exists.
       destination: { lat: city.lat, lon: city.lon, label: e.stay.areaLabel ?? city.name },

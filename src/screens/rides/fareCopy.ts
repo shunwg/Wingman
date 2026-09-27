@@ -22,7 +22,14 @@ export interface FareCopy {
   detail: string;
 }
 
-export function fareCopy(ride: Ride, ridersNow: number, inCar: boolean, hostName: string): FareCopy {
+export function fareCopy(
+  ride: Ride,
+  ridersNow: number,
+  inCar: boolean,
+  hostName: string,
+  /** Whether this viewer can still ask. "With you in" to someone who cannot is a seat that does not exist. */
+  canJoin = true,
+): FareCopy {
   if (ride.fareSplit === 'host_pays') {
     const verb = hostName === 'You' ? 'are' : 'is';
     return { short: `${hostName} ${verb} covering it`, detail: `${hostName} ${verb} covering the fare.` };
@@ -34,7 +41,7 @@ export function fareCopy(ride: Ride, ridersNow: number, inCar: boolean, hostName
   }
   const { currency, amountMinor } = ride.fare;
   const total = money(amountMinor, currency);
-  if (!inCar) {
+  if (!inCar && canJoin) {
     const withYou = fareEach(ride, ridersNow + 1)!;
     return {
       short: `About ${money(withYou, currency)} each with you in`,

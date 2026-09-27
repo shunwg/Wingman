@@ -87,7 +87,9 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
     return {
       from_airport: last ? { iata: last.to, at: last.arriveUtc, point: stay?.destination } : undefined,
       back_to_airport:
-        last && stay ? { iata: last.to, at: stay.departUtc, point: stay.destination } : undefined,
+        last && stay
+          ? { iata: last.to, at: stay.departUtc, point: stay.destination, dayOnly: Boolean(stay.departDay) }
+          : undefined,
       to_first_flight: first
         ? {
             iata: first.from,
@@ -97,7 +99,10 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
             point: home ? { lat: home.lat, lon: home.lon, label: '' } : undefined,
           }
         : undefined,
-    } satisfies Record<Leg, { iata: IataCode; at: ISODateTime; point?: { lat: number; lon: number; label: string } } | undefined>;
+    } satisfies Record<
+      Leg,
+      { iata: IataCode; at: ISODateTime; point?: { lat: number; lon: number; label: string }; dayOnly?: boolean } | undefined
+    >;
   }, [trip]);
 
   const end = ends[leg];
@@ -225,7 +230,12 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
       <p className="panel__note">
         {end
           ? `${direction === 'from_airport' ? 'From' : 'To'} ${String(end.iata)}${
-              zone ? ` · ${localTime(end.at, zone)} local` : ''
+              !zone
+                ? ''
+                : 'dayOnly' in end && end.dayOnly
+                  ? // The trip gave a day, not a time: "12:00 local" was invented.
+                    ` · ${new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: zone }).format(new Date(String(end.at)))}`
+                  : ` · ${localTime(end.at, zone)} local`
             }`
           : 'This trip has no flight yet.'}
       </p>

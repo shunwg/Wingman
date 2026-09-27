@@ -4,7 +4,7 @@ import { Field } from '@design/primitives/Field';
 import { OptionRow } from '@design/primitives/OptionRow';
 import { Sheet } from '@design/primitives/Sheet';
 import type { Message, PersonId, SafetyReport } from '@domain/index';
-import { REPORT_REASONS } from '@domain/index';
+import { REPORT_REASONS, latestClaim } from '@domain/index';
 import { useStore } from '@state/store';
 
 /**
@@ -32,6 +32,24 @@ export function ReportSheet({
   const [reason, setReason] = useState<SafetyReport['reason']>('pushy');
   const [note, setNote] = useState('');
   const [alsoHide, setAlsoHide] = useState(true);
+  // What the hide does to a car you share, said before it happens: hiding a
+  // car's host used to end your seat without a word anywhere.
+  const theirCar = useStore((s) =>
+    s.rides.some(
+      (r) =>
+        r.status !== 'cancelled' &&
+        String(r.hostPersonId) === String(personId) &&
+        latestClaim(r, s.me.id)?.status === 'confirmed',
+    ),
+  );
+  const myCar = useStore((s) =>
+    s.rides.some(
+      (r) =>
+        r.status !== 'cancelled' &&
+        String(r.hostPersonId) === String(s.me.id) &&
+        latestClaim(r, personId)?.status === 'confirmed',
+    ),
+  );
 
   const submit = () => {
     if (message) {
@@ -81,6 +99,14 @@ export function ReportSheet({
         <input type="checkbox" checked={alsoHide} onChange={(e) => setAlsoHide(e.target.checked)} />
         <span>Also hide {firstName} from me</span>
       </label>
+      {alsoHide && theirCar && (
+        <p className="panel__note">Hiding {firstName} also ends your seat in their car.</p>
+      )}
+      {alsoHide && myCar && (
+        <p className="panel__note">
+          Hiding {firstName} also takes their seat in your car back. The car is told the seat is free, not why.
+        </p>
+      )}
     </Sheet>
   );
 }

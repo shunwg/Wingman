@@ -1,6 +1,6 @@
 import type { DisclosureLevel, PolicyReason, PolicyRuleId } from '@domain/index';
 import { invariant } from '@lib/invariant';
-import { AUDIENCE_RULES, SEEKING_RULES } from './rules/registry';
+import { AUDIENCE_RULES, RIDE_AUDIENCE_RULES, SEEKING_RULES } from './rules/registry';
 import { policyCopy } from './copy';
 import type {
   CompiledPolicy,
@@ -178,4 +178,33 @@ export function admitsViewer(
     'theirs',
   );
   return { visible: res.denied.length === 0, deniedBy: res.denied, reasons: res.reasons };
+}
+
+/**
+ * May this viewer see this person in a list they opted into — a circle's
+ * members, an event's board?
+ *
+ * The opt-in (`show_badge`) answers the surface question: they chose to be
+ * listed there, so the proximity and off-trip rules have nothing to add. What
+ * it does not answer is *who* may see them. A block either way, "women only",
+ * "verified only", "my circles only" and the intent axis still hold — the
+ * same rule objects a car's door uses, so the member list, the event board,
+ * a car and the board cannot drift apart. The lists used to ask none of
+ * them: a verified-only member was listed to an unverified stranger, and a
+ * person you hid stayed on the event you were both at.
+ */
+export function admitsListing(
+  subjectPolicy: CompiledPolicy,
+  viewerFacets: PersonFacets,
+  subjectFacets: PersonFacets,
+  now: VisibilityContext['now'],
+): boolean {
+  const res = runRules(
+    RIDE_AUDIENCE_RULES,
+    viewerFacets,
+    subjectFacets,
+    { rule: subjectPolicy.audience, policy: subjectPolicy, now },
+    'theirs',
+  );
+  return res.denied.length === 0;
 }

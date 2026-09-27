@@ -204,7 +204,9 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
         <p className="room__members mono">
           {channel.kind === 'circle' && circle
             ? bucketPhrase(circle.memberCount, 'member', 'members')
-            : `${view.participants.length} people`}
+            : (view.readers ?? 0) <= 1
+              ? 'Just you so far'
+              : `${view.readers} people`}
           {isMuted && ' · muted'}
         </p>
       )}
@@ -215,7 +217,12 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
             {ride.route.from} → {ride.route.to} ·{' '}
             {ride.ride.status === 'cancelled'
               ? 'Called off'
-              : `${ride.riders.length} sharing · ${windowLabel(ride.ride.window.from, ride.ride.window.to, zone, now)}`}
+              : (
+                <>
+                  {ride.riders.length} sharing ·{' '}
+                  <span className="nowrap">{windowLabel(ride.ride.window.from, ride.ride.window.to, zone, now)}</span>
+                </>
+              )}
           </a>
           {ride.ride.status !== 'cancelled' && (
           <span className="room__farenote">
@@ -223,18 +230,22 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
             {ride.ride.fareSplit === 'host_pays' ? '' : ' · settle it between you'}
           </span>
           )}
-          {ride.riders.some((pid) => me.blocked.includes(pid)) && String(ride.ride.hostPersonId) !== String(me.id) && (
-            <p className="ride__hidden" role="note">
-              Someone you hid is in this car. They are out of your view here, not out of the car: they can still read
-              what you post.
-            </p>
-          )}
           {imInCar && ride.ride.pickupNote && (
             <p className="room__pickup">
               <span className="room__pickuplabel">Where to meet the car</span> {ride.ride.pickupNote}
             </p>
           )}
         </section>
+      )}
+
+      {/* A hide keeps someone out of your view, not out of the room. Every
+          room that holds a person you hid says so — it used to be only cars,
+          and a group quietly shrank its count instead. */}
+      {!isMeet && view.hiddenHere && (
+        <p className="ride__hidden room__hidden" role="note">
+          Someone you hid is in this {ride ? 'car' : channel.kind === 'circle' ? 'circle' : 'group'}. They are out
+          of your view here, not out of it: they can still read what you post.
+        </p>
       )}
 
       {isMeet && plan && planBody && (
@@ -306,7 +317,8 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
           )}
           {watching ? (
             <div className="room__guardian">
-              <Chip tone="guard">{watching.guardian.label} is watching until {clock(String(watching.endsAt))}</Chip>
+              <Chip tone="guard">Watch on until {clock(String(watching.endsAt))}</Chip>
+              <Chip tone="neutral">Stand-in</Chip>
               <Button
                 size="sm"
                 variant="secondary"
@@ -423,11 +435,12 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
       {/* A car is the one meet you cannot walk out of, so it gets the same
           safety tools a coffee has — watching over its pickup window, and
           rating each person in it afterwards. */}
-      {ride && carMeet && imInCar && (
+      {ride && carMeet && (imInCar || watching) && (
         <div className="room__guardian">
           {watching ? (
             <>
-              <Chip tone="guard">{watching.guardian.label} is watching until {clock(String(watching.endsAt))}</Chip>
+              <Chip tone="guard">Watch on until {clock(String(watching.endsAt))}</Chip>
+              <Chip tone="neutral">Stand-in</Chip>
               <Button
                 size="sm"
                 variant="secondary"
@@ -694,8 +707,19 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
           onClose={() => setCantSheet(false)}
           actions={
             // Stacked, and without the name: "Tell Maximilian and call it off"
-            // ran off a 402px screen. The last line sends nothing.
+            // ran off a 402px screen. The common choice first, the one that
+            // ends the plan second; the last line sends nothing.
             <div className="sheet__stack">
+              <Button
+                variant="secondary"
+                full
+                onClick={() => {
+                  post(channel, { kind: 'stage', stage: 'cannot_make_it' });
+                  setCantSheet(false);
+                }}
+              >
+                Just tell them
+              </Button>
               <Button
                 variant="danger"
                 full
@@ -706,16 +730,6 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
                 }}
               >
                 Tell them, and call it off
-              </Button>
-              <Button
-                variant="secondary"
-                full
-                onClick={() => {
-                  post(channel, { kind: 'stage', stage: 'cannot_make_it' });
-                  setCantSheet(false);
-                }}
-              >
-                Just tell them
               </Button>
               <Button variant="quiet" full onClick={() => setCantSheet(false)}>
                 Not now

@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
-import type { Circle, PublicCircleBadge, RedactedPerson } from '@domain/index';
-import { redact } from '@privacy/index';
+import type { Circle, Person, PublicCircleBadge, RedactedPerson } from '@domain/index';
+import type { ISODateTime } from '@domain/time';
+import { admitsListing, compilePolicy, redact } from '@privacy/index';
+import { selfFacets } from '@matching/index';
 import { SEED_CIRCLES } from '@data/seed/circles';
 import { SEED_PEOPLE } from '@data/seed/people';
 import { useStore } from '../store';
@@ -50,20 +52,30 @@ export function useCircle(id: string): Circle | undefined {
 
 /**
  * The members of a circle you are allowed to see: those who chose
- * `show_badge` there, redacted to the browsing rung. `match_only` members are
- * matched against and never listed — that is the opt-in the brief asked for.
- * The seed cast is the only population until a backend exists.
+ * `show_badge` there, and whose own audience admits you — a block either way,
+ * "verified only", "women only" and the rest, via `admitsListing` — redacted
+ * to the browsing rung. `match_only` members are matched against and never
+ * listed — that is the opt-in the brief asked for. The seed cast is the only
+ * population until a backend exists.
+ *
+ * Shared by the circle page and the event board, so the two lists cannot
+ * disagree about who is on them.
  */
+export function listedMembers(circleId: string, me: Person, now: ISODateTime, circles: Circle[]): RedactedPerson[] {
+  const mine = me.memberships.filter((m) => m.display !== 'paused').map((m) => String(m.circleId));
+  const viewer = selfFacets(me, mine, { proximity: 'none', channel: 'app', onTrip: false });
+  return SEED_PEOPLE.filter((p) => {
+    if (String(p.id) === String(me.id)) return false;
+    if (!p.memberships.some((m) => String(m.circleId) === circleId && m.display === 'show_badge')) return false;
+    const theirs = p.memberships.map((m) => String(m.circleId));
+    const subject = selfFacets(p, theirs, { proximity: 'none', channel: 'app', onTrip: false });
+    return admitsListing(compilePolicy(p.privacy, theirs), viewer, subject, now);
+  }).map((p) => decoratePerson(redact(p, 0), circles));
+}
+
 export function useCircleMembers(circleId: string): RedactedPerson[] {
   const circles = useCircles();
   const me = useStore((s) => s.me);
-  return useMemo(
-    () =>
-      SEED_PEOPLE.filter(
-        (p) =>
-          String(p.id) !== String(me.id) &&
-          p.memberships.some((m) => String(m.circleId) === circleId && m.display === 'show_badge'),
-      ).map((p) => decoratePerson(redact(p, 0), circles)),
-    [circleId, circles, me.id],
-  );
+  const now = useStore((s) => s.now);
+  return useMemo(() => listedMembers(circleId, me, now, circles), [circleId, circles, me, now]);
 }

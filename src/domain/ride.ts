@@ -326,6 +326,19 @@ export function latestClaim(r: Ride, personId: PersonId | string): RideClaim | u
 }
 
 /**
+ * Whether this person gave a seat in this car up before.
+ *
+ * Somebody coming back to a self-seating car asks the host rather than sitting
+ * straight down. Otherwise "give up the seat, take it again" was a one-tap
+ * way to read a pickup note the host had moved after they left — and moving
+ * it is the only answer a host has to someone they would rather not have in
+ * the car.
+ */
+export function cameBack(r: Ride, personId: PersonId | string): boolean {
+  return r.claims.some((c) => String(c.personId) === String(personId) && c.status === 'withdrawn');
+}
+
+/**
  * Who is in the car's room: the host and everyone with a confirmed seat.
  *
  * Derived from the car on every read. The room used to store its member list

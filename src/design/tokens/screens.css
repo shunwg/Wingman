@@ -3180,3 +3180,23 @@ textarea.field__input {
 /* Labelled stamps wrap as a row of pills, never into two-line pills. */
 .ride__askstamps, .strip__stamps { flex-wrap: wrap; }
 .ride__askstamps .stamp, .strip__stamps .stamp { white-space: nowrap; }
+
+/* Round 4 (design review). */
+
+/* N35: the seat-request ⋯ is the first thing in its row, so its menu opens
+   to the right — anchored right it ran 119px off the left edge, "Report…"
+   out of sight and "Hide Tobias from me" reading "om me". */
+.strip__actions .menu__list { left: 0; right: auto; }
+
+/* N36: the asker's ⋯ in the corner of their row, as a proposal's is. */
+.ride__askmore { margin-left: auto; flex: none; }
+
+/* N38: "The car is full." sits on the row's centre line, not its top. */
+.strip__actions .strip__receipt,
+.ride__askactions .panel__note { align-self: center; margin: 0; }
+
+/* N40 */
+.ride__offnote { margin-top: var(--sp-2); }
+
+/* N43: a window reads as one piece — never "17:30 –" / "18:30". */
+.nowrap { white-space: nowrap; }

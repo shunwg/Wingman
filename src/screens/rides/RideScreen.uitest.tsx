@@ -47,12 +47,26 @@ describe('RideScreen — money and the pickup note', () => {
     });
   });
 
-  it('lets you take the seat again after giving it up', () => {
+  it('lets you ask again after giving the seat up — and the host says yes this time', () => {
     act(() => useStore.getState().claimSeat('ride_jonas_marina'));
     act(() => useStore.getState().withdrawSeat('ride_jonas_marina'));
     open('ride_jonas_marina');
-    expect(screen.getByRole('button', { name: 'Take the seat' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ask for a seat' })).toBeInTheDocument();
+    expect(screen.getByText('You gave this seat up, so the host says yes this time.')).toBeInTheDocument();
     expect(screen.queryByText('This seat has closed.')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Ask for a seat' }));
+    // Not back in the car, so not back to the pickup note.
+    expect(screen.queryByText(/INSEAD tote/)).toBeNull();
+  });
+
+  it('says plainly that hiding the host ended your seat, and nothing else', () => {
+    act(() => useStore.getState().claimSeat('ride_jonas_marina'));
+    act(() => useStore.getState().blockPerson(useStore.getState().rides.find((r) => String(r.id) === 'ride_jonas_marina')!.hostPersonId));
+    open('ride_jonas_marina');
+    expect(screen.getByText(/You hid the host of this car, so your seat in it has ended/)).toBeInTheDocument();
+    expect(screen.queryByText(/Someone you hid is in this car/)).toBeNull();
+    expect(screen.queryByText(/with you in/)).toBeNull();
+    expect(screen.queryByText('Who can join')).toBeNull();
   });
 
   it('asks before calling the car off', () => {

@@ -15,6 +15,13 @@ export interface StayWindow {
   dates: DateRange;
   arriveUtc: ISODateTime;
   departUtc: ISODateTime;
+  /**
+   * The leaving day, when nobody said a time: the whole local day at the
+   * airport, in UTC. `departUtc` is then a stand-in noon and nothing should
+   * read it as a time — a form-entered weekend used to look for a car back to
+   * the airport only between 06:00 and 12:00, and missed the 15:00 one.
+   */
+  departDay?: { from: ISODateTime; to: ISODateTime };
   /** Neighbourhood-level only. Wingman never stores a street address. */
   areaLabel?: string;
   /**
@@ -113,7 +120,10 @@ export function tripIsOver(t: Trip, now: ISODateTime): boolean {
   // The stay is part of the trip: "back to the airport" happens at its end,
   // and measuring from the landing alone closed the trip — and its "Share a
   // car" — six hours in, days before the car it was meant for.
-  const ends = [Date.parse(String(last.arriveUtc)), ...t.stays.map((s) => Date.parse(String(s.departUtc)))];
+  const ends = [
+    Date.parse(String(last.arriveUtc)),
+    ...t.stays.map((s) => Date.parse(String(s.departDay?.to ?? s.departUtc))),
+  ];
   return Date.parse(String(now)) > Math.max(...ends) + TRIP_GRACE_AFTER_LANDING_MIN * 60_000;
 }
 

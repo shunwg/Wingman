@@ -119,7 +119,9 @@ describe('the host changing the fare is said in the room', () => {
     miraInYourCar();
     act(() => useStore.getState().setRideFare('ride_you_cph', { amountMinor: 40000, currency: 'DKK' }));
     act(() => useStore.getState().setRideFare('ride_you_cph', { amountMinor: 52000, currency: 'DKK' }));
-    expect(lines('ride_you_cph')).toContain('The host changed the estimate to about 520 DKK for the car.');
+    // The same sentence for everyone, the host included (round 4: the host
+    // read about themselves in the third person).
+    expect(lines('ride_you_cph')).toContain('The estimate is now about 520 DKK for the car.');
   });
 });
 
@@ -268,7 +270,11 @@ describe('round 3', () => {
     act(() => useStore.getState().withdrawSeat('ride_jonas_marina'));
     act(() => useStore.getState().claimSeat('ride_jonas_marina'));
     const ride = useStore.getState().rides.find((r) => String(r.id) === 'ride_jonas_marina')!;
-    expect(ride.claims.map((c) => c.status)).toEqual(['withdrawn', 'confirmed']);
+    // Back again, on a door that seats people itself: the host says yes this
+    // time (round 4), so a leaver cannot re-read a pickup note moved after them.
+    expect(ride.claims.map((c) => c.status)).toEqual(['withdrawn', 'requested']);
+    const note = renderHook(() => useChannel(String(rideChannelId('ride_jonas_marina')))).result.current;
+    expect(!note || !note.participants.some((p) => p.id === 'you')).toBe(true);
   });
 
   it('post refuses seat and system lines — they have their own actions', () => {
@@ -305,5 +311,98 @@ describe('round 3', () => {
     expect(useStore.getState().myTrips[0]!.outcome).toBeDefined();
     act(() => useStore.getState().callOffPlan(room));
     expect(useStore.getState().myTrips[0]!.outcome).toBeUndefined();
+  });
+});
+
+describe('round 4: a hide in a group is said, and the count stays true', () => {
+  it('keeps counting a hidden member as a reader, and says they are there', () => {
+    const room = 'group:insead-singapore';
+    const view = () => renderHook(() => useChannel(room)).result.current!;
+    const before = view().readers;
+    expect(before).toBeGreaterThan(1);
+    expect(view().hiddenHere).toBe(false);
+    const author = SEED_MESSAGES.filter((m) => String(m.channelId) === room).at(-1)!.from;
+    act(() => useStore.getState().blockPerson(author));
+    expect(view().readers).toBe(before);
+    expect(view().hiddenHere).toBe(true);
+    expect(view().participants.map((p) => p.id)).not.toContain(String(author));
+  });
+});
+
+describe('round 4: a watch ends when its meet ends for you', () => {
+  const window = { from: '2026-09-03T09:30:00Z' as never, to: '2026-09-03T10:30:00Z' as never };
+  const arm = (room: string) =>
+    act(() => useStore.getState().armGuardianFor(room, { label: 'Mum', channel: 'link' }, 'balanced', window));
+  const status = () => useStore.getState().guardian?.status;
+
+  it('giving up the seat ends the watch over the car', () => {
+    act(() => useStore.getState().claimSeat('ride_jonas_marina'));
+    arm(String(rideChannelId('ride_jonas_marina')));
+    expect(status()).not.toBe('ended');
+    act(() => useStore.getState().withdrawSeat('ride_jonas_marina'));
+    expect(status()).toBe('ended');
+  });
+
+  it('calling your car off ends the watch over it', () => {
+    arm(String(rideChannelId('ride_you_cph')));
+    act(() => useStore.getState().cancelRide('ride_you_cph'));
+    expect(status()).toBe('ended');
+  });
+
+  it('hiding the person you are meeting ends the watch over that meet', () => {
+    act(() => useStore.getState().advanceRequest('req_seed_priya', 'accepted', asPersonId('you')));
+    arm('meet:req_seed_priya');
+    act(() => useStore.getState().blockPerson(asPersonId('priya')));
+    expect(status()).toBe('ended');
+  });
+
+  it('leaves a watch over a different meet alone', () => {
+    arm(String(rideChannelId('ride_you_cph')));
+    act(() => useStore.getState().claimSeat('ride_jonas_marina'));
+    act(() => useStore.getState().withdrawSeat('ride_jonas_marina'));
+    expect(status()).not.toBe('ended');
+  });
+});
+
+describe('round 4: a seat with no join line reads from when it was confirmed', () => {
+  it('does not show the roster from before you were in the car', () => {
+    const joinedAt = '2026-09-02T16:00:00Z' as never;
+    act(() =>
+      useStore.setState((s) => ({
+        rides: s.rides.map((r) =>
+          String(r.id) === 'ride_lucas_lhr'
+            ? {
+                ...r,
+                claims: [
+                  {
+                    personId: asPersonId('you'),
+                    status: 'confirmed' as const,
+                    askedAt: joinedAt,
+                    history: [{ at: joinedAt, by: 'system' as const, from: 'requested' as const, to: 'confirmed' as const }],
+                  },
+                ],
+              }
+            : r,
+        ),
+        channels: [
+          ...s.channels,
+          {
+            id: rideChannelId('ride_lucas_lhr'),
+            kind: 'group' as const,
+            title: 'Car',
+            memberIds: [],
+            createdBy: asPersonId('lucas'),
+            createdAt: '2026-09-02T09:00:00Z' as never,
+          },
+        ],
+        messages: [
+          ...s.messages,
+          { id: 'm_old' as never, channelId: rideChannelId('ride_lucas_lhr'), from: asPersonId('tobias'), at: '2026-09-02T10:00:00Z' as never, body: { kind: 'seat' as const, change: 'took' as const } },
+          { id: 'm_new' as never, channelId: rideChannelId('ride_lucas_lhr'), from: asPersonId('lucas'), at: '2026-09-02T16:10:00Z' as never, body: { kind: 'system' as const, text: 'The estimate is about 60 GBP for the car.' } },
+        ],
+      })),
+    );
+    const view = renderHook(() => useChannel(String(rideChannelId('ride_lucas_lhr')))).result.current!;
+    expect(view.messages.map((m) => String(m.id))).toEqual(['m_new']);
   });
 });

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { RedactedPerson, Ride, RideClaim, Trip } from '@domain/index';
-import { riders, rideRoute, seatsLeft, tripIsListed, tripIsOver } from '@domain/index';
+import { cameBack, riders, rideRoute, seatsLeft, tripIsListed, tripIsOver } from '@domain/index';
 import { addMinutes, intersectWindows } from '@domain/time';
 import { filterRides, type RideNeed } from '@matching/index';
 import { bucketPhrase } from '@lib/bucket';
@@ -73,7 +73,8 @@ function rowFor(ride: Ride, v: RideViewer, apartKm?: number): RideRow {
     riders: riders(ride),
     ...(apartKm === undefined ? {} : { apartKm }),
     refusal: claimRefusal(ride, v),
-    seatsAutomatically: rideVisibility(ride, v).seatsAutomatically,
+    // The same answer `claimSeat` gives: somebody coming back asks.
+    seatsAutomatically: rideVisibility(ride, v).seatsAutomatically && !cameBack(ride, v.me.id),
     ...(mine ? { mine } : {}),
   };
 }
@@ -118,7 +119,8 @@ export function needsForTrip(trip: Trip): RideNeed[] {
     needs.push({
       direction: 'to_airport',
       airportIata: last.to,
-      window: { from: addMinutes(stay.departUtc, -BEFORE_DEPARTURE_MIN * 2), to: stay.departUtc },
+      // A day with no time on it is looked for across the whole day.
+      window: stay.departDay ?? { from: addMinutes(stay.departUtc, -BEFORE_DEPARTURE_MIN * 2), to: stay.departUtc },
       ...(point ? { point: { lat: point.lat, lon: point.lon } } : {}),
     });
   }

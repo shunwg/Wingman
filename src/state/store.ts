@@ -59,12 +59,14 @@ import {
   riders,
   roomMembers,
   seatsAutomatically,
+  cameBack,
   seatsLeft,
   TEXT_CAP,
 } from '@domain/index';
 import {
   armGuardian,
   endGuardian,
+  isLive,
   escalateGuardian,
   GUARDIAN_PRESETS,
   type GuardianPresetId,
@@ -73,6 +75,7 @@ import {
 import { scriptedProposal, scriptedReply } from '@data/seed/replies';
 import { SEED_MESSAGES } from '@data/seed/channels';
 import type { ISODateTime } from '@domain/time';
+import { cleanName } from '@lib/names';
 import { SEED_NOW } from '@data/seed/trips';
 import { layoversFor, MATCH_CONFIG_V1 } from '@matching/index';
 import { transition } from './machines/meetRequest';
@@ -424,47 +427,6 @@ export interface HostRideInput {
   pickupNote?: string;
 }
 
-/**
- * A name as other people will read it.
- *
- * Normalised, stripped of zero-width and control characters, whitespace
- * collapsed, capped. A name is shown in other people's rooms and on their
- * boards; an uncapped one could carry a paragraph, and a zero-width one made
- * a person anonymous.
- */
-function cleanName(raw: string, max: number): string {
-  const kept = Array.from(raw.normalize('NFKC'))
-    .filter((ch) => !invisible(ch.codePointAt(0) ?? 0))
-    .join('')
-    .replace(/\s+/g, ' ')
-    .trim();
-  // Capped by what a person sees, so an emoji is never cut in half.
-  const Seg = (Intl as unknown as { Segmenter?: new (l?: string, o?: { granularity: string }) => { segment: (s: string) => Iterable<{ segment: string }> } }).Segmenter;
-  const parts = Seg ? Array.from(new Seg(undefined, { granularity: 'grapheme' }).segment(kept), (x) => x.segment) : Array.from(kept);
-  return parts.slice(0, max).join('');
-}
-
-/**
- * Characters that print as nothing: controls, zero-width marks, direction
- * overrides, and the blank letters that pass for a name — the Hangul filler,
- * the braille blank, a soft hyphen alone.
- */
-const invisible = (c: number): boolean =>
-  c < 0x20 ||
-  c === 0x7f ||
-  c === 0xad ||
-  c === 0x34f ||
-  (c >= 0x115f && c <= 0x1160) ||
-  (c >= 0x17b4 && c <= 0x17b5) ||
-  (c >= 0x180b && c <= 0x180e) ||
-  (c >= 0x200b && c <= 0x200f) ||
-  (c >= 0x2028 && c <= 0x202e) ||
-  (c >= 0x2060 && c <= 0x206f) ||
-  c === 0x2800 ||
-  c === 0x3164 ||
-  c === 0xfeff ||
-  c === 0xffa0;
-
 const PLACE_KINDS: ReadonlySet<string> = new Set([
   'gate', 'lounge', 'terminal_landmark', 'cafe', 'restaurant', 'taxi_rank', 'station', 'hotel_lobby', 'pickup_point',
 ]);
@@ -576,6 +538,24 @@ const initial = () => ({
   now: SEED_NOW,
   filters: NO_FILTERS,
 });
+
+/**
+ * A watch over a meet that has just ended for you ends with it.
+ *
+ * Giving up the seat, a called-off car, a called-off plan and a hide all take
+ * the room — and with it "I'm safe" — away. The watch used to stay armed
+ * behind them, sharing where you were until its timer ran out and then
+ * flagging you as not checked out, with no control left anywhere to stop it.
+ */
+function endWatchOver(
+  g: GuardianSession | null,
+  channelIds: readonly string[],
+  now: ISODateTime,
+): GuardianSession | null {
+  if (!g || !isLive(g, now)) return g;
+  const meets = channelIds.map((c) => String(meetIdForChannel(c) ?? ''));
+  return meets.includes(String(g.meetId)) ? endGuardian(g, now) : g;
+}
 
 export const useStore = create<WingmanState>()(
   persist(
@@ -822,6 +802,7 @@ export const useStore = create<WingmanState>()(
             },
           ],
           readAt: { ...s.readAt, [channelId]: s.now },
+          guardian: endWatchOver(s.guardian, [channelId], s.now),
           // The trip this meet settled is open again: Home and Trips said
           // "Sorted · You are meeting Priya" about a meet that was off.
           myTrips: s.myTrips.map((t) => {
@@ -878,7 +859,8 @@ export const useStore = create<WingmanState>()(
         // the two ever disagree, this is the side that must win.
         if (!canClaim(ride, viewer)) return;
 
-        const seated = seatsAutomatically(ride.audience);
+        // A person coming back asks the host this time (`cameBack`).
+        const seated = seatsAutomatically(ride.audience) && !cameBack(ride, s.me.id);
         const claim: RideClaim = {
           personId: s.me.id,
           status: 'requested',
@@ -925,7 +907,10 @@ export const useStore = create<WingmanState>()(
         const wasIn = was ? latestClaim(was, s.me.id)?.status === 'confirmed' : false;
         // Said before the seat goes: afterwards you are not in the room.
         if (wasIn) get().seatLine(rideId, s.me.id, 'out');
-        set((st) => ({ rides: mapClaim(st, rideId, st.me.id, 'withdrawn', st.me.id) }));
+        set((st) => ({
+          rides: mapClaim(st, rideId, st.me.id, 'withdrawn', st.me.id),
+          guardian: endWatchOver(st.guardian, [`ride:${rideId}`], st.now),
+        }));
       },
 
       removeSeat: (rideId, personId) => {
@@ -1009,6 +994,7 @@ export const useStore = create<WingmanState>()(
           return {
             rides: s.rides.map((r) => (String(r.id) === rideId ? { ...cancelled, claims } : r)),
             messages: told,
+            guardian: endWatchOver(s.guardian, [`ride:${rideId}`], s.now),
           };
         }),
 
@@ -1036,7 +1022,7 @@ export const useStore = create<WingmanState>()(
           get().carLine(
             rideId,
             fare
-              ? `${ride.fare ? 'The host changed the estimate to' : 'The host estimates'} about ${Math.round(fare.amountMinor / 100)} ${fare.currency} for the car.`
+              ? `${ride.fare ? 'The estimate is now' : 'The estimate is'} about ${Math.round(fare.amountMinor / 100)} ${fare.currency} for the car.`
               : 'The host took the fare estimate down.',
           );
         }
@@ -1080,7 +1066,7 @@ export const useStore = create<WingmanState>()(
                     at: s.now,
                     body: {
                       kind: 'system' as const,
-                      text: text ? 'The host updated where to meet the car.' : 'The host took the pickup details down.',
+                      text: text ? 'Where to meet the car has been updated.' : 'The pickup details were taken down.',
                     },
                   },
                 ],
@@ -1494,6 +1480,21 @@ export const useStore = create<WingmanState>()(
         }
         set((s) => ({
           me: { ...s.me, blocked: [...new Set([...s.me.blocked, id])] },
+          // The meet with them is over, and so is my seat in their car.
+          guardian: endWatchOver(
+            s.guardian,
+            [
+              ...s.requests
+                .filter((r) => r.fromPersonId === id || r.toPersonId === id)
+                .map((r) => String(meetChannelId(r.id))),
+              ...s.rides
+                .filter(
+                  (r) => String(r.hostPersonId) === String(id) && latestClaim(r, s.me.id)?.status === 'confirmed',
+                )
+                .map((r) => `ride:${String(r.id)}`),
+            ],
+            s.now,
+          ),
           /*
            * A trip settled with them is not settled any more: Home said "You are
            * meeting Jonas on this one" about someone you had just hidden, and the

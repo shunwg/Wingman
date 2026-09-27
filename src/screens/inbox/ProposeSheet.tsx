@@ -86,7 +86,12 @@ export function ProposeSheet({
   }
 
   const [kind, setKind] = useState<MeetKind>(request.proposal.kind);
-  const [start, setStart] = useState<ISODateTime>(starts[0]!);
+  // Changing a plan is mostly running late: preselect the first start after
+  // the one that stands, not the earliest — one tap on Suggest moved a 19:10
+  // plan to 18:10.
+  const [start, setStart] = useState<ISODateTime>(
+    (current && starts.find((t) => epoch(t) > epoch(current.from))) ?? starts[0]!,
+  );
   const [length, setLength] = useState<(typeof LENGTHS)[number]>(30);
   const [place, setPlace] = useState(defaultPlace);
   const [placeKind, setPlaceKind] = useState<PublicPlace['kind']>(current?.placeKind ?? PLACE_FOR[request.proposal.kind]);

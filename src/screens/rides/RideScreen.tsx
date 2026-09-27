@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { AvatarSpec, DisclosureLevel } from '@domain/index';
-import { PICKUP_NOTE_CAP, looksLikeAddress } from '@domain/index';
+import { PICKUP_NOTE_CAP, looksLikeAddress, seatsAutomatically } from '@domain/index';
 import { redact } from '@privacy/index';
 import { Button } from '@design/primitives/Button';
 import { Chip } from '@design/primitives/Chip';
@@ -117,6 +117,33 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
   const when = windowLabel(ride.window.from, ride.window.to, zone, now);
   const isHost = String(ride.hostPersonId) === String(me.id);
   const inCar = isHost || mine?.status === 'confirmed';
+  // You hid the host. The hide ended your seat; the rest of this screen — a
+  // door, a split "with you in", a rider list with the host filtered out —
+  // described a car you are no longer part of and never said why.
+  if (!isHost && me.blocked.some((b) => String(b) === String(ride.hostPersonId))) {
+    return (
+      <div className="screen ride">
+        <header className="ride__head">
+          <p className="ride__route">
+            <span>{route.from}</span>
+            <span className="ride__to">to</span>
+            <span>{route.to}</span>
+          </p>
+          <p className="ride__when mono">{when} local</p>
+        </header>
+        <section className="panel">
+          <p className="panel__note">
+            {mine?.status === 'revoked_by_policy'
+              ? 'You hid the host of this car, so your seat in it has ended. The car no longer appears for you.'
+              : 'You hid the host of this car, so it no longer appears for you.'}
+          </p>
+        </section>
+        <Button variant="quiet" onClick={onBack}>
+          Back
+        </Button>
+      </div>
+    );
+  }
   // A called-off car keeps its record — who was in it, when — and drops what
   // only a car still to come can promise: a door, a split, a place to stand.
   const calledOff = ride.status === 'cancelled';
@@ -135,7 +162,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
     (mine?.status === 'revoked_by_policy' && ride.status !== 'cancelled');
   const hiddenHere = row.riders.some((pid) => me.blocked.includes(pid));
   const hostName = isHost ? 'You' : (riderCard(String(ride.hostPersonId), 0)?.first ?? 'The host');
-  const fare = fareCopy(ride, row.riders.length, inCar, hostName);
+  const fare = fareCopy(ride, row.riders.length, inCar, hostName, canAsk);
   const pending = isHost ? pendingSeats(ride) : [];
   const roomId = `ride:${String(ride.id)}`;
 
@@ -178,7 +205,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
           {ride.status !== 'cancelled' && <Chip tone="neutral">{fare.short}</Chip>}
           {calledOff && <Chip tone="warn">Called off</Chip>}
         </div>
-        {calledOff && <p className="panel__note">Every seat in it has ended. Nobody can ask for one now.</p>}
+        {calledOff && <p className="panel__note ride__offnote">Every seat in it has ended. Nobody can ask for one now.</p>}
       </header>
 
       {/* First, for a host: somebody is waiting on them, and it used to sit
@@ -213,9 +240,11 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
                         </span>
                       )}
                     </span>
+                    <span className="ride__askmore">
+                      <PersonMenu personId={c.personId} firstName={r?.first ?? 'them'} />
+                    </span>
                   </div>
                   {c.note && <p className="ride__asknote">&ldquo;{c.note}&rdquo;</p>}
-                  <PersonMenu personId={c.personId} firstName={r?.first ?? 'them'} />
                   <div className="ride__askactions">
                     {seatsLeft > 0 ? (
                       <Button size="sm" onClick={() => setSayingYes(String(c.personId))}>
@@ -271,7 +300,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
             );
           })}
         </ul>
-        {hiddenHere && !isHost && (
+        {hiddenHere && !isHost && mine?.status === 'confirmed' && (
           // A hide keeps them out of your view, not out of someone else's car.
           // Saying so is the difference between a hide and a false sense of one.
           <p className="ride__hidden" role="note">
@@ -362,6 +391,9 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
           <Button full onClick={() => claimSeat(rideId)}>
             {row.seatsAutomatically ? 'Take the seat' : 'Ask for a seat'}
           </Button>
+          {mine?.status === 'withdrawn' && seatsAutomatically(ride.audience) && (
+            <p className="panel__note">You gave this seat up, so the host says yes this time.</p>
+          )}
         </div>
       )}
 
@@ -377,7 +409,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
           </Button>
         )}
 
-        {!isHost && !mine && refusal !== null && REFUSAL_COPY[refusal] && (
+        {!isHost && !live && !seatClosed && refusal !== null && REFUSAL_COPY[refusal] && (
           <p className="panel__note">{REFUSAL_COPY[refusal]}</p>
         )}
 
