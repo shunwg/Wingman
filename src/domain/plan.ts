@@ -85,7 +85,7 @@ function refusal(
  * sent by someone outside the room — used to make that suggestion dead too,
  * which let one person kill the other's offer before it was ever answered.
  */
-function calledOffIn(log: readonly Message[], members?: readonly PersonId[]): Set<string> {
+export function calledOffIn(log: readonly Message[], members?: readonly PersonId[]): Set<string> {
   const dead = new Set<string>();
   const member = (p: PersonId) => !members || members.some((x) => String(x) === String(p));
   let current: string | null = null;

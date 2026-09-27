@@ -53,8 +53,10 @@ export function nextJourney(trips: Trip[], now: ISODateTime): Trip | undefined {
  * three times over for one word. Here, in a selector, redacted to rung 0 —
  * a first name is what that rung already shows anyone.
  */
-export function settledFirstName(trip: Trip): string | undefined {
+export function settledFirstName(trip: Trip, hidden: readonly string[] = []): string | undefined {
   if (!trip.outcome) return undefined;
+  // An outcome saved before hides cleared it still names them: not on read.
+  if (hidden.map(String).includes(String(trip.outcome.settledWith))) return undefined;
   const p = personById(String(trip.outcome.settledWith));
   if (!p) return undefined;
   const card = redact(p, 0);

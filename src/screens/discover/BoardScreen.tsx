@@ -31,6 +31,9 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
   const board = useBoard();
   const relaxations = useRelaxations();
   const myTrips = useStore((s) => s.myTrips);
+  // The stored array, not a mapped copy: a selector that builds a new array
+  // on every read makes zustand 5 re-render forever.
+  const blocked = useStore((s) => s.me.blocked) as readonly string[];
   const now = useStore((s) => s.now);
   const liveTrips = myTrips.filter((t) => !tripIsOver(t, now));
   const filters = useStore((s) => s.filters);
@@ -132,7 +135,7 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
           saying so is the difference between "we found nobody" and "you already
           found someone". */}
       {board.settledTrips.map((t) => {
-        const withWhom = settledFirstName(t);
+        const withWhom = settledFirstName(t, blocked);
         return (
           <div className={`settled ${tripHueClass(tripCode(t))}`} key={String(t.id)}>
             <div className="settled__head">

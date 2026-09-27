@@ -203,7 +203,7 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
         </Button>
       }
     >
-      <Field label="Which way" hint="Both halves of a journey need a car.">
+      <Field label="Which way" hint="Into town, back to the airport, or to your flight out.">
         <div className="segmented segmented--wrap" role="group" aria-label="Which way">
           {LEGS.filter((l) => ends[l.id]).map((l) => (
             <button
@@ -276,16 +276,8 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
         </div>
       </Field>
 
-      <Field
-        label="The whole car, roughly"
-        hint={
-          fareAmount
-            ? `About ${Math.ceil(Number(fareAmount) / seats)} ${currency} each if it fills. Optional.`
-            : 'Optional. People decide faster when they can see what they would pay.'
-        }
-        htmlFor={`${id}-fare`}
-      >
-        <div className="fareinput">
+      <div className="fareinput">
+        <Field label="The whole car, roughly" htmlFor={`${id}-fare`}>
           <input
             id={`${id}-fare`}
             className="field__input mono"
@@ -293,12 +285,15 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
             pattern="[0-9]*"
             placeholder="0"
             value={fareAmount}
+            aria-describedby={`${id}-fare-each`}
             onChange={(e) => setFareAmount(e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(0, 5))}
           />
+        </Field>
+        <Field label="Currency" htmlFor={`${id}-currency`}>
           <select
+            id={`${id}-currency`}
             className="field__input fareinput__currency"
             value={currency}
-            aria-label="Currency"
             onChange={(e) => setFareCurrency(e.target.value)}
           >
             {FARE_CURRENCIES.map((c) => (
@@ -307,8 +302,13 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
               </option>
             ))}
           </select>
-        </div>
-      </Field>
+        </Field>
+      </div>
+      <p className="field__hint" id={`${id}-fare-each`}>
+        {fareAmount
+          ? `About ${Math.ceil(Number(fareAmount) / seats)} ${currency} each if it fills. Optional.`
+          : 'Optional. People decide faster when they can see what they would pay.'}
+      </p>
 
       <Field label="Who can join">
         {/* Each option states its *consent* model, not its category. Two

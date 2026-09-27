@@ -33,6 +33,9 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
   const live = useEventBoards();
   const incoming = useIncomingCards();
   const saidYes = useSaidYes();
+  // The stored array, not a mapped copy: a selector that builds a new array
+  // on every read makes zustand 5 re-render forever.
+  const blocked = useStore((s) => s.me.blocked) as readonly string[];
   const seatAsks = useSeatAsks();
   const cars = useJoinableRides();
   const setFilters = useStore((s) => s.setFilters);
@@ -146,7 +149,7 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
             <DepartureLine trip={journey} now={now} />
             {journey.outcome ? (
               <span className="journey__meta">
-                You are meeting {settledFirstName(journey) ?? 'someone'} on this one.
+                You are meeting {settledFirstName(journey, blocked) ?? 'someone'} on this one.
               </span>
             ) : null}
             {journey.outcome ? (

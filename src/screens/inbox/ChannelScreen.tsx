@@ -204,7 +204,7 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
         <p className="room__members mono">
           {channel.kind === 'circle' && circle
             ? bucketPhrase(circle.memberCount, 'member', 'members')
-            : `${channel.memberIds.length} people`}
+            : `${view.participants.length} people`}
           {isMuted && ' · muted'}
         </p>
       )}
@@ -212,13 +212,23 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
       {ride && (
         <section className="room__fare" aria-label="The car">
           <a className="room__farelabel" href={`#/car/${String(ride.ride.id)}`}>
-            {ride.route.from} → {ride.route.to} · {ride.riders.length} sharing · {clock(String(ride.ride.window.from))}–
-            {clock(String(ride.ride.window.to))}
+            {ride.route.from} → {ride.route.to} ·{' '}
+            {ride.ride.status === 'cancelled'
+              ? 'Called off'
+              : `${ride.riders.length} sharing · ${windowLabel(ride.ride.window.from, ride.ride.window.to, zone, now)}`}
           </a>
+          {ride.ride.status !== 'cancelled' && (
           <span className="room__farenote">
             {fareCopy(ride.ride, ride.riders.length, true, String(ride.ride.hostPersonId) === String(me.id) ? 'You' : authorName(String(ride.ride.hostPersonId), String(me.id), me.firstName)).short}
             {ride.ride.fareSplit === 'host_pays' ? '' : ' · settle it between you'}
           </span>
+          )}
+          {ride.riders.some((pid) => me.blocked.includes(pid)) && String(ride.ride.hostPersonId) !== String(me.id) && (
+            <p className="ride__hidden" role="note">
+              Someone you hid is in this car. They are out of your view here, not out of the car: they can still read
+              what you post.
+            </p>
+          )}
           {imInCar && ride.ride.pickupNote && (
             <p className="room__pickup">
               <span className="room__pickuplabel">Where to meet the car</span> {ride.ride.pickupNote}
@@ -683,27 +693,34 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
           title="Can’t make it?"
           onClose={() => setCantSheet(false)}
           actions={
-            <>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  post(channel, { kind: 'stage', stage: 'cannot_make_it' });
-                  setCantSheet(false);
-                }}
-              >
-                Just tell {theirs.firstName}
-              </Button>
+            // Stacked, and without the name: "Tell Maximilian and call it off"
+            // ran off a 402px screen. The last line sends nothing.
+            <div className="sheet__stack">
               <Button
                 variant="danger"
+                full
                 onClick={() => {
                   post(channel, { kind: 'stage', stage: 'cannot_make_it' });
                   callOffPlan(channelId);
                   setCantSheet(false);
                 }}
               >
-                Tell {theirs.firstName} and call it off
+                Tell them, and call it off
               </Button>
-            </>
+              <Button
+                variant="secondary"
+                full
+                onClick={() => {
+                  post(channel, { kind: 'stage', stage: 'cannot_make_it' });
+                  setCantSheet(false);
+                }}
+              >
+                Just tell them
+              </Button>
+              <Button variant="quiet" full onClick={() => setCantSheet(false)}>
+                Not now
+              </Button>
+            </div>
           }
         >
           <p className="sheet__body">{PLAN_COPY.cantSheet(theirs.firstName)}</p>

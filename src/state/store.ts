@@ -433,22 +433,37 @@ export interface HostRideInput {
  * a person anonymous.
  */
 function cleanName(raw: string, max: number): string {
-  return Array.from(raw.normalize('NFKC'))
+  const kept = Array.from(raw.normalize('NFKC'))
     .filter((ch) => !invisible(ch.codePointAt(0) ?? 0))
     .join('')
     .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, max);
+    .trim();
+  // Capped by what a person sees, so an emoji is never cut in half.
+  const Seg = (Intl as unknown as { Segmenter?: new (l?: string, o?: { granularity: string }) => { segment: (s: string) => Iterable<{ segment: string }> } }).Segmenter;
+  const parts = Seg ? Array.from(new Seg(undefined, { granularity: 'grapheme' }).segment(kept), (x) => x.segment) : Array.from(kept);
+  return parts.slice(0, max).join('');
 }
 
-/** Control characters, zero-width marks and direction overrides. */
+/**
+ * Characters that print as nothing: controls, zero-width marks, direction
+ * overrides, and the blank letters that pass for a name — the Hangul filler,
+ * the braille blank, a soft hyphen alone.
+ */
 const invisible = (c: number): boolean =>
   c < 0x20 ||
   c === 0x7f ||
+  c === 0xad ||
+  c === 0x34f ||
+  (c >= 0x115f && c <= 0x1160) ||
+  (c >= 0x17b4 && c <= 0x17b5) ||
+  (c >= 0x180b && c <= 0x180e) ||
   (c >= 0x200b && c <= 0x200f) ||
   (c >= 0x2028 && c <= 0x202e) ||
   (c >= 0x2060 && c <= 0x206f) ||
-  c === 0xfeff;
+  c === 0x2800 ||
+  c === 0x3164 ||
+  c === 0xfeff ||
+  c === 0xffa0;
 
 const PLACE_KINDS: ReadonlySet<string> = new Set([
   'gate', 'lounge', 'terminal_landmark', 'cafe', 'restaurant', 'taxi_rank', 'station', 'hotel_lobby', 'pickup_point',
@@ -599,8 +614,10 @@ export const useStore = create<WingmanState>()(
           me: {
             ...s.me,
             ...patch,
-            ...(patch.firstName !== undefined ? { firstName: cleanName(patch.firstName, 30) } : {}),
-            ...(patch.displayName !== undefined ? { displayName: cleanName(patch.displayName, 60) } : {}),
+            // A name that cleans to nothing keeps the one you had: a blank name
+            // is an anonymous line in someone else's car.
+            ...(patch.firstName !== undefined ? { firstName: cleanName(patch.firstName, 30) || s.me.firstName } : {}),
+            ...(patch.displayName !== undefined ? { displayName: cleanName(patch.displayName, 60) || s.me.displayName } : {}),
           },
         })),
 
@@ -647,7 +664,14 @@ export const useStore = create<WingmanState>()(
          * nobody in it told. The car is called off first, which tells them.
          */
         for (const r of get().rides) {
-          if (String(r.tripId) === tripId && String(r.hostPersonId) === String(get().me.id) && r.status !== 'cancelled') {
+          // Only a car still to come: "calling off" one that already happened
+          // told its riders something false and took their rating tools away.
+          if (
+            String(r.tripId) === tripId &&
+            String(r.hostPersonId) === String(get().me.id) &&
+            (r.status === 'open' || r.status === 'confirmed') &&
+            String(get().now) < String(r.expiresAt)
+          ) {
             get().cancelRide(String(r.id));
           }
         }
@@ -680,6 +704,10 @@ export const useStore = create<WingmanState>()(
       post: (channel, body) =>
         set((s) => {
           let b = body;
+          // Seat changes and system notices are written by the actions that
+          // own them, never through `post` — otherwise anyone's client could
+          // say "Priya is no longer in the car." in any room.
+          if (b.kind === 'seat' || b.kind === 'system') return s;
           if (b.kind === 'proposal') {
             if (looksLikeAddress(b.placeLabel)) return s;
             if (b.placeKind && !PLACE_KINDS.has(b.placeKind)) return s;
@@ -780,6 +808,8 @@ export const useStore = create<WingmanState>()(
         const plan = agreedPlan(log, people);
         if (!plan) throw new PlanRefusedError('no_plan');
         assertCanCallOff(log, String(plan.proposal.id), people);
+        const request = s.requests.find((x) => String(meetChannelId(x.id)) === channelId);
+        const other = request && (request.fromPersonId === s.me.id ? request.toPersonId : request.fromPersonId);
         set({
           messages: [
             ...s.messages,
@@ -792,6 +822,15 @@ export const useStore = create<WingmanState>()(
             },
           ],
           readAt: { ...s.readAt, [channelId]: s.now },
+          // The trip this meet settled is open again: Home and Trips said
+          // "Sorted · You are meeting Priya" about a meet that was off.
+          myTrips: s.myTrips.map((t) => {
+            if (!request || String(t.id) !== String(request.tripId)) return t;
+            if (!t.outcome || String(t.outcome.settledWith) !== String(other)) return t;
+            const next = { ...t };
+            delete next.outcome;
+            return next;
+          }),
         });
       },
 
@@ -963,7 +1002,7 @@ export const useStore = create<WingmanState>()(
                   channelId: room,
                   from: s.me.id,
                   at: s.now,
-                  body: { kind: 'system' as const, text: 'The host called the car off. Every seat in it has ended.' },
+                  body: { kind: 'system' as const, text: 'The car was called off. Every seat in it has ended.' },
                 },
               ]
             : s.messages;

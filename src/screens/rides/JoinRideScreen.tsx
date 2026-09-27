@@ -67,7 +67,11 @@ export function JoinRideScreen({ code, onOpen, onDone }: JoinRideScreenProps) {
   const mine = latestClaim(ride, me.id);
   // The host said no, or took the seat back. A link does not undo that.
   const closedToMe = ride.claims.some(
-    (c) => String(c.personId) === String(me.id) && (c.status === 'removed_by_host' || c.status === 'declined'),
+    (c) =>
+      String(c.personId) === String(me.id) &&
+      (c.status === 'removed_by_host' ||
+        c.status === 'declined' ||
+        (c.status === 'revoked_by_policy' && c.history.at(-1)?.by === 'system')),
   );
   const zone = airportIndex.zone(ride.airportIata);
   const when = zone ? localTime(ride.window.from, zone) : String(ride.window.from).slice(11, 16);

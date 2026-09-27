@@ -41,7 +41,9 @@ export function AppShell({
               loads, the header and the tab bar stay put. With the only
               boundary at the root, every first visit to a screen blanked the
               whole app — tab bar included — for as long as the chunk took. */}
-          <ScreenBoundary>
+          {/* Keyed on the address, so one broken room does not keep the whole
+              Inbox tab on the error after you leave it. */}
+          <ScreenBoundary key={typeof window === 'undefined' ? route : window.location.hash}>
             <Suspense fallback={null}>{children}</Suspense>
           </ScreenBoundary>
         </main>

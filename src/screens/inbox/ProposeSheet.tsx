@@ -70,6 +70,15 @@ export function ProposeSheet({
     // change nothing but the place.
     if (epoch(t) > epoch(now) && (!current || epoch(t) !== epoch(current.from))) starts.push(t);
   }
+  // A change deserves choices: around the plan that stands, either side of it.
+  if (current && starts.length < 3) {
+    for (const m of [-60, -30, 30, 60, 90]) {
+      const t = addMinutes(current.from, m);
+      if (starts.length >= 4) break;
+      if (epoch(t) > epoch(now) && !starts.some((x) => epoch(x) === epoch(t))) starts.push(t);
+    }
+    starts.sort((a, b) => epoch(a) - epoch(b));
+  }
   if (starts.length === 0) {
     // The window has gone by; offer the next half hours from now instead.
     const next = new Date(Math.ceil((epoch(now) + 1) / 1_800_000) * 1_800_000).toISOString() as ISODateTime;

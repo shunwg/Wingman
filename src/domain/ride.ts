@@ -353,7 +353,10 @@ export function roomMembers(r: Ride): PersonId[] {
 
 /** Everyone who is actually in the car, host first. */
 export function riders(r: Ride): PersonId[] {
-  return [r.hostPersonId, ...r.claims.filter((c) => c.status === 'confirmed').map((c) => c.personId)];
+  // Each person once: a car holding the same person twice made `makeMeet`
+  // throw inside a render.
+  const seated = r.claims.filter((c) => c.status === 'confirmed').map((c) => c.personId);
+  return [r.hostPersonId, ...new Set(seated.filter((p) => String(p) !== String(r.hostPersonId)))];
 }
 
 /** Whether a seat can still be asked for at `now`. Never stored. */

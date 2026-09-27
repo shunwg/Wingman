@@ -15,6 +15,7 @@ import { PortRail } from './PortRail';
 import { JourneyRail } from './JourneyRail';
 import { airportIndex, cityByKey } from '@data/airports/index';
 import type { ISODateTime, JourneyStage, StageUpdate, Trip } from '@domain/index';
+import { roomMembers } from '@domain/index';
 import { localTime, minutesBetween } from '@domain/time';
 import { tripCode, tripIsOpen, tripIsOver, tripLabel } from '@domain/trip';
 import { tripHueClass } from '@design/tokens/tripHue';
@@ -72,7 +73,13 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
   const carRoomFor = (trip: Trip) => {
     // Not a called-off car: its room keeps the people whose seats ended, and
     // "Tell the car" would have sent them where you are.
-    const mine = carsFor(trip).find((r) => r.mine?.status !== 'requested' && r.ride.status !== 'cancelled');
+    const mine = carsFor(trip).find(
+      (r) =>
+        r.mine?.status !== 'requested' &&
+        r.ride.status !== 'cancelled' &&
+        // Not into a room someone you hid can still read.
+        !roomMembers(r.ride).some((p) => me.blocked.includes(p)),
+    );
     if (!mine) return undefined;
     // A car with no room yet is a car with nobody in it but you. Offering to
     // tell it would be a button that does nothing, which is the failure this
@@ -171,6 +178,9 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
       >
         <p className="sheet__body">
           {removing ? `${tripLabel(removing)} goes, and any request that came from it closes. ` : ''}
+          {removing && hosting.some((r) => String(r.ride.tripId) === String(removing.id) && r.ride.status !== 'cancelled')
+            ? 'The car you offered on it is called off, and everyone in it is told. '
+            : ''}
           Your other trips stay as they are.
         </p>
       </Sheet>
@@ -207,7 +217,8 @@ function TripBlock({
   onReopen: () => void;
   onRemove: () => void;
 }) {
-  const settledWith = settledFirstName(trip);
+  const me = useStore((s) => s.me);
+  const settledWith = settledFirstName(trip, me.blocked.map(String));
   const open = tripIsOpen(trip);
   /*
    * Whether the journey itself is still happening — a different question from

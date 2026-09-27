@@ -129,9 +129,16 @@ export function applyBoardFilters(
   filters: BoardFilters,
   genderOf: (id: string) => string | undefined,
   saved: string[] = [],
+  /** The trips the people board shows. A filter naming any other trip reads as "all". */
+  openTripIds?: readonly string[],
 ): BoardCandidate[] {
+  const tripFilter =
+    filters.tripId !== 'all' && openTripIds && !openTripIds.includes(filters.tripId) ? 'all' : filters.tripId;
   return candidates.filter((c) => {
-    if (filters.tripId !== 'all' && c.viaTripId !== filters.tripId) return false;
+    // A trip picked on the cars lens may be one the people board no longer
+    // shows (settled): read that as "all" here rather than an invisible filter
+    // that empties the board.
+    if (tripFilter !== 'all' && c.viaTripId !== tripFilter) return false;
 
     // The lens: why now. Same flight and same airport are overlap kinds; same
     // event is a conference badge the person chose to show.
@@ -254,7 +261,13 @@ export function useBoard(): Board {
     }
 
     merged.sort((a, b) => b.score - a.score);
-    const filtered = applyBoardFilters(merged, filters, (id) => genderById.get(id), saved.map(String));
+    const filtered = applyBoardFilters(
+      merged,
+      filters,
+      (id) => genderById.get(id),
+      saved.map(String),
+      openTrips.map((t) => String(t.id)),
+    );
 
     return {
       candidates: filtered,

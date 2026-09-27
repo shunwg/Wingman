@@ -110,6 +110,19 @@ export function needsForTrip(trip: Trip): RideNeed[] {
     });
   }
 
+  // Back to the airport at the end of the stay — the car the offer form now
+  // lets a host create, and which nothing ever looked for.
+  const stay = trip.stays.at(-1);
+  if (last && stay) {
+    const point = stay.destination;
+    needs.push({
+      direction: 'to_airport',
+      airportIata: last.to,
+      window: { from: addMinutes(stay.departUtc, -BEFORE_DEPARTURE_MIN * 2), to: stay.departUtc },
+      ...(point ? { point: { lat: point.lat, lon: point.lon } } : {}),
+    });
+  }
+
   return needs;
 }
 

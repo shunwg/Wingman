@@ -47,6 +47,14 @@ describe('RideScreen — money and the pickup note', () => {
     });
   });
 
+  it('lets you take the seat again after giving it up', () => {
+    act(() => useStore.getState().claimSeat('ride_jonas_marina'));
+    act(() => useStore.getState().withdrawSeat('ride_jonas_marina'));
+    open('ride_jonas_marina');
+    expect(screen.getByRole('button', { name: 'Take the seat' })).toBeInTheDocument();
+    expect(screen.queryByText('This seat has closed.')).toBeNull();
+  });
+
   it('asks before calling the car off', () => {
     open('ride_you_cph');
     fireEvent.click(screen.getByRole('button', { name: 'Call off the car' }));

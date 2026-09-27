@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { asCircleId, asIata, asPersonId, asRideId, asTripId } from './ids';
 import type { ISODateTime } from './time';
-import { PICKUP_NOTE_CAP, fareEach, latestClaim, makeRide, roomMembers, rideIsJoinable, seatsLeft, seatsPending, sharesDirection, type Ride } from './ride';
+import { PICKUP_NOTE_CAP, fareEach, latestClaim, makeRide, riders, roomMembers, rideIsJoinable, seatsLeft, seatsPending, sharesDirection, type Ride } from './ride';
 import { anyAudience } from './privacy';
 
 const t = (s: string) => s as ISODateTime;
@@ -254,5 +254,12 @@ describe('a hide survives the car being called off', () => {
       ],
     };
     expect(roomMembers(hiddenThenCancelled).map(String)).toEqual(['you']);
+  });
+});
+
+describe('riders, each once', () => {
+  it('lists a person once even if two of their claims say confirmed', () => {
+    const c = { personId: asPersonId('mira'), status: 'confirmed' as const, askedAt: t('2026-09-16T10:00:00Z'), history: [] };
+    expect(riders({ ...base(), claims: [c, { ...c }] }).map(String)).toEqual(['you', 'mira']);
   });
 });

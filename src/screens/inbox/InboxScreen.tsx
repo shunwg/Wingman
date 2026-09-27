@@ -6,7 +6,7 @@ import { CircleCrest } from '@design/patterns/CircleCrest';
 import { Ticket } from '@design/icons/Ticket';
 import { ShieldCheck } from '@design/icons/ShieldCheck';
 import { PersonMark } from '@design/icons/PersonMark';
-import { isRedacted, meetChannelId, type MeetRequest } from '@domain/index';
+import { isRedacted, meetChannelId, seatsLeft, type MeetRequest } from '@domain/index';
 import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { StampBadge } from '@design/patterns/StampBadge';
 import { markArriving } from './arrive';
@@ -136,9 +136,13 @@ export function InboxScreen({ onOpen }: { onOpen: (hash: string) => void }) {
                   {/* Their note is in your inbox before any yes: hide or report
                       it from here, not only from a car screen. */}
                   <PersonMenu personId={a.claim.personId} firstName={first ?? 'them'} />
-                  <Button size="sm" onClick={() => setSeatYes(a)}>
-                    Yes
-                  </Button>
+                  {seatsLeft(a.ride) > 0 ? (
+                    <Button size="sm" onClick={() => setSeatYes(a)}>
+                      Yes
+                    </Button>
+                  ) : (
+                    <span className="strip__receipt">The car is full.</span>
+                  )}
                   <Button size="sm" variant="secondary" onClick={() => declineSeat(String(a.ride.id), a.claim.personId)}>
                     Not this time
                   </Button>

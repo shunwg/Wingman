@@ -95,6 +95,22 @@ describe('looksLikeAddress — an address is not a meeting point', () => {
     'Baker Street 12',
     '12\u200B Baker Street',
     '１２ Baker Street',
+    // Round 3.
+    'Karl johans gate 22',
+    'Karl Johans gt. 22',
+    'Thorvald Meyers gate 49B',
+    'Bygdøy allé 5',
+    'Sveavägen 44',
+    'Kurfürstendamm 21',
+    '8 bd Saint-Germain',
+    '12 bis rue de Rivoli',
+    '221B Baker St London',
+    'Suite 1412, Marina Bay Sands',
+    'rom 312',
+    'Singapore 238823',
+    '59.9139, 10.7522',
+    '///index.home.raft',
+    'https://maps.app.goo.gl/abc',
   ])('refuses %s', (text) => {
     expect(looksLikeAddress(text)).toBe(true);
   });
@@ -113,6 +129,12 @@ describe('looksLikeAddress — an address is not a meeting point', () => {
     'Departures gate 12',
     'Platform 5, St Pancras',
     'Pier 1 Terrace bar',
+    // Round 3: airports that looked like streets.
+    'Changi gate 12',
+    'Pier D gate 7',
+    'Schengen gate 12',
+    'Oslo Airport gate 12',
+    'Meeting room 101, Hall B',
   ])('lets %s through', (text) => {
     expect(looksLikeAddress(text)).toBe(false);
   });
@@ -127,5 +149,13 @@ describe('a stored label never takes a screen down', () => {
     expect(() => makePublicPlace({ kind: 'cafe', label: '12 Baker Street', airportIata: asIata('LHR') })).toThrow();
     const read = makePublicPlace({ kind: 'cafe', label: '12 Baker Street', airportIata: asIata('LHR') }, { vetLabel: false });
     expect(read.isPublicGround).toBe(true);
+  });
+});
+
+describe('reading a stored place never throws', () => {
+  it('reads a blank stored label as somewhere public', () => {
+    const p = makePublicPlace({ kind: 'cafe', label: '  ', airportIata: asIata('LHR') }, { vetLabel: false });
+    expect(p.label).toBe('Somewhere public');
+    expect(() => makePublicPlace({ kind: 'cafe', label: '  ', airportIata: asIata('LHR') })).toThrow();
   });
 });

@@ -42,29 +42,50 @@ export function looksLikeAddress(text: string): boolean {
   // street word. "St" only when it is not "St Pancras": Saint, not Street.
   const numberThenStreet =
     /\b\d{1,5}[a-z]?,?\s+(?:[\p{L}'.-]+\s+){0,3}(?:street|road|rd|avenue|ave|lane|ln|drive|dr|close|crescent|boulevard|blvd|square|sq|mews)\b/iu;
-  const numberThenSt = /\b\d{1,5}[a-z]?,?\s+(?:[\p{L}'.-]+\s+){0,3}st\b(?!\.?\s+\p{Lu})/iu;
+  // "221B Baker St": a name between the number and "St". "Platform 5, St
+  // Pancras" has none — that St is a saint.
+  const numberThenSt = /\b\d{1,5}[a-z]?,?\s+(?:[\p{L}'.-]+\s+){1,3}st\b/iu;
   // "Storgata 12", "Kongensgade 3", "Hauptstraße 7" — a compound street name,
   // then a number. Only as a suffix of a longer word, so "Gate 12" is a gate.
   const compoundThenNumber =
-    /\p{L}{2,}(?:gade|gata|gatan|gasse|vej|vei|veien|straße|strasse|weg|laan|gate)\s+\d{1,5}[a-z]?\b/iu;
+    /\p{L}{2,}(?:gade|gata|gatan|gasse|vej|vei|veien|vägen|väg|straße|strasse|weg|laan|gate|damm)\s+\d{1,5}[a-z]?\b/iu;
   // "Rue de Rivoli 12", "Calle Mayor 5".
   const latinThenNumber = /\b(?:rue|calle|avenida)\s+(?:[\p{L}'.-]+\s+){0,3}\d{1,5}\b/iu;
   // A flat is somebody's home by definition.
   const flat = /\b(?:flat|apt|apartment|leilighet)\s*#?\s*\d+/i;
   const ukPostcode = /\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/;
   // "Karl Johans gate 22" — a capitalised name, a Nordic street word, a number…
-  const nordic = t.match(/\b(\p{Lu}[\p{L}'.-]*)\s+(?:gate|gata|gatan|vei|veien|vej|gade|plass|torg)\s+\d{1,5}[a-z]?\b/u);
-  // …but "Departures gate 12" is an airport, not Oslo.
-  const airportWord = /^(?:departures?|arrivals?|terminal|domestic|international|pier|north|south|east|west|main|satellite)$/i;
-  const nordicNamedStreet = Boolean(nordic && !airportWord.test(nordic[1]!));
+  // Phones capitalise the first word only ("Karl johans gate 22"), so the name
+  // may be capitalised or end in the Nordic genitive -s; "gt." is how Oslo
+  // abbreviates "gate".
+  // "gate" is also English, so a Nordic "gate" needs the genitive -s it always
+  // has ("Karl Johans gate", "Thorvald Meyers gate") — "Changi gate 12" is an
+  // airport. The other Nordic street words take a capitalised name or an -s.
+  const nordicGate = t.match(/\b(\p{L}{3,}s)\s+(?:gate|gt\.?)\s+\d{1,5}[a-zA-Z]?\b/u);
+  const nordicOther = t.match(/\b(\p{L}{3,})\s+(?:gata|gatan|vei|veien|vej|gade|plass|torg|allé|alle)\s+\d{1,5}[a-zA-Z]?\b/u);
+  const nordic = nordicGate ?? nordicOther;
+  const named = nordicGate ? true : nordic ? /^\p{Lu}/u.test(nordic[1]!) || /s$/i.test(nordic[1]!) : false;
+  // …but "Departures gate 12" and "Schengen gate 12" are airports, not Oslo.
+  const airportWord =
+    /^(?:departures?|arrivals?|terminal|domestic|international|pier|north|south|east|west|main|satellite|schengen|concourse|zone|level|hall|area|transfer|bus)$/i;
+  const nordicNamedStreet = Boolean(nordic && named && !airportWord.test(nordic[1]!));
   // "Prinsengracht 263", "Damstraat 5", "Friedrichstr. 12".
   const dutchGermanCompound = /\p{L}{2,}(?:straat|gracht|kade|singel|plein|str\.)\s*\d{1,5}[a-z]?\b/iu;
   // "12 rue de Rivoli", "5 via Roma".
-  const numberThenLatin = /\b\d{1,5}[a-z]?,?\s+(?:rue|via|calle|avenida|avenue|boulevard)\b/iu;
+  const numberThenLatin = /\b\d{1,5}[a-z]?,?\s+(?:(?:bis|ter)\s+)?(?:rue|via|calle|avenida|avenue|boulevard|bd|bld)\b/iu;
   // "Baker Street 12" — the English word after a capitalised name.
   const namedEnglishThenNumber = /\b\p{Lu}[\p{L}'.-]+\s+(?:Street|Road|Avenue|Lane|Drive|Square)\.?\s+\d{1,5}\b/u;
   // A hotel room: three or four digits. "Hall B, Room 3" stays a conference room.
-  const hotelRoom = /\broom\s*#?\s*\d{3,4}\b/i;
+  // A hotel room or suite. English "room" only at four digits: "Meeting room
+  // 101, Hall B" is a conference room.
+  const hotelRoom =
+    /\b(?:rom|værelse|zimmer|chambre|habitación|suite)\s*#?\s*\d{3,4}\b|\broom\s*#?\s*\d{4}\b|(?:^|\s)#\d{3,4}\b/iu;
+  // "Singapore 238823" — a six-digit postcode after the city.
+  const sgPostcode = /\bsingapore\s+\d{6}\b/i;
+  // A position is an address by another name: coordinates, a plus code, a
+  // what3words triple, a map link.
+  const position =
+    /-?\d{1,2}\.\d{3,}\s*,\s*-?\d{1,3}\.\d{3,}|\b[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}\b|\/\/\/[a-z]+\.[a-z]+\.[a-z]+|maps\.(?:google|apple)\.|goo\.gl\/maps|maps\.app\.goo/i;
   // Singapore: "#05-12" is a unit, "Blk 123" a block.
   const singapore = /#\s?\d{1,3}-\d{1,5}\b|\bblk\s*\d{1,4}\b/i;
   return (
@@ -81,6 +102,8 @@ export function looksLikeAddress(text: string): boolean {
       namedEnglishThenNumber,
       hotelRoom,
       singapore,
+      position,
+      sgPostcode,
     ].some((r) => r.test(t))
   );
 }
@@ -113,6 +136,9 @@ export function makePublicPlace(
     throw new Error(`Meets happen on public ground. Refused place kind: ${String(input.kind)}`);
   }
   if (!input.label.trim()) {
+    // Reading a stored place with no label is a gap in the data, not a reason
+    // to take a screen down; writing one is still refused.
+    if (opts.vetLabel === false) return { ...input, label: 'Somewhere public', isPublicGround: true };
     throw new Error('A meeting point needs a label someone can actually navigate to.');
   }
   if (opts.vetLabel !== false && looksLikeAddress(input.label)) {

@@ -90,3 +90,11 @@ describe('demo state', () => {
     expect(s.muted).toEqual([]);
   });
 });
+
+describe('lastLine never throws', () => {
+  it('reads a stage or a kind this version does not know as nothing', () => {
+    const odd = { id: 'm' as never, channelId: 'c' as never, from: 'x' as never, at: '2026-09-02T16:30:00Z' as never };
+    expect(lastLine({ ...odd, body: { kind: 'stage', stage: 'teleported' } } as never, 'you' as never)).toBe('');
+    expect(lastLine({ ...odd, body: { kind: 'hologram' } } as never, 'you' as never)).toBe('');
+  });
+});

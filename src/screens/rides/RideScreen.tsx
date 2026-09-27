@@ -16,6 +16,7 @@ import { useRide, pendingSeats } from '@state/selectors/rides';
 import { useStore } from '@state/store';
 import { DOOR_COPY, RIDE_FARE_NOTE, rideGround } from '@data/copy/rides';
 import { StampBadge } from '@design/patterns/StampBadge';
+import { PersonMenu } from '@screens/safety/PersonMenu';
 import { useCircles } from '@state/selectors/circles';
 import { rideInviteLink } from './link';
 
@@ -116,6 +117,20 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
   const when = windowLabel(ride.window.from, ride.window.to, zone, now);
   const isHost = String(ride.hostPersonId) === String(me.id);
   const inCar = isHost || mine?.status === 'confirmed';
+  /*
+   * You can ask again after giving a seat up or withdrawing a request. The
+   * button used to need *no* claim at all, so a withdrawn one left only Back —
+   * under a sheet that had just promised "you can ask again".
+   */
+  const live = mine?.status === 'requested' || mine?.status === 'confirmed';
+  const canAsk = !isHost && !live && refusal === null;
+  // A host's no, a removal, and a hide all read the same to the person whose
+  // seat ended: it closed. Never which, and never who.
+  const seatClosed =
+    mine?.status === 'removed_by_host' ||
+    mine?.status === 'declined' ||
+    (mine?.status === 'revoked_by_policy' && ride.status !== 'cancelled');
+  const hiddenHere = row.riders.some((pid) => me.blocked.includes(pid));
   const hostName = isHost ? 'You' : (riderCard(String(ride.hostPersonId), 0)?.first ?? 'The host');
   const fare = fareCopy(ride, row.riders.length, inCar, hostName);
   const pending = isHost ? pendingSeats(ride) : [];
@@ -196,6 +211,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
                     </span>
                   </div>
                   {c.note && <p className="ride__asknote">&ldquo;{c.note}&rdquo;</p>}
+                  <PersonMenu personId={c.personId} firstName={r?.first ?? 'them'} />
                   <div className="ride__askactions">
                     {seatsLeft > 0 ? (
                       <Button size="sm" onClick={() => setSayingYes(String(c.personId))}>
@@ -232,7 +248,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
       <section className="panel">
         <h3 className="panel__title">Who is in it</h3>
         <ul className="ride__riders">
-          {row.riders.map((pid) => {
+          {row.riders.filter((pid) => !me.blocked.includes(pid)).map((pid) => {
             const isYou = String(pid) === String(me.id);
             const r = riderCard(String(pid), isYou ? 3 : rung, { id: String(me.id), avatar: me.avatar });
             return (
@@ -249,6 +265,14 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
             );
           })}
         </ul>
+        {hiddenHere && !isHost && (
+          // A hide keeps them out of your view, not out of someone else's car.
+          // Saying so is the difference between a hide and a false sense of one.
+          <p className="ride__hidden" role="note">
+            Someone you hid is in this car. Hiding them keeps them out of your view, not out of the car — they
+            can still read what you post in its room. You can give up your seat.
+          </p>
+        )}
         <p className="panel__note">{rideGround(ride.direction)}</p>
       </section>
 
@@ -320,7 +344,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
         </section>
       )}
 
-      {!isHost && !mine && refusal === null && (
+      {canAsk && (
         // Pinned above the tab bar. A direct child of the screen, not of the
         // actions column: a sticky element cannot rise above the top of its
         // own container, and as that column's first child it never moved.
@@ -333,9 +357,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
 
       {/* The host's no stands, and the passenger is told only that the seat
           closed — never which of them ended it. */}
-      {!isHost && (mine?.status === 'removed_by_host' || mine?.status === 'declined') && (
-        <p className="panel__note">This seat has closed.</p>
-      )}
+      {!isHost && seatClosed && <p className="panel__note">This seat has closed.</p>}
 
       <div className="ride__actions">
         {channels.some((c) => String(c.id) === roomId) &&

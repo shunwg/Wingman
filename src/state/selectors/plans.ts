@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { CityKey, IataCode, Meet, MeetRequest, Message, PersonId, Trip } from '@domain/index';
 import {
   agreedPlan,
+  calledOffIn,
   canAgree,
   meetChannelId,
   meetForRide,
@@ -90,9 +91,9 @@ export function roomPlan(
   ctx: { request: MeetRequest; participants: PersonId[]; anchor: PlaceAnchor | null },
 ): RoomPlan {
   const plan = agreedPlan(log, ctx.participants);
-  const calledOff = new Set(
-    log.flatMap((m) => (m.body.kind === 'plan_off' ? [String(m.body.proposalId)] : [])),
-  );
+  // The same rule the domain uses: only a call-off that ended the plan, from
+  // someone in the room. Any plan_off at all used to mark a card "Replaced".
+  const calledOff = calledOffIn(log, ctx.participants);
   const proposals = log.filter(isProposal);
   const newest = proposals.at(-1);
   const states = new Map<string, ProposalState>();

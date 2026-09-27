@@ -106,14 +106,21 @@ export function lastLine(m: Message | undefined, meId: PersonId): string {
   if (!m) return 'Nothing yet.';
   if (m.body.kind === 'text') return m.body.text;
   if (m.body.kind === 'system') return m.body.text;
-  if (m.body.kind === 'proposal') return `Suggested ${MEET_KIND_LABEL[m.body.meetKind].toLowerCase()} at ${m.body.placeLabel}`;
+  if (m.body.kind === 'proposal') {
+    const label = MEET_KIND_LABEL[m.body.meetKind];
+    return label ? `Suggested ${label.toLowerCase()} at ${m.body.placeLabel}` : 'Suggested a time';
+  }
   if (m.body.kind === 'agreed') return PLAN_COPY.preview.agreed;
   if (m.body.kind === 'plan_off') return PLAN_COPY.preview.off;
   if (m.body.kind === 'seat') {
     return seatLineText(m.body.change, m.from === meId ? 'You' : (personById(String(m.from))?.firstName ?? 'Someone'));
   }
+  if (m.body.kind !== 'stage') return '';
   const who = m.from === meId ? undefined : personById(String(m.from))?.firstName;
+  // A stage this version does not know reads as nothing, not a crash: the tab
+  // bar calls this outside any error boundary.
   const copy = STAGE_COPY[m.body.stage];
+  if (!copy) return '';
   return m.from === meId ? copy.mine : `${who ?? 'They'} ${copy.theirs}`;
 }
 
@@ -143,8 +150,11 @@ export function useInbox(filter: InboxFilter = 'all') {
       .map((m) => String(m.circleId));
     const all = channelsFor(me.id, accepted, circleIds, channels, announcements, { rides, blocked: me.blocked });
 
+    const hidden = new Set(me.blocked.map(String));
     const rows: InboxRow[] = all.map((c) => {
-      const msgs = messagesFor(c.id, messages);
+      // Hidden people are hidden from the preview and the unread dot too — a
+      // line from someone you hid used to sit on the row the room had hidden it from.
+      const msgs = messagesFor(c.id, messages).filter((m) => !hidden.has(String(m.from)));
       const last = msgs[msgs.length - 1];
       const at = last?.at ?? c.createdAt;
       const read = readAt[String(c.id)];

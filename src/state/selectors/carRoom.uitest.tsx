@@ -10,6 +10,7 @@ import { useInbox } from './inbox';
 import { useSeatAsks } from './rides';
 import { seatLineText } from '@data/copy/rides';
 import { personById } from '@data/seed/people';
+import { SEED_MESSAGES } from '@data/seed/channels';
 
 /**
  * The car's room, from the QA round of 2026-09-27: who is in it has to follow
@@ -160,7 +161,7 @@ describe('round 2: the car holds what it holds', () => {
     const tripId = String(useStore.getState().rides.find((r) => String(r.id) === 'ride_you_cph')!.tripId);
     act(() => useStore.getState().removeTrip(tripId));
     expect(useStore.getState().rides.find((r) => String(r.id) === 'ride_you_cph')?.status).toBe('cancelled');
-    expect(lines('ride_you_cph').some((l) => l.includes('called the car off'))).toBe(true);
+    expect(lines('ride_you_cph').some((l) => l.includes('The car was called off'))).toBe(true);
   });
 });
 
@@ -199,8 +200,11 @@ describe('round 2: a seat line is about the person, not built from what they typ
   });
 
   it('cleans a name where it is set — no zero-width characters, and capped', () => {
+    const had = useStore.getState().me.firstName;
+    // A name that cleans to nothing keeps the one you had, rather than
+    // making you anonymous in other people's cars.
     act(() => useStore.getState().setMe({ firstName: '\u200B' }));
-    expect(useStore.getState().me.firstName).toBe('');
+    expect(useStore.getState().me.firstName).toBe(had);
     act(() => useStore.getState().setMe({ firstName: 'x'.repeat(200) }));
     expect(useStore.getState().me.firstName.length).toBe(30);
   });
@@ -255,5 +259,51 @@ describe('round 2: a seat line is about the person, not built from what they typ
     const view = renderHook(() => useChannel(String(rideChannelId('ride_lucas_lhr')))).result.current!;
     expect(view.participants.map((p) => p.id)).not.toContain('mira');
     expect(view.messages.some((m) => String(m.from) === 'mira')).toBe(false);
+  });
+});
+
+describe('round 3', () => {
+  it('lets you ask again after giving a seat up', () => {
+    act(() => useStore.getState().claimSeat('ride_jonas_marina'));
+    act(() => useStore.getState().withdrawSeat('ride_jonas_marina'));
+    act(() => useStore.getState().claimSeat('ride_jonas_marina'));
+    const ride = useStore.getState().rides.find((r) => String(r.id) === 'ride_jonas_marina')!;
+    expect(ride.claims.map((c) => c.status)).toEqual(['withdrawn', 'confirmed']);
+  });
+
+  it('post refuses seat and system lines — they have their own actions', () => {
+    const before = useStore.getState().messages.length;
+    const room = { id: rideChannelId('ride_jonas_marina'), kind: 'group' as const, title: 'x', memberIds: [asPersonId('you')], createdBy: asPersonId('you'), createdAt: SEED_NOW };
+    act(() => useStore.getState().post(room, { kind: 'system', text: 'Priya is no longer in the car.' }));
+    act(() => useStore.getState().post(room, { kind: 'seat', change: 'out' }));
+    expect(useStore.getState().messages.length).toBe(before);
+  });
+
+  it('a name made only of blank letters keeps the name you had', () => {
+    act(() => useStore.getState().setMe({ firstName: 'Alex' }));
+    act(() => useStore.getState().setMe({ firstName: '\u3164\u2800\u00AD' }));
+    expect(useStore.getState().me.firstName).toBe('Alex');
+  });
+
+  it('the inbox preview leaves out someone you hid', () => {
+    const rows = () => renderHook(() => useInbox('all')).result.current.rows;
+    const room = 'group:insead-singapore';
+    // The room's lines are seeded, not stored: the last is the cab offer.
+    const last = SEED_MESSAGES.filter((m) => String(m.channelId) === room).at(-1)!;
+    const before = rows().find((r) => String(r.channelId) === room)!.line;
+    expect(before).toContain('Happy to split a cab');
+    act(() => useStore.getState().blockPerson(last.from));
+    const after = rows().find((r) => String(r.channelId) === room)?.line ?? '';
+    expect(after).not.toContain('Happy to split a cab');
+  });
+
+  it('calling off a plan opens the trip it settled', () => {
+    act(() => useStore.getState().advanceRequest('req_seed_priya', 'accepted', asPersonId('you')));
+    const room = 'meet:req_seed_priya';
+    const hers = useStore.getState().messages.find((m) => String(m.channelId) === room && m.body.kind === 'proposal')!;
+    act(() => useStore.getState().agreeTo(room, String(hers.id)));
+    expect(useStore.getState().myTrips[0]!.outcome).toBeDefined();
+    act(() => useStore.getState().callOffPlan(room));
+    expect(useStore.getState().myTrips[0]!.outcome).toBeUndefined();
   });
 });

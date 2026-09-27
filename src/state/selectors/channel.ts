@@ -213,6 +213,9 @@ export function useChannel(channelId: string): ChannelView | undefined {
         }
       }
       if (joined >= 0) visible = visible.slice(joined);
+      // No join line (a seat taken before these existed): fail closed — the
+      // car's own notices and what you said yourself, not the history.
+      else visible = visible.filter((m) => m.body.kind === 'seat' || m.body.kind === 'system' || String(m.from) === String(me.id));
     }
     return { channel, messages: visible, ...(circle ? { circle } : {}), participants, sameTerminal: false, muted: isMuted };
   }, [channelId, me, myTrips, myCircles, stored, allMessages, muted, announcements, accepted, rides]);
