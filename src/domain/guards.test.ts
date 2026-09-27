@@ -135,9 +135,9 @@ describe('looksLikeAddress — an address is not a meeting point', () => {
     '14 Elm Park Gardens',
     '742 Evergreen Terrace',
     // Invisible characters and other digit sets.
-    'Karl Johans ga­te 22',
-    'Karl Johans gate 2⁢2',
-    'Storgata ١٢',
+    'Karl Johans ga\u00ADte 22',
+    'Karl Johans gate 2\u20622',
+    'Storgata \u0661\u0662',
   ])('refuses %s', (text) => {
     expect(looksLikeAddress(text)).toBe(true);
   });
