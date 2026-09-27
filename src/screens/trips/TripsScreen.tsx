@@ -14,7 +14,6 @@ import { PlaceBand, atmosphere, cityPhoto, destinationPhoto } from '@screens/pla
 import { PortRail } from './PortRail';
 import { JourneyRail } from './JourneyRail';
 import { airportIndex, cityByKey } from '@data/airports/index';
-import { personById } from '@data/seed/people';
 import type { ISODateTime, JourneyStage, StageUpdate, Trip } from '@domain/index';
 import { localTime, minutesBetween } from '@domain/time';
 import { tripCode, tripIsOpen, tripIsOver, tripLabel } from '@domain/trip';
@@ -23,7 +22,7 @@ import { bucketPhrase } from '@lib/bucket';
 import { useStore } from '@state/store';
 import { useBoard } from '@state/selectors/board';
 import { useCircles } from '@state/selectors/circles';
-import { destinationEvents } from '@state/selectors/home';
+import { destinationEvents, settledFirstName } from '@state/selectors/home';
 
 /**
  * Your trips.
@@ -208,7 +207,7 @@ function TripBlock({
   onReopen: () => void;
   onRemove: () => void;
 }) {
-  const settledWith = trip.outcome ? personById(String(trip.outcome.settledWith)) : undefined;
+  const settledWith = settledFirstName(trip);
   const open = tripIsOpen(trip);
   /*
    * Whether the journey itself is still happening — a different question from
@@ -357,7 +356,7 @@ function TripBlock({
         {trip.outcome ? (
           <>
             <p className="tripblock__note">
-              You&rsquo;re meeting {settledWith?.firstName ?? 'someone'} on this one, so it has
+              You&rsquo;re meeting {settledWith ?? 'someone'} on this one, so it has
               stopped suggesting people.
             </p>
             <Button size="sm" variant="secondary" onClick={onReopen}>
@@ -420,10 +419,15 @@ function TripPlans({ trip, now, onOpen }: { trip: Trip; now: ISODateTime; onOpen
               : undefined;
           return (
             <li key={p.key}>
-              <button type="button" className="tripplan" onClick={() => onOpen(`#/inbox/${p.channelId}`)}>
+              <button
+                type="button"
+                className={`tripplan ${p.doubt ? 'tripplan--doubt' : ''}`}
+                onClick={() => onOpen(`#/inbox/${p.channelId}`)}
+              >
                 <span className="tripplan__when mono">{whenLabel(p.meet.window.from, zone, now)}</span>
                 <span className="tripplan__body">
                   <span className="tripplan__title">{p.title}</span>
+                  {p.doubt && <span className="tripplan__warn">{PLAN_COPY.strip.doubt}</span>}
                   <span className="tripplan__place">{placeLine(p.meet.place)}</span>
                 </span>
                 <span className="tripplan__chevron" aria-hidden="true">

@@ -16,7 +16,9 @@ import { go } from './useSignup';
  */
 export function DemoEntry() {
   const startDemo = useStore((s) => s.startDemo);
-  const hasProfile = useStore((s) => s.account.mode === 'local' && s.onboarded);
+  // Any local profile, finished or half-made: a half-made one is still what
+  // somebody typed.
+  const hasProfile = useStore((s) => s.account.mode === 'local');
   const [confirmed, setConfirmed] = useState(false);
   const fired = useRef(false);
 

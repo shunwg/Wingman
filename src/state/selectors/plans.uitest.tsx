@@ -143,12 +143,30 @@ describe('a car has a plan once two people are in it', () => {
   });
 
   it('rates each rider separately — a second rating does not erase the first', () => {
-    const r = useStore.getState();
+    // Your own car, with two people in it besides you.
+    const confirmed = (id: string) => ({
+      personId: asPersonId(id),
+      status: 'confirmed' as const,
+      askedAt: SEED_NOW,
+      history: [{ at: SEED_NOW, by: 'system' as const, from: 'requested' as const, to: 'confirmed' as const }],
+    });
+    act(() =>
+      useStore.setState((s) => ({
+        rides: s.rides.map((r) => (String(r.id) === 'ride_you_cph' ? { ...r, claims: [confirmed('mira'), confirmed('tobias')] } : r)),
+      })),
+    );
+    act(() => useStore.getState().openRideRoom('ride_you_cph'));
     const input = { showedUp: 'on_time' as const, respectedBoundaries: true, accurateProfile: true, wouldMeetAgain: true, flags: [] };
-    act(() => r.rate('ride:ride_mira_tiong', asPersonId('mira'), input));
-    act(() => useStore.getState().rate('ride:ride_mira_tiong', asPersonId('jonas'), input));
-    const ratings = useStore.getState().ratings.filter((x) => String(x.meetId) === 'ride:ride_mira_tiong');
-    expect(ratings.map((x) => String(x.rateeId)).sort()).toEqual(['jonas', 'mira']);
+    act(() => useStore.getState().rate('ride:ride_you_cph', asPersonId('mira'), input));
+    act(() => useStore.getState().rate('ride:ride_you_cph', asPersonId('tobias'), input));
+    const ratings = useStore.getState().ratings.filter((x) => String(x.meetId) === 'ride:ride_you_cph');
+    expect(ratings.map((x) => String(x.rateeId)).sort()).toEqual(['mira', 'tobias']);
+  });
+
+  it('refuses a rating for a car you were never in', () => {
+    const input = { showedUp: 'on_time' as const, respectedBoundaries: true, accurateProfile: true, wouldMeetAgain: true, flags: [] };
+    act(() => useStore.getState().rate('ride:ride_mira_tiong', asPersonId('mira'), input));
+    expect(useStore.getState().ratings).toHaveLength(0);
   });
 });
 

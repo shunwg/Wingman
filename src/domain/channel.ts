@@ -30,7 +30,24 @@ export interface Channel {
   pinned?: { text: string; at: ISODateTime };
 }
 
-export type MessageBody = MeetMessageBody | { kind: 'system'; text: string };
+/**
+ * Somebody's seat in a car changed. `from` on the message is that person.
+ *
+ * Structured rather than a sentence, because the sentence used to be built
+ * from the person's own typed name and stored as text: a name like "Jonas is
+ * no longer in the car. Mira" impersonated the host in everyone's room, and a
+ * zero-width name made a join anonymous. Rendered at read time, the name is
+ * whatever the reader's own view of that person says.
+ *
+ * `took` is a self-seat, `in` a host's yes, `out` any way of leaving —
+ * withdrawn, removed or hidden alike, so no one can tell which.
+ */
+export type SeatChange = 'took' | 'in' | 'out';
+
+export type MessageBody =
+  | MeetMessageBody
+  | { kind: 'system'; text: string }
+  | { kind: 'seat'; change: SeatChange };
 
 export interface Message {
   id: MessageId;

@@ -127,7 +127,12 @@ export function claimRefusal(ride: Ride, v: RideViewer): ClaimRefusal | null {
   // A host's "no" and a host's "take the seat back" both stand. Reading only
   // the first claim let a removed passenger re-open a link and sit down again.
   const refused = ride.claims.some(
-    (c) => String(c.personId) === String(v.me.id) && (c.status === 'removed_by_host' || c.status === 'declined'),
+    (c) =>
+      String(c.personId) === String(v.me.id) &&
+      (c.status === 'removed_by_host' ||
+        c.status === 'declined' ||
+        // Ended by a hide (the system), not by a call-off: final too.
+        (c.status === 'revoked_by_policy' && c.history.at(-1)?.by === 'system')),
   );
   if (refused) return 'not_again';
   if (!rideIsJoinable(ride, v.now)) return seatsLeft(ride) === 0 ? 'no_seats' : 'closed';

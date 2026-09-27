@@ -143,6 +143,8 @@ export interface TripPlanRow {
   /** "Coffee at the gate with Priya" / "Shared car · SIN → Marina Bay". */
   title: string;
   kind: 'meet' | 'car';
+  /** Either of you said you can't make it after the yes. */
+  doubt: boolean;
 }
 
 /**
@@ -197,12 +199,18 @@ export function usePlansForTrip(trip: Trip): TripPlanRow[] {
       if (String(tripForMeet(meet, request, myTrips)?.id) !== String(trip.id)) continue;
       const other = request.fromPersonId === me.id ? request.toPersonId : request.fromPersonId;
       const name = personById(String(other))?.firstName ?? 'them';
+      const log = messagesFor(channelId, stored);
+      const yesAt = log.map((m) => m.body.kind).lastIndexOf('agreed');
+      const doubt = log
+        .slice(yesAt + 1)
+        .some((m) => m.body.kind === 'stage' && m.body.stage === 'cannot_make_it');
       rows.push({
         key: channelId,
         meet,
         channelId,
         title: `${MEET_KIND_LABEL[meet.kind]} with ${name}`,
         kind: 'meet',
+        doubt,
       });
     }
 
@@ -218,6 +226,7 @@ export function usePlansForTrip(trip: Trip): TripPlanRow[] {
         channelId: String(rideChannelId(String(ride.id))),
         title: `${PLAN_COPY.trip.car} · ${route.from} → ${route.to}`,
         kind: 'car',
+        doubt: false,
       });
     }
 

@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { TabBar } from './TabBar';
+import { ScreenBoundary } from './ScreenBoundary';
 
 /**
  * The frame.
@@ -40,7 +41,9 @@ export function AppShell({
               loads, the header and the tab bar stay put. With the only
               boundary at the root, every first visit to a screen blanked the
               whole app — tab bar included — for as long as the chunk took. */}
-          <Suspense fallback={null}>{children}</Suspense>
+          <ScreenBoundary>
+            <Suspense fallback={null}>{children}</Suspense>
+          </ScreenBoundary>
         </main>
         {chrome === 'tabs' && <TabBar route={route} />}
       </div>

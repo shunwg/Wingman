@@ -8,6 +8,8 @@ import { MY_TRIPS, SEED_NOW } from '@data/seed/trips';
 import { useChannel } from './channel';
 import { useInbox } from './inbox';
 import { useSeatAsks } from './rides';
+import { seatLineText } from '@data/copy/rides';
+import { personById } from '@data/seed/people';
 
 /**
  * The car's room, from the QA round of 2026-09-27: who is in it has to follow
@@ -20,11 +22,18 @@ const reset = () => {
 };
 beforeEach(reset);
 
+/** The room's lines as a reader who is none of the people named would see them. */
 const lines = (rideId: string) =>
   useStore
     .getState()
     .messages.filter((m) => String(m.channelId) === String(rideChannelId(rideId)))
-    .map((m) => (m.body.kind === 'system' ? m.body.text : ''));
+    .map((m) =>
+      m.body.kind === 'system'
+        ? m.body.text
+        : m.body.kind === 'seat'
+          ? seatLineText(m.body.change, String(m.from) === 'you' ? 'Alex' : (personById(String(m.from))?.firstName ?? 'Someone'))
+          : '',
+    );
 
 /** Put Mira in your own car, as if she had taken the seat. */
 const miraInYourCar = () => {
@@ -175,5 +184,76 @@ describe('round 2: a hide looks like any other departure', () => {
     expect(useStore.getState().myTrips[0]!.outcome).toBeDefined();
     act(() => useStore.getState().blockPerson(asPersonId('priya')));
     expect(useStore.getState().myTrips[0]!.outcome).toBeUndefined();
+  });
+});
+
+describe('round 2: a seat line is about the person, not built from what they typed', () => {
+  it('stores who and what changed, with the person as its author — never the text of a name', () => {
+    act(() => useStore.getState().setMe({ firstName: 'Jonas is no longer in the car. Mira\u200B' }));
+    act(() => useStore.getState().claimSeat('ride_jonas_marina'));
+    const seat = useStore
+      .getState()
+      .messages.find((m) => String(m.channelId) === String(rideChannelId('ride_jonas_marina')) && m.body.kind === 'seat')!;
+    expect(seat.body).toEqual({ kind: 'seat', change: 'took' });
+    expect(String(seat.from)).toBe('you');
+  });
+
+  it('cleans a name where it is set — no zero-width characters, and capped', () => {
+    act(() => useStore.getState().setMe({ firstName: '\u200B' }));
+    expect(useStore.getState().me.firstName).toBe('');
+    act(() => useStore.getState().setMe({ firstName: 'x'.repeat(200) }));
+    expect(useStore.getState().me.firstName.length).toBe(30);
+  });
+
+  it('a rider reads the room from when they joined, not before', () => {
+    // Before you sit down, the host says something in the room.
+    act(() => useStore.getState().openRideRoom('ride_jonas_marina'));
+    act(() =>
+      useStore.setState((s) => ({
+        messages: [
+          ...s.messages,
+          {
+            id: 'm_before' as never,
+            channelId: rideChannelId('ride_jonas_marina'),
+            from: asPersonId('jonas'),
+            at: SEED_NOW,
+            body: { kind: 'text' as const, text: 'Omar was in this car and left.' },
+          },
+        ],
+      })),
+    );
+    act(() => useStore.getState().claimSeat('ride_jonas_marina'));
+    const view = renderHook(() => useChannel(String(rideChannelId('ride_jonas_marina')))).result.current!;
+    expect(view.messages.some((m) => m.body.kind === 'text' && m.body.text.includes('Omar'))).toBe(false);
+    expect(view.messages[0]!.body).toEqual({ kind: 'seat', change: 'took' });
+  });
+
+  it('a fellow passenger you hide in someone else\u2019s car is hidden in its room', () => {
+    // Lucas's car, with you and Mira both in it. Neither of you is the host, so
+    // the hide cannot end either seat — it has to hide her from you.
+    const confirmed = (id: string) => ({
+      personId: asPersonId(id),
+      status: 'confirmed' as const,
+      askedAt: SEED_NOW,
+      history: [{ at: SEED_NOW, by: 'system' as const, from: 'requested' as const, to: 'confirmed' as const }],
+    });
+    act(() =>
+      useStore.setState((s) => ({
+        rides: s.rides.map((r) => (String(r.id) === 'ride_lucas_lhr' ? { ...r, claims: [confirmed('you'), confirmed('mira')] } : r)),
+      })),
+    );
+    act(() => useStore.getState().openRideRoom('ride_lucas_lhr'));
+    act(() =>
+      useStore.setState((s) => ({
+        messages: [
+          ...s.messages,
+          { id: 'm_mira' as never, channelId: rideChannelId('ride_lucas_lhr'), from: asPersonId('mira'), at: SEED_NOW, body: { kind: 'text' as const, text: 'Hi all' } },
+        ],
+      })),
+    );
+    act(() => useStore.getState().blockPerson(asPersonId('mira')));
+    const view = renderHook(() => useChannel(String(rideChannelId('ride_lucas_lhr')))).result.current!;
+    expect(view.participants.map((p) => p.id)).not.toContain('mira');
+    expect(view.messages.some((m) => String(m.from) === 'mira')).toBe(false);
   });
 });

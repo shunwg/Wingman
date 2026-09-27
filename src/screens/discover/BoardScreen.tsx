@@ -6,8 +6,8 @@ import { tripCode } from '@domain/trip';
 import { tripHueClass } from '@design/tokens/tripHue';
 import { useBoard, useRelaxations, type BoardCandidate } from '@state/selectors/board';
 import { useStore } from '@state/store';
+import { settledFirstName } from '@state/selectors/home';
 import { tripIsOver } from '@domain/index';
-import { personById } from '@data/seed/people';
 import { RideBoard } from './RideBoard';
 import { BoardFilters } from './BoardFilters';
 import { ContextStrip } from './ContextStrip';
@@ -132,7 +132,7 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
           saying so is the difference between "we found nobody" and "you already
           found someone". */}
       {board.settledTrips.map((t) => {
-        const withWhom = personById(String(t.outcome!.settledWith));
+        const withWhom = settledFirstName(t);
         return (
           <div className={`settled ${tripHueClass(tripCode(t))}`} key={String(t.id)}>
             <div className="settled__head">
@@ -141,7 +141,7 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
               <Chip tone="trust">Sorted</Chip>
             </div>
             <p className="settled__body">
-              You&rsquo;re meeting {withWhom?.firstName ?? 'someone'} on this trip, so Wingman has
+              You&rsquo;re meeting {withWhom ?? 'someone'} on this trip, so Wingman has
               stopped suggesting people for it.
             </p>
             <Button size="sm" variant="secondary" onClick={() => reopenTrip(String(t.id))}>

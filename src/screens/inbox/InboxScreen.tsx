@@ -15,6 +15,7 @@ import { generateAvatar } from '@design/avatar/generate';
 import { useInbox, type InboxFilter, type InboxRow } from '@state/selectors/inbox';
 import { expiresIn, useIncomingCards } from '@state/selectors/requests';
 import { useSeatAsks, type SeatAsk } from '@state/selectors/rides';
+import { PersonMenu } from '@screens/safety/PersonMenu';
 import { Sheet } from '@design/primitives/Sheet';
 import { SEAT_YES_NOTE } from '@screens/rides/RideScreen';
 import { windowLabel } from '@screens/whenLabel';
@@ -132,6 +133,9 @@ export function InboxScreen({ onOpen }: { onOpen: (hash: string) => void }) {
                   {a.claim.note && <p className="strip__msg">&ldquo;{a.claim.note}&rdquo;</p>}
                 </div>
                 <div className="strip__actions">
+                  {/* Their note is in your inbox before any yes: hide or report
+                      it from here, not only from a car screen. */}
+                  <PersonMenu personId={a.claim.personId} firstName={first ?? 'them'} />
                   <Button size="sm" onClick={() => setSeatYes(a)}>
                     Yes
                   </Button>

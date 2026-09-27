@@ -25,6 +25,7 @@ import { ProposeSheet, type ProposalDraft } from './ProposeSheet';
 import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { buildIcs } from '@lib/ics';
 import { fareCopy } from '@screens/rides/fareCopy';
+import { seatLineText } from '@data/copy/rides';
 import { windowLabel } from '@screens/whenLabel';
 
 /**
@@ -461,6 +462,13 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
                 return (
                   <li key={String(m.id)} className="msg msg--system">
                     <span className="msg__stage">{m.body.text}</span>
+                  </li>
+                );
+              }
+              if (m.body.kind === 'seat') {
+                return (
+                  <li key={String(m.id)} className="msg msg--system">
+                    <span className="msg__stage">{seatLineText(m.body.change, isMine ? 'You' : who)}</span>
                   </li>
                 );
               }

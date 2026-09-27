@@ -3,6 +3,8 @@ import type { Circle, Trip } from '@domain/index';
 import { tripIsOpen, tripStart } from '@domain/trip';
 import { epoch, type ISODateTime } from '@domain/time';
 import { circleIsLive } from '@data/seed/circles';
+import { personById } from '@data/seed/people';
+import { redact } from '@privacy/index';
 import { useStore } from '../store';
 import { allCircles } from './circles';
 import { useBoard, type BoardCandidate } from './board';
@@ -42,6 +44,21 @@ export function nextJourney(trips: Trip[], now: ISODateTime): Trip | undefined {
     // Hidden from others is still yours to take.
     .map((t) => ({ t, at: tripStart(t) ?? '' }))
     .sort((a, b) => a.at.localeCompare(b.at))[0]?.t;
+}
+
+/**
+ * "You are meeting Priya on this one": the first name, through the ladder.
+ *
+ * Three screens read a whole `Person` to print it, which is rule 1 broken
+ * three times over for one word. Here, in a selector, redacted to rung 0 —
+ * a first name is what that rung already shows anyone.
+ */
+export function settledFirstName(trip: Trip): string | undefined {
+  if (!trip.outcome) return undefined;
+  const p = personById(String(trip.outcome.settledWith));
+  if (!p) return undefined;
+  const card = redact(p, 0);
+  return typeof card.displayName === 'string' ? card.displayName.split(' ')[0] : undefined;
 }
 
 /**

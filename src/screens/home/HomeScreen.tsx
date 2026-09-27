@@ -9,13 +9,12 @@ import { tripCode, tripDestination } from '@domain/trip';
 import { tripHueClass } from '@design/tokens/tripHue';
 import { bucketPhrase } from '@lib/bucket';
 import { airportIndex, cityByKey } from '@data/airports/index';
-import { useHome } from '@state/selectors/home';
+import { settledFirstName, useHome } from '@state/selectors/home';
 import { whenLabel, windowLabel } from '@screens/whenLabel';
 import { useEventBoards } from '@state/selectors/event';
 import { useIncomingCards, useSaidYes, expiresIn } from '@state/selectors/requests';
 import { useJoinableRides, useSeatAsks } from '@state/selectors/rides';
 import { Route } from '@design/icons/Route';
-import { personById } from '@data/seed/people';
 import { markArriving } from '@screens/inbox/arrive';
 import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { useStore } from '@state/store';
@@ -147,7 +146,7 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
             <DepartureLine trip={journey} now={now} />
             {journey.outcome ? (
               <span className="journey__meta">
-                You are meeting {personFirstName(String(journey.outcome.settledWith))} on this one.
+                You are meeting {settledFirstName(journey) ?? 'someone'} on this one.
               </span>
             ) : null}
             {journey.outcome ? (
@@ -310,11 +309,6 @@ function DepartureLine({ trip, now }: { trip: Parameters<typeof tripDestination>
 
 /** "a few shared cars" at the start of a line. */
 const capitalised = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-/** A first name for a sentence about your own trip. */
-function personFirstName(id: string): string {
-  return personById(id)?.firstName ?? 'someone';
-}
 
 /** "in Singapore" or "on SQ317" — the place the paths cross. */
 function crossing(match: { overlap: { kind: string } & Record<string, unknown> }, trip: Parameters<typeof tripDestination>[0]): string {

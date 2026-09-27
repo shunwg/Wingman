@@ -10,6 +10,7 @@ import type {
   RedactedPerson,
 } from '@domain/index';
 import { redact } from '@privacy/index';
+import { rideChannelId } from '@domain/index';
 import { seedPool } from '@data/seed/trips';
 import { personById } from '@data/seed/people';
 import { useStore } from '../store';
@@ -181,12 +182,39 @@ export function useChannel(channelId: string): ChannelView | undefined {
       };
     }
 
-    const participants: Participant[] = channel.memberIds.map((id) => {
-      if (id === me.id) return { id: String(id), firstName: me.firstName || 'You', avatar: me.avatar, isMe: true };
-      const p = personById(String(id));
-      return { id: String(id), firstName: p?.firstName ?? 'Member', avatar: p?.avatar ?? me.avatar, isMe: false };
-    });
-    return { channel, messages, ...(circle ? { circle } : {}), participants, sameTerminal: false, muted: isMuted };
+    /*
+     * Someone you have hidden is hidden here too. A group or a car can hold a
+     * person you hid who is not yours to remove — a fellow passenger in someone
+     * else's car — and "hidden" has to mean you stop seeing them, there as on
+     * the board.
+     */
+    const blocked = new Set(me.blocked.map(String));
+    const participants: Participant[] = channel.memberIds
+      .filter((id) => !blocked.has(String(id)))
+      .map((id) => {
+        if (id === me.id) return { id: String(id), firstName: me.firstName || 'You', avatar: me.avatar, isMe: true };
+        const p = personById(String(id));
+        return { id: String(id), firstName: p?.firstName ?? 'Member', avatar: p?.avatar ?? me.avatar, isMe: false };
+      });
+    let visible = messages.filter((m) => !blocked.has(String(m.from)));
+    /*
+     * A rider reads a car's room from the moment they joined it, not before.
+     * Late joiners used to read everything said before them — including who
+     * had been in the car and left. The host reads it all: it is their car.
+     */
+    const ride = rides.find((r) => String(rideChannelId(String(r.id))) === String(channel.id));
+    if (ride && String(ride.hostPersonId) !== String(me.id)) {
+      let joined = -1;
+      for (let i = visible.length - 1; i >= 0; i--) {
+        const b = visible[i]!.body;
+        if (b.kind === 'seat' && b.change !== 'out' && String(visible[i]!.from) === String(me.id)) {
+          joined = i;
+          break;
+        }
+      }
+      if (joined >= 0) visible = visible.slice(joined);
+    }
+    return { channel, messages: visible, ...(circle ? { circle } : {}), participants, sameTerminal: false, muted: isMuted };
   }, [channelId, me, myTrips, myCircles, stored, allMessages, muted, announcements, accepted, rides]);
 }
 

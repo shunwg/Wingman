@@ -80,6 +80,14 @@ export function rideGround(direction: RideDirection): string {
   return `${where}, and Wingman never shares an address. The car itself is not public — it is the one meet you cannot walk out of, so you choose who is in it and you can change your mind up to the kerb.`;
 }
 
+/** A seat line, in the reader's words. `name` is "You" for the reader. */
+export function seatLineText(change: 'took' | 'in' | 'out', name: string): string {
+  const you = name === 'You';
+  if (change === 'took') return `${name} took a seat.`;
+  if (change === 'in') return you ? 'You are in.' : `${name} is in.`;
+  return you ? 'You are no longer in the car.' : `${name} is no longer in the car.`;
+}
+
 /** What the fare line promises, and what it does not. */
 export const RIDE_FARE_NOTE =
   'Split evenly between whoever is in the car. Wingman does not take payment or settle it for you — you sort it out between you, as you would in any cab.';

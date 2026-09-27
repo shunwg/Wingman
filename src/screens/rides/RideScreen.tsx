@@ -197,9 +197,13 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
                   </div>
                   {c.note && <p className="ride__asknote">&ldquo;{c.note}&rdquo;</p>}
                   <div className="ride__askactions">
-                    <Button size="sm" onClick={() => setSayingYes(String(c.personId))}>
-                      Yes
-                    </Button>
+                    {seatsLeft > 0 ? (
+                      <Button size="sm" onClick={() => setSayingYes(String(c.personId))}>
+                        Yes
+                      </Button>
+                    ) : (
+                      <span className="panel__note">The car is full.</span>
+                    )}
                     <Button size="sm" variant="secondary" onClick={() => declineSeat(rideId, c.personId)}>
                       No
                     </Button>

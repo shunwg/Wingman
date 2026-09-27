@@ -6,6 +6,7 @@ import { personById } from '@data/seed/people';
 import { STAGE_COPY } from '@data/copy/stages';
 import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { PLAN_COPY } from '@data/copy/plans';
+import { seatLineText } from '@data/copy/rides';
 import { useStore } from '../store';
 import { allCircles } from './circles';
 import { useRequests } from './requests';
@@ -108,6 +109,9 @@ export function lastLine(m: Message | undefined, meId: PersonId): string {
   if (m.body.kind === 'proposal') return `Suggested ${MEET_KIND_LABEL[m.body.meetKind].toLowerCase()} at ${m.body.placeLabel}`;
   if (m.body.kind === 'agreed') return PLAN_COPY.preview.agreed;
   if (m.body.kind === 'plan_off') return PLAN_COPY.preview.off;
+  if (m.body.kind === 'seat') {
+    return seatLineText(m.body.change, m.from === meId ? 'You' : (personById(String(m.from))?.firstName ?? 'Someone'));
+  }
   const who = m.from === meId ? undefined : personById(String(m.from))?.firstName;
   const copy = STAGE_COPY[m.body.stage];
   return m.from === meId ? copy.mine : `${who ?? 'They'} ${copy.theirs}`;

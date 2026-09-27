@@ -26,6 +26,7 @@ import type {
   RideDirection,
   RidePoint,
   JourneyStage,
+  SeatChange,
   StageUpdate,
   SafetyReport,
   TimeWindow,
@@ -56,6 +57,7 @@ import {
   rideChannelId,
   rideRoute,
   riders,
+  roomMembers,
   seatsAutomatically,
   seatsLeft,
   TEXT_CAP,
@@ -70,7 +72,6 @@ import {
 } from '@privacy/index';
 import { scriptedProposal, scriptedReply } from '@data/seed/replies';
 import { SEED_MESSAGES } from '@data/seed/channels';
-import { personById } from '@data/seed/people';
 import type { ISODateTime } from '@domain/time';
 import { SEED_NOW } from '@data/seed/trips';
 import { layoversFor, MATCH_CONFIG_V1 } from '@matching/index';
@@ -334,8 +335,10 @@ export interface WingmanState {
   removeSeat: (rideId: string, personId: PersonId) => void;
   /** Host: call the whole car off. */
   cancelRide: (rideId: string) => void;
-  /** A line in the car's room, when it has one. For seat changes the others should know about. */
+  /** A line in the car's room, when it has one — the host's own fixed sentences only. */
   carLine: (rideId: string, text: string) => void;
+  /** A seat changed. Structured, and rendered by each reader — see `SeatChange`. */
+  seatLine: (rideId: string, personId: PersonId, change: SeatChange) => void;
   /** Host: what the whole car should cost, or null to take the estimate back. */
   setRideFare: (rideId: string, fare: RideFare | null) => void;
   /** Host: the exact spot and the car, for the people in it. Empty clears it. */
@@ -421,11 +424,35 @@ export interface HostRideInput {
   pickupNote?: string;
 }
 
-/** A first name for a line in a room: yours, or the seeded person's. */
-function firstNameOf(s: Pick<WingmanState, 'me'>, personId: PersonId | string): string {
-  if (String(personId) === String(s.me.id)) return s.me.firstName || 'You';
-  return personById(String(personId))?.firstName ?? 'Someone';
+/**
+ * A name as other people will read it.
+ *
+ * Normalised, stripped of zero-width and control characters, whitespace
+ * collapsed, capped. A name is shown in other people's rooms and on their
+ * boards; an uncapped one could carry a paragraph, and a zero-width one made
+ * a person anonymous.
+ */
+function cleanName(raw: string, max: number): string {
+  return Array.from(raw.normalize('NFKC'))
+    .filter((ch) => !invisible(ch.codePointAt(0) ?? 0))
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
 }
+
+/** Control characters, zero-width marks and direction overrides. */
+const invisible = (c: number): boolean =>
+  c < 0x20 ||
+  c === 0x7f ||
+  (c >= 0x200b && c <= 0x200f) ||
+  (c >= 0x2028 && c <= 0x202e) ||
+  (c >= 0x2060 && c <= 0x206f) ||
+  c === 0xfeff;
+
+const PLACE_KINDS: ReadonlySet<string> = new Set([
+  'gate', 'lounge', 'terminal_landmark', 'cafe', 'restaurant', 'taxi_rank', 'station', 'hotel_lobby', 'pickup_point',
+]);
 
 /** The next message id. The simulated clock does not move, so the count keeps them apart. */
 const messageId = (count: number, now: ISODateTime) => asMessageId('m_' + (count + 1) + '_' + Date.parse(String(now)));
@@ -567,7 +594,15 @@ export const useStore = create<WingmanState>()(
           return { account: hash ? { ...account, returnTo: hash } : account };
         }),
 
-      setMe: (patch) => set((s) => ({ me: { ...s.me, ...patch } })),
+      setMe: (patch) =>
+        set((s) => ({
+          me: {
+            ...s.me,
+            ...patch,
+            ...(patch.firstName !== undefined ? { firstName: cleanName(patch.firstName, 30) } : {}),
+            ...(patch.displayName !== undefined ? { displayName: cleanName(patch.displayName, 60) } : {}),
+          },
+        })),
 
       setProfessional: (patch) =>
         set((s) => ({ me: { ...s.me, professional: { ...s.me.professional, ...patch } } })),
@@ -645,7 +680,16 @@ export const useStore = create<WingmanState>()(
       post: (channel, body) =>
         set((s) => {
           let b = body;
-          if (b.kind === 'proposal' && looksLikeAddress(b.placeLabel)) return s;
+          if (b.kind === 'proposal') {
+            if (looksLikeAddress(b.placeLabel)) return s;
+            if (b.placeKind && !PLACE_KINDS.has(b.placeKind)) return s;
+            // Twelve open suggestions from one person is a conversation that
+            // should be happening in person; a hundred is a flood.
+            const mineHere = s.messages.filter(
+              (m) => m.channelId === channel.id && m.from === s.me.id && m.body.kind === 'proposal',
+            ).length;
+            if (mineHere >= 12) return s;
+          }
           if (b.kind === 'text') {
             const trimmed = b.text.trim().slice(0, TEXT_CAP[channel.kind]);
             if (!trimmed) return s;
@@ -812,7 +856,7 @@ export const useStore = create<WingmanState>()(
           get().openRideRoom(rideId);
           // A self-seating door skips the host's yes; it must not also skip the
           // host knowing. The room is where everyone in the car already looks.
-          get().carLine(rideId, `${s.me.firstName || 'Someone'} took a seat.`);
+          get().seatLine(rideId, s.me.id, 'took');
         }
       },
 
@@ -821,13 +865,16 @@ export const useStore = create<WingmanState>()(
         // yes to more people than the car holds.
         const car = get().rides.find((r) => String(r.id) === rideId);
         if (!car || seatsLeft(car) === 0) return;
+        const before = get().rides;
         set((s) => ({ rides: mapClaim(s, rideId, personId, 'confirmed', s.me.id) }));
+        // Nothing moved (not the host, a stale tap): say nothing either.
+        if (get().rides === before) return;
         // A confirmed seat means the car holds more than its host, which is
         // the condition the room exists for. Idempotent, so confirming a
         // second passenger refreshes the member list rather than opening a
         // second room.
         get().openRideRoom(rideId);
-        get().carLine(rideId, `${firstNameOf(get(), personId)} is in.`);
+        get().seatLine(rideId, personId, 'in');
       },
 
       declineSeat: (rideId, personId) =>
@@ -838,15 +885,39 @@ export const useStore = create<WingmanState>()(
         const was = s.rides.find((r) => String(r.id) === rideId);
         const wasIn = was ? latestClaim(was, s.me.id)?.status === 'confirmed' : false;
         // Said before the seat goes: afterwards you are not in the room.
-        if (wasIn) get().carLine(rideId, `${s.me.firstName || 'Someone'} is no longer in the car.`);
+        if (wasIn) get().seatLine(rideId, s.me.id, 'out');
         set((st) => ({ rides: mapClaim(st, rideId, st.me.id, 'withdrawn', st.me.id) }));
       },
 
       removeSeat: (rideId, personId) => {
-        // The same sentence as leaving, on purpose: the others learn the seat is
-        // free, not who ended it — the passenger is only told it closed.
-        get().carLine(rideId, `${firstNameOf(get(), personId)} is no longer in the car.`);
+        // The same line as leaving, on purpose: the others learn the seat is
+        // free, not who ended it — the passenger is only told it closed. Said
+        // before the seat goes, and only if it is really going.
+        const car = get().rides.find((r) => String(r.id) === rideId);
+        const hosting = car && String(car.hostPersonId) === String(get().me.id);
+        if (!hosting || latestClaim(car, personId)?.status !== 'confirmed') return;
+        get().seatLine(rideId, personId, 'out');
         set((s) => ({ rides: mapClaim(s, rideId, personId, 'removed_by_host', s.me.id) }));
+      },
+
+      seatLine: (rideId, personId, change) => {
+        const s = get();
+        const room = rideChannelId(rideId);
+        if (!s.channels.some((c) => c.id === room)) return;
+        set({
+          messages: [
+            ...s.messages,
+            {
+              id: messageId(s.messages.length, s.now),
+              channelId: room,
+              // The person the line is about — never the person who caused it,
+              // so the log cannot say who removed whom.
+              from: personId,
+              at: s.now,
+              body: { kind: 'seat', change },
+            },
+          ],
+        });
       },
 
       carLine: (rideId, text) => {
@@ -922,11 +993,11 @@ export const useStore = create<WingmanState>()(
         });
         // People already in the car agreed to one number. A different one is
         // said where they will see it, not changed underneath them.
-        if (!same && ride.fare) {
+        if (!same && (ride.fare || riders(ride).length > 1)) {
           get().carLine(
             rideId,
             fare
-              ? `The host changed the estimate to about ${Math.round(fare.amountMinor / 100)} ${fare.currency} for the car.`
+              ? `${ride.fare ? 'The host changed the estimate to' : 'The host estimates'} about ${Math.round(fare.amountMinor / 100)} ${fare.currency} for the car.`
               : 'The host took the fare estimate down.',
           );
         }
@@ -1107,6 +1178,15 @@ export const useStore = create<WingmanState>()(
         set((s) => {
           const meetId = meetIdForChannel(channelId);
           if (!meetId) return {};
+          // Only a meet you are in, about someone who was in it with you.
+          const inMeet = channelId.startsWith('meet:')
+            ? isMyMeetRoom(s, channelId) && roomPeople(s, channelId).some((p) => String(p) === String(rateeId))
+            : (() => {
+                const car = s.rides.find((r) => String(rideChannelId(String(r.id))) === channelId);
+                const people = car ? roomMembers(car).map(String) : [];
+                return people.includes(String(s.me.id)) && people.includes(String(rateeId));
+              })();
+          if (!inMeet) return {};
           return {
           ratings: [
             // Per person, not per meet: in a car you rate each rider, and
@@ -1115,7 +1195,7 @@ export const useStore = create<WingmanState>()(
             // same someone is theirs, not yours to replace.
             ...s.ratings.filter((r) => !(r.meetId === meetId && r.rateeId === rateeId && r.raterId === s.me.id)),
             {
-              id: asRatingId('rt_' + Date.parse(String(s.now)) + '_' + String(rateeId)),
+              id: asRatingId('rt_' + String(meetId) + '_' + String(rateeId) + '_' + Date.parse(String(s.now))),
               meetId,
               raterId: s.me.id,
               rateeId,
@@ -1370,8 +1450,8 @@ export const useStore = create<WingmanState>()(
             String(ride.hostPersonId) === String(get().me.id) && latestClaim(ride, id)?.status === 'confirmed';
           const mySeatInTheirs =
             String(ride.hostPersonId) === String(id) && latestClaim(ride, get().me.id)?.status === 'confirmed';
-          if (theirSeatInMine) get().carLine(String(ride.id), `${firstNameOf(get(), id)} is no longer in the car.`);
-          if (mySeatInTheirs) get().carLine(String(ride.id), `${get().me.firstName || 'Someone'} is no longer in the car.`);
+          if (theirSeatInMine) get().seatLine(String(ride.id), id, 'out');
+          if (mySeatInTheirs) get().seatLine(String(ride.id), get().me.id, 'out');
         }
         set((s) => ({
           me: { ...s.me, blocked: [...new Set([...s.me.blocked, id])] },
@@ -1394,22 +1474,22 @@ export const useStore = create<WingmanState>()(
            */
           messages: [
             ...s.messages,
-            ...s.requests.flatMap((r, i) => {
+            ...s.requests.flatMap((r) => {
               if (r.status !== 'accepted') return [];
               if (r.fromPersonId !== id && r.toPersonId !== id) return [];
               const room = meetChannelId(r.id);
               const plan = agreedPlan(messagesFor(room, s.messages), [r.fromPersonId, r.toPersonId]);
               if (!plan) return [];
-              return [
-                {
-                  id: messageId(s.messages.length + i, s.now),
-                  channelId: room,
-                  from: s.me.id,
-                  at: s.now,
-                  body: { kind: 'plan_off' as const, proposalId: plan.proposal.id },
-                },
-              ];
-            }),
+              return [{ room, proposalId: plan.proposal.id }];
+            }).map((x, k) => ({
+              // Numbered from the end of the log, one each: numbering by the
+              // request's index minted an id the next message then reused.
+              id: messageId(s.messages.length + k, s.now),
+              channelId: x.room,
+              from: s.me.id,
+              at: s.now,
+              body: { kind: 'plan_off' as const, proposalId: x.proposalId },
+            })),
           ],
           // Any live request between you dies with the block.
           requests: s.requests.map((r) =>
