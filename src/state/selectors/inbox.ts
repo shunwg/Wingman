@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import type { AvatarSpec, Channel, ChannelId, ISODateTime, MeetRequest, Message, PersonId } from '@domain/index';
-import { circleChannelId, meetChannelId } from '@domain/index';
+import type { AvatarSpec, Channel, ChannelId, ISODateTime, MeetRequest, Message, PersonId, Ride } from '@domain/index';
+import { circleChannelId, meetChannelId, rideChannelId, roomMembers } from '@domain/index';
 import { SEED_CHANNELS } from '@data/seed/channels';
 import { personById } from '@data/seed/people';
 import { STAGE_COPY } from '@data/copy/stages';
@@ -51,8 +51,14 @@ export function channelsFor(
   circleIds: string[],
   mine: Channel[],
   announcements: Record<string, { text: string; at: ISODateTime }> = {},
+  derive: { rides?: readonly Ride[]; blocked?: readonly PersonId[] } = {},
 ): Channel[] {
-  const meets: Channel[] = accepted.map((r) => {
+  const blocked = new Set((derive.blocked ?? []).map(String));
+  const meets: Channel[] = accepted.flatMap((r) => {
+    const other = r.fromPersonId === meId ? r.toPersonId : r.fromPersonId;
+    // Hidden means gone from here too — the room, and the plan in it.
+    return blocked.has(String(other)) ? [] : [r];
+  }).map((r) => {
     const other = r.fromPersonId === meId ? r.toPersonId : r.fromPersonId;
     return {
       id: meetChannelId(r.id),
@@ -80,9 +86,15 @@ export function channelsFor(
     // The organiser's own pin wins over the seeded one.
     return pin ? { ...base, pinned: pin } : base;
   });
-  const groups = [...SEED_CHANNELS, ...mine].filter(
-    (c) => c.kind === 'group' && c.memberIds.includes(meId),
-  );
+  const rides = new Map((derive.rides ?? []).map((r) => [String(rideChannelId(String(r.id))), r]));
+  const groups = [...SEED_CHANNELS, ...mine]
+    .map((c) => {
+      // A car's room holds whoever is in the car *now* — derived from the car,
+      // not the list stored when the room opened. See `roomMembers`.
+      const ride = rides.get(String(c.id));
+      return ride ? { ...c, memberIds: roomMembers(ride) } : c;
+    })
+    .filter((c) => c.kind === 'group' && c.memberIds.includes(meId));
   return [...meets, ...circles, ...groups];
 }
 
@@ -117,6 +129,7 @@ export function useInbox(filter: InboxFilter = 'all') {
   const readAt = useStore((s) => s.readAt);
   const muted = useStore((s) => s.muted);
   const announcements = useStore((s) => s.announcements);
+  const rides = useStore((s) => s.rides);
   const { incomingPending, outgoing, accepted } = useRequests();
 
   return useMemo(() => {
@@ -124,7 +137,7 @@ export function useInbox(filter: InboxFilter = 'all') {
     const circleIds = me.memberships
       .filter((m) => m.display !== 'paused')
       .map((m) => String(m.circleId));
-    const all = channelsFor(me.id, accepted, circleIds, channels, announcements);
+    const all = channelsFor(me.id, accepted, circleIds, channels, announcements, { rides, blocked: me.blocked });
 
     const rows: InboxRow[] = all.map((c) => {
       const msgs = messagesFor(c.id, messages);
@@ -193,7 +206,7 @@ export function useInbox(filter: InboxFilter = 'all') {
       rows: sortRows(filtered),
       unreadCount: rows.filter((r) => r.unread && !r.muted).length,
     };
-  }, [me, myCircles, channels, messages, readAt, muted, announcements, incomingPending, outgoing, accepted, filter]);
+  }, [me, myCircles, channels, messages, readAt, muted, announcements, incomingPending, outgoing, accepted, filter, rides]);
 }
 
 /** For the tab bar: how many things need you. */

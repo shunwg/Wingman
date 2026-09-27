@@ -44,6 +44,7 @@ import {
   asRideId,
   asUtc,
   assertFare,
+  latestClaim,
   canAgree,
   codeFromSeed,
   agreedPlan,
@@ -67,6 +68,7 @@ import {
 } from '@privacy/index';
 import { scriptedProposal, scriptedReply } from '@data/seed/replies';
 import { SEED_MESSAGES } from '@data/seed/channels';
+import { personById } from '@data/seed/people';
 import type { ISODateTime } from '@domain/time';
 import { SEED_NOW } from '@data/seed/trips';
 import { layoversFor, MATCH_CONFIG_V1 } from '@matching/index';
@@ -330,6 +332,8 @@ export interface WingmanState {
   removeSeat: (rideId: string, personId: PersonId) => void;
   /** Host: call the whole car off. */
   cancelRide: (rideId: string) => void;
+  /** A line in the car's room, when it has one. For seat changes the others should know about. */
+  carLine: (rideId: string, text: string) => void;
   /** Host: what the whole car should cost, or null to take the estimate back. */
   setRideFare: (rideId: string, fare: RideFare | null) => void;
   /** Host: the exact spot and the car, for the people in it. Empty clears it. */
@@ -416,6 +420,12 @@ export interface HostRideInput {
   pickupNote?: string;
 }
 
+/** A first name for a line in a room: yours, or the seeded person's. */
+function firstNameOf(s: Pick<WingmanState, 'me'>, personId: PersonId | string): string {
+  if (String(personId) === String(s.me.id)) return s.me.firstName || 'You';
+  return personById(String(personId))?.firstName ?? 'Someone';
+}
+
 /** The next message id. The simulated clock does not move, so the count keeps them apart. */
 const messageId = (count: number, now: ISODateTime) => asMessageId('m_' + (count + 1) + '_' + Date.parse(String(now)));
 
@@ -471,7 +481,8 @@ function mapClaim(
   const ownSeat = String(personId) === String(by);
   if (to === 'withdrawn' ? !ownSeat : !hostActing) return s.rides;
 
-  const claim = ride.claims.find((c) => String(c.personId) === String(personId));
+  // The newest claim: a person may have asked, left and asked again.
+  const claim = latestClaim(ride, personId);
   if (!claim) return s.rides;
 
   let moved: RideClaim;
@@ -483,7 +494,9 @@ function mapClaim(
     return s.rides;
   }
 
-  const claims = ride.claims.map((c) => (String(c.personId) === String(personId) ? moved : c));
+  // That claim and only that one — matching on the person replaced every
+  // claim they had ever made with the new one.
+  const claims = ride.claims.map((c) => (c === claim ? moved : c));
   return s.rides.map((r) => (String(r.id) === rideId ? { ...r, claims } : r));
 }
 
@@ -775,7 +788,12 @@ export const useStore = create<WingmanState>()(
           : claim;
         const next = { ...ride, claims: [...ride.claims, settled] };
         set({ rides: s.rides.map((r) => (String(r.id) === rideId ? next : r)) });
-        if (seated) get().openRideRoom(rideId);
+        if (seated) {
+          get().openRideRoom(rideId);
+          // A self-seating door skips the host's yes; it must not also skip the
+          // host knowing. The room is where everyone in the car already looks.
+          get().carLine(rideId, `${s.me.firstName || 'Someone'} took a seat.`);
+        }
       },
 
       confirmSeat: (rideId, personId) => {
@@ -785,16 +803,45 @@ export const useStore = create<WingmanState>()(
         // second passenger refreshes the member list rather than opening a
         // second room.
         get().openRideRoom(rideId);
+        get().carLine(rideId, `${firstNameOf(get(), personId)} is in.`);
       },
 
       declineSeat: (rideId, personId) =>
         set((s) => ({ rides: mapClaim(s, rideId, personId, 'declined', s.me.id) })),
 
-      withdrawSeat: (rideId) =>
-        set((s) => ({ rides: mapClaim(s, rideId, s.me.id, 'withdrawn', s.me.id) })),
+      withdrawSeat: (rideId) => {
+        const s = get();
+        const was = s.rides.find((r) => String(r.id) === rideId);
+        const wasIn = was ? latestClaim(was, s.me.id)?.status === 'confirmed' : false;
+        // Said before the seat goes: afterwards you are not in the room.
+        if (wasIn) get().carLine(rideId, `${s.me.firstName || 'Someone'} is no longer in the car.`);
+        set((st) => ({ rides: mapClaim(st, rideId, st.me.id, 'withdrawn', st.me.id) }));
+      },
 
-      removeSeat: (rideId, personId) =>
-        set((s) => ({ rides: mapClaim(s, rideId, personId, 'removed_by_host', s.me.id) })),
+      removeSeat: (rideId, personId) => {
+        // The same sentence as leaving, on purpose: the others learn the seat is
+        // free, not who ended it — the passenger is only told it closed.
+        get().carLine(rideId, `${firstNameOf(get(), personId)} is no longer in the car.`);
+        set((s) => ({ rides: mapClaim(s, rideId, personId, 'removed_by_host', s.me.id) }));
+      },
+
+      carLine: (rideId, text) => {
+        const s = get();
+        const room = rideChannelId(rideId);
+        if (!s.channels.some((c) => c.id === room)) return;
+        set({
+          messages: [
+            ...s.messages,
+            {
+              id: messageId(s.messages.length, s.now),
+              channelId: room,
+              from: s.me.id,
+              at: s.now,
+              body: { kind: 'system', text },
+            },
+          ],
+        });
+      },
 
       cancelRide: (rideId) =>
         set((s) => {
@@ -839,11 +886,24 @@ export const useStore = create<WingmanState>()(
         if (fare) assertFare(fare);
         const next: Ride = { ...ride };
         delete next.fare;
+        const same =
+          (fare?.amountMinor ?? null) === (ride.fare?.amountMinor ?? null) &&
+          (fare?.currency ?? null) === (ride.fare?.currency ?? null);
         set({
           rides: s.rides.map((r) =>
             r === ride ? (fare ? { ...next, fare: { amountMinor: fare.amountMinor, currency: fare.currency } } : next) : r,
           ),
         });
+        // People already in the car agreed to one number. A different one is
+        // said where they will see it, not changed underneath them.
+        if (!same && ride.fare) {
+          get().carLine(
+            rideId,
+            fare
+              ? `The host changed the estimate to about ${Math.round(fare.amountMinor / 100)} ${fare.currency} for the car.`
+              : 'The host took the fare estimate down.',
+          );
+        }
       },
 
       setPickupNote: (rideId, note) => {

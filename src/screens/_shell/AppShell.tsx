@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { TabBar } from './TabBar';
 
@@ -35,7 +36,11 @@ export function AppShell({
           </header>
         )}
         <main className="shell__main" id="main" key={route}>
-          {children}
+          {/* The screen suspends here, not at the root: while a screen's chunk
+              loads, the header and the tab bar stay put. With the only
+              boundary at the root, every first visit to a screen blanked the
+              whole app — tab bar included — for as long as the chunk took. */}
+          <Suspense fallback={null}>{children}</Suspense>
         </main>
         {chrome === 'tabs' && <TabBar route={route} />}
       </div>

@@ -60,6 +60,7 @@ const REFUSAL_COPY: Record<string, string> = {
   no_seats: 'Every seat is taken.',
   closed: 'This car has left.',
   already_claimed: '',
+  not_again: 'The host has already decided about this seat.',
   not_visible: '',
 };
 

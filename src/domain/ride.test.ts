@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { asCircleId, asIata, asPersonId, asRideId, asTripId } from './ids';
 import type { ISODateTime } from './time';
-import { PICKUP_NOTE_CAP, fareEach, makeRide, rideIsJoinable, seatsLeft, seatsPending, sharesDirection, type Ride } from './ride';
+import { PICKUP_NOTE_CAP, fareEach, latestClaim, makeRide, roomMembers, rideIsJoinable, seatsLeft, seatsPending, sharesDirection, type Ride } from './ride';
 import { anyAudience } from './privacy';
 
 const t = (s: string) => s as ISODateTime;
@@ -176,5 +176,61 @@ describe('the car\'s money — an estimate the host states, never a charge', () 
     expect(fareEach(base({ fare, fareSplit: 'host_pays' }), 3)).toBe(0);
     expect(fareEach(base(), 3)).toBeUndefined();
     expect(fareEach(base({ fare }), 0)).toBeUndefined();
+  });
+});
+
+describe('roomMembers — who is in the car room, derived from the car', () => {
+  const confirmed = (id: string) => ({
+    personId: asPersonId(id),
+    status: 'confirmed' as const,
+    askedAt: t('2026-09-16T10:00:00Z'),
+    history: [{ at: t('2026-09-16T10:00:00Z'), by: 'system' as const, from: 'requested' as const, to: 'confirmed' as const }],
+  });
+
+  it('is the host and everyone confirmed — and nobody who left or was removed', () => {
+    const r = base();
+    const withPeople: Ride = {
+      ...r,
+      claims: [
+        confirmed('mira'),
+        { ...confirmed('omar'), status: 'removed_by_host' },
+        { ...confirmed('lucas'), status: 'withdrawn' },
+        { ...confirmed('priya'), status: 'requested', history: [] },
+      ],
+    };
+    expect(roomMembers(withPeople).map(String)).toEqual(['you', 'mira']);
+  });
+
+  it('keeps the riders of a called-off car, so they can read that it is off', () => {
+    const r = base();
+    const cancelled: Ride = {
+      ...r,
+      status: 'cancelled',
+      claims: [
+        {
+          ...confirmed('mira'),
+          status: 'revoked_by_policy',
+          history: [
+            ...confirmed('mira').history,
+            { at: t('2026-09-17T10:00:00Z'), by: 'system', from: 'confirmed', to: 'revoked_by_policy' },
+          ],
+        },
+        { ...confirmed('omar'), status: 'removed_by_host' },
+      ],
+    };
+    expect(roomMembers(cancelled).map(String)).toEqual(['you', 'mira']);
+  });
+});
+
+describe('latestClaim', () => {
+  it('reads the newest seat a person has, not the first', () => {
+    const r: Ride = {
+      ...base(),
+      claims: [
+        { personId: asPersonId('mira'), status: 'withdrawn', askedAt: t('2026-09-16T10:00:00Z'), history: [] },
+        { personId: asPersonId('mira'), status: 'confirmed', askedAt: t('2026-09-16T11:00:00Z'), history: [] },
+      ],
+    };
+    expect(latestClaim(r, asPersonId('mira'))?.status).toBe('confirmed');
   });
 });

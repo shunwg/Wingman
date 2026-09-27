@@ -17,7 +17,7 @@ import { airportIndex, cityByKey } from '@data/airports/index';
 import { personById } from '@data/seed/people';
 import type { ISODateTime, JourneyStage, StageUpdate, Trip } from '@domain/index';
 import { localTime, minutesBetween } from '@domain/time';
-import { tripCode, tripIsOpen, tripLabel } from '@domain/trip';
+import { tripCode, tripIsOpen, tripIsOver, tripLabel } from '@domain/trip';
 import { tripHueClass } from '@design/tokens/tripHue';
 import { bucketPhrase } from '@lib/bucket';
 import { useStore } from '@state/store';
@@ -216,8 +216,7 @@ function TripBlock({
    * through security. A trip is over a few hours after its last landing, not
    * when you find someone on it.
    */
-  const lastLanding = trip.segments.at(-1)?.arriveUtc;
-  const underway = !lastLanding || minutesBetween(now, lastLanding) > -RAIL_AFTER_LANDING_MIN;
+  const underway = !tripIsOver(trip, now);
   const board = useBoard();
   const circles = useCircles();
   const onTrip = board.candidates.filter((c) => c.viaTripId === String(trip.id));
@@ -395,9 +394,6 @@ function placeLine(place: { kind: keyof typeof PLACE_KIND_LABEL; label: string }
   const kind = PLACE_KIND_LABEL[place.kind];
   return place.label.toLowerCase().includes(kind.toLowerCase()) ? place.label : `${kind} · ${place.label}`;
 }
-
-/** The arrival half of the rail runs to the car into town; give it the evening. */
-const RAIL_AFTER_LANDING_MIN = 6 * 60;
 
 /**
  * What you have actually agreed to on this trip, soonest first.

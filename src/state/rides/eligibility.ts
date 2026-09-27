@@ -1,5 +1,5 @@
 import type { Person, PersonId, Ride } from '@domain/index';
-import { riders, rideIsJoinable, seatsLeft } from '@domain/index';
+import { riders, latestClaim, rideIsJoinable, seatsLeft } from '@domain/index';
 import type { ISODateTime } from '@domain/time';
 import { compilePolicy, evaluateRideAudience, type RideAudienceVerdict } from '@privacy/index';
 import type { PersonFacets } from '@privacy/types';
@@ -107,6 +107,8 @@ export type ClaimRefusal =
   | 'not_visible'
   | 'own_car'
   | 'already_claimed'
+  /** The host removed you, or said no. Asking again is not yours to do. */
+  | 'not_again'
   | 'no_seats'
   | 'closed';
 
@@ -120,14 +122,19 @@ export type ClaimRefusal =
 export function claimRefusal(ride: Ride, v: RideViewer): ClaimRefusal | null {
   if (String(ride.hostPersonId) === String(v.me.id)) return 'own_car';
   if (!rideVisibility(ride, v).visible) return 'not_visible';
-  const mine = ride.claims.find((c) => String(c.personId) === String(v.me.id));
+  const mine = latestClaim(ride, v.me.id);
   if (mine && (mine.status === 'requested' || mine.status === 'confirmed')) return 'already_claimed';
+  // A host's "no" and a host's "take the seat back" both stand. Reading only
+  // the first claim let a removed passenger re-open a link and sit down again.
+  const refused = ride.claims.some(
+    (c) => String(c.personId) === String(v.me.id) && (c.status === 'removed_by_host' || c.status === 'declined'),
+  );
+  if (refused) return 'not_again';
   if (!rideIsJoinable(ride, v.now)) return seatsLeft(ride) === 0 ? 'no_seats' : 'closed';
   return null;
 }
 
 export const canClaim = (ride: Ride, v: RideViewer): boolean => claimRefusal(ride, v) === null;
 
-/** The seat this person holds in this car, if any. */
-export const myClaim = (ride: Ride, meId: PersonId) =>
-  ride.claims.find((c) => String(c.personId) === String(meId));
+/** The seat this person holds in this car, if any — their newest. */
+export const myClaim = (ride: Ride, meId: PersonId) => latestClaim(ride, meId);

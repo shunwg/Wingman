@@ -302,6 +302,44 @@ export function seatsPending(r: Ride): number {
   return r.claims.filter((c) => c.status === 'requested').length;
 }
 
+/**
+ * A person's newest seat in this car.
+ *
+ * A person can hold several claims on one car over time — asked, withdrew,
+ * asked again. Reading the *first* one is how a removed passenger came back in
+ * through a link, and how the host's second "take the seat back" landed on a
+ * finished claim and quietly did nothing.
+ */
+export function latestClaim(r: Ride, personId: PersonId | string): RideClaim | undefined {
+  for (let i = r.claims.length - 1; i >= 0; i--) {
+    const c = r.claims[i]!;
+    if (String(c.personId) === String(personId)) return c;
+  }
+  return undefined;
+}
+
+/**
+ * Who is in the car's room: the host and everyone with a confirmed seat.
+ *
+ * Derived from the car on every read. The room used to store its member list
+ * when it opened and never shrink it, so a passenger who left — or whom the
+ * host removed — kept reading and posting where the others arranged the
+ * pickup. Rule 2: a stored copy of a derived thing is where two facts disagree.
+ *
+ * One exception, deliberately: when the car is called off, the people who were
+ * in it stay, so they can read that it is off.
+ */
+export function roomMembers(r: Ride): PersonId[] {
+  const inCar = r.claims.filter(
+    (c) =>
+      c.status === 'confirmed' ||
+      (r.status === 'cancelled' &&
+        c.status === 'revoked_by_policy' &&
+        c.history.at(-1)?.from === 'confirmed'),
+  );
+  return [r.hostPersonId, ...new Set(inCar.map((c) => c.personId))];
+}
+
 /** Everyone who is actually in the car, host first. */
 export function riders(r: Ride): PersonId[] {
   return [r.hostPersonId, ...r.claims.filter((c) => c.status === 'confirmed').map((c) => c.personId)];

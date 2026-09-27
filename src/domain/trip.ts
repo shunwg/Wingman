@@ -91,6 +91,29 @@ export function tripIsOpen(t: Trip): boolean {
 }
 
 /**
+ * Three different questions, kept apart because conflating them kept breaking
+ * things. `tripIsOpen` — is the board still finding people for it. `tripIsListed`
+ * — has the traveller let others see it. `tripIsOver` — has it happened.
+ *
+ * Settling a trip (you said yes to someone on it) answers the first and neither
+ * of the others. Before v9 it also took away the trip's journey rail, its
+ * "Share a car", every car going its way, and its place as "your next journey"
+ * — because each of those asked `tripIsOpen` when it meant one of these two.
+ */
+export function tripIsListed(t: Trip): boolean {
+  return t.visibility.listing === 'listed';
+}
+
+/** A few hours after the last landing: long enough for the car into town. */
+export const TRIP_GRACE_AFTER_LANDING_MIN = 6 * 60;
+
+export function tripIsOver(t: Trip, now: ISODateTime): boolean {
+  const last = t.segments.at(-1);
+  if (!last) return false;
+  return Date.parse(String(now)) > Date.parse(String(last.arriveUtc)) + TRIP_GRACE_AFTER_LANDING_MIN * 60_000;
+}
+
+/**
  * The flight code a trip is known by — "SQ317", or a city when there is no
  * flight. Short enough for a chip, and the stable half of the label.
  */

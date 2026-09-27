@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { parseInvite } from '@domain/invite';
 import { localTime } from '@domain/time';
-import { seatsLeft } from '@domain/index';
+import { latestClaim, seatsLeft } from '@domain/index';
 import { redact } from '@privacy/index';
 import { Button } from '@design/primitives/Button';
 import { Chip } from '@design/primitives/Chip';
@@ -62,7 +62,13 @@ export function JoinRideScreen({ code, onOpen, onDone }: JoinRideScreenProps) {
     );
   }
 
-  const mine = ride.claims.find((c) => String(c.personId) === String(me.id));
+  // Your newest seat — an old withdrawn one must not hide a live one, or the
+  // other way round.
+  const mine = latestClaim(ride, me.id);
+  // The host said no, or took the seat back. A link does not undo that.
+  const closedToMe = ride.claims.some(
+    (c) => String(c.personId) === String(me.id) && (c.status === 'removed_by_host' || c.status === 'declined'),
+  );
   const zone = airportIndex.zone(ride.airportIata);
   const when = zone ? localTime(ride.window.from, zone) : String(ride.window.from).slice(11, 16);
   // Rung 0: following a link tells you whose car it is by first name, and
@@ -91,6 +97,16 @@ export function JoinRideScreen({ code, onOpen, onDone }: JoinRideScreenProps) {
         title={mine.status === 'confirmed' ? 'You already have this seat' : 'You have already asked'}
         note="Nothing more to do here."
         action={<Button onClick={() => onOpen(String(ride.id))}>Open the car</Button>}
+        onDone={onDone}
+      />
+    );
+  }
+
+  if (closedToMe) {
+    return (
+      <Outcome
+        title="This car is closed to you"
+        note="The host has already decided about this seat, and a link does not reopen it. Worth asking on the board whether anyone else is going your way."
         onDone={onDone}
       />
     );
@@ -126,7 +142,7 @@ export function JoinRideScreen({ code, onOpen, onDone }: JoinRideScreenProps) {
      * reported as a seat. Saying "you are in" to somebody who is not in the
      * car is the worst sentence in this feature.
      */
-    const seat = ride.claims.find((c) => String(c.personId) === String(me.id));
+    const seat = latestClaim(ride, me.id);
     if (seat?.status === 'confirmed') {
       return (
         <Outcome

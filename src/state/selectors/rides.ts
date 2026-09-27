@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Ride, RideClaim, Trip } from '@domain/index';
-import { riders, rideRoute, seatsLeft, tripIsOpen } from '@domain/index';
+import { riders, rideRoute, seatsLeft, tripIsListed, tripIsOver } from '@domain/index';
 import { addMinutes, intersectWindows } from '@domain/time';
 import { filterRides, type RideNeed } from '@matching/index';
 import { bucketPhrase } from '@lib/bucket';
@@ -145,15 +145,25 @@ export function useJoinableRides(): { rows: RideRow[]; hiddenNote?: string } {
     const others = rides.filter((r) => {
       if (String(r.hostPersonId) === String(v.me.id)) return false;
       const hostTrip = tripFor(String(r.hostPersonId));
-      return !hostTrip || String(hostTrip.id) !== String(r.tripId) || tripIsOpen(hostTrip);
+      // Hidden hides the car; settled does not — a host who agreed to a coffee
+      // on the same trip still wants the car filled.
+      return !hostTrip || String(hostTrip.id) !== String(r.tripId) || tripIsListed(hostTrip);
     });
     const seen = new Map<string, RideRow>();
     let hidden = 0;
 
+    /*
+     * Every trip you are still taking — not only the ones still looking for
+     * people. Scoping this to `tripIsOpen` meant that agreeing to meet anyone
+     * on a trip hid every car going its way, and the board then said nobody
+     * had offered one: false, and on the one screen that should get you into
+     * town for the meet you just agreed.
+     */
+    const live = (t: (typeof myTrips)[number]) => !tripIsOver(t, v.now);
     const scoped =
       filters.tripId === 'all'
-        ? myTrips.filter(tripIsOpen)
-        : myTrips.filter((t) => tripIsOpen(t) && String(t.id) === filters.tripId);
+        ? myTrips.filter(live)
+        : myTrips.filter((t) => live(t) && String(t.id) === filters.tripId);
 
     for (const trip of scoped) {
       for (const need of needsForTrip(trip)) {

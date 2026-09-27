@@ -39,6 +39,7 @@ export function nextJourney(trips: Trip[], now: ISODateTime): Trip | undefined {
       const last = t.segments.at(-1);
       return !last || epoch(last.arriveUtc) > epoch(now);
     })
+    // Hidden from others is still yours to take.
     .map((t) => ({ t, at: tripStart(t) ?? '' }))
     .sort((a, b) => a.at.localeCompare(b.at))[0]?.t;
 }

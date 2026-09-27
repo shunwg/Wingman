@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { asCircleId, asPersonId } from '@domain/ids';
 import { seatsLeft } from '@domain/index';
 import { useStore, STORE_VERSION } from '@state/store';
@@ -30,6 +30,18 @@ describe('the store version', () => {
 });
 
 describe('useJoinableRides', () => {
+  it('keeps the cars going your way after you agree to meet someone on that trip', () => {
+    // Saying yes to Priya settles tonight's trip. Settling stops the *person*
+    // board; it must not hide the cars — the regression was a board that then
+    // said nobody had offered one.
+    act(() => useStore.getState().advanceRequest('req_seed_priya', 'accepted', asPersonId('you')));
+    expect(useStore.getState().myTrips[0]!.outcome).toBeDefined();
+    const { result } = renderHook(() => useJoinableRides());
+    const ids = result.current.rows.map((r) => String(r.ride.id));
+    expect(ids).toContain('ride_jonas_marina');
+    expect(ids).toContain('ride_lucas_lhr');
+  });
+
   it('offers the cars going your way and never your own', () => {
     const { result } = renderHook(() => useJoinableRides());
     const ids = result.current.rows.map((r) => String(r.ride.id));
