@@ -14,7 +14,11 @@ import { personById } from '@data/seed/people';
 import { generateAvatar } from '@design/avatar/generate';
 import { useInbox, type InboxFilter, type InboxRow } from '@state/selectors/inbox';
 import { expiresIn, useIncomingCards } from '@state/selectors/requests';
-import { useSeatAsks } from '@state/selectors/rides';
+import { useSeatAsks, type SeatAsk } from '@state/selectors/rides';
+import { Sheet } from '@design/primitives/Sheet';
+import { SEAT_YES_NOTE } from '@screens/rides/RideScreen';
+import { windowLabel } from '@screens/whenLabel';
+import { airportIndex } from '@data/airports/index';
 import { useStore } from '@state/store';
 import { AcceptSheet } from '@screens/safety/AcceptSheet';
 import { DenySheet } from './DenySheet';
@@ -54,6 +58,7 @@ export function InboxScreen({ onOpen }: { onOpen: (hash: string) => void }) {
   const seatAsks = useSeatAsks();
   const confirmSeat = useStore((s) => s.confirmSeat);
   const declineSeat = useStore((s) => s.declineSeat);
+  const [seatYes, setSeatYes] = useState<SeatAsk | null>(null);
 
   return (
     <>
@@ -109,22 +114,25 @@ export function InboxScreen({ onOpen }: { onOpen: (hash: string) => void }) {
                 <Avatar spec={a.card.avatar} size="sm" />
                 <div className="strip__body">
                   <p className="strip__who">{first} asked for a seat in your car</p>
+                  {typeof a.card.headline === 'string' && a.card.headline && (
+                    <p className="strip__receipt">{a.card.headline}</p>
+                  )}
                   {a.card.stamps.length > 0 && (
                     <span className="strip__stamps">
                       {a.card.stamps.slice(0, 3).map((st, i) => (
-                        <StampBadge key={`${st.kind}-${i}`} stamp={st} compact />
+                        <StampBadge key={`${st.kind}-${i}`} stamp={st} />
                       ))}
                     </span>
                   )}
                   <p className="strip__receipt">
-                    <a href={`#/car/${String(a.ride.id)}`}>
-                      {a.route.from} → {a.route.to}
+                    <a className="strip__link" href={`#/car/${String(a.ride.id)}`}>
+                      {a.route.from} → {a.route.to} · {windowLabel(a.ride.window.from, a.ride.window.to, airportIndex.zone(a.ride.airportIata), now)}
                     </a>
                   </p>
                   {a.claim.note && <p className="strip__msg">&ldquo;{a.claim.note}&rdquo;</p>}
                 </div>
                 <div className="strip__actions">
-                  <Button size="sm" onClick={() => confirmSeat(String(a.ride.id), a.claim.personId)}>
+                  <Button size="sm" onClick={() => setSeatYes(a)}>
                     Yes
                   </Button>
                   <Button size="sm" variant="secondary" onClick={() => declineSeat(String(a.ride.id), a.claim.personId)}>
@@ -177,6 +185,30 @@ export function InboxScreen({ onOpen }: { onOpen: (hash: string) => void }) {
         />
       )}
       {denying && <DenySheet request={denying} onClose={() => setDenying(null)} />}
+      {seatYes && (
+        <Sheet
+          open
+          title="Give them the seat?"
+          onClose={() => setSeatYes(null)}
+          actions={
+            <>
+              <Button variant="secondary" onClick={() => setSeatYes(null)}>
+                Not yet
+              </Button>
+              <Button
+                onClick={() => {
+                  confirmSeat(String(seatYes.ride.id), seatYes.claim.personId);
+                  setSeatYes(null);
+                }}
+              >
+                Yes, they are in
+              </Button>
+            </>
+          }
+        >
+          <p className="sheet__body">{SEAT_YES_NOTE}</p>
+        </Sheet>
+      )}
     </>
   );
 }

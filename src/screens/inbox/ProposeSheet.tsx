@@ -44,12 +44,15 @@ const LENGTHS = [30, 45, 60] as const;
 export function ProposeSheet({
   request,
   defaultPlace,
+  current,
   clock,
   onClose,
   onPost,
 }: {
   request: MeetRequest;
   defaultPlace: string;
+  /** The plan that stands, when this is a change to it. */
+  current?: { from: ISODateTime; placeKind: PublicPlace['kind']; otherName: string };
   /** Renders an instant as local wall-clock, e.g. "12:10". */
   clock: (t: string) => string;
   onClose: () => void;
@@ -63,7 +66,9 @@ export function ProposeSheet({
   const starts: ISODateTime[] = [];
   for (let m = 0; m <= span - 30 && starts.length < 4; m += 30) {
     const t = addMinutes(base.from, m);
-    if (epoch(t) > epoch(now)) starts.push(t);
+    // Never the time already agreed: offering it first made "Change time"
+    // change nothing but the place.
+    if (epoch(t) > epoch(now) && (!current || epoch(t) !== epoch(current.from))) starts.push(t);
   }
   if (starts.length === 0) {
     // The window has gone by; offer the next half hours from now instead.
@@ -75,14 +80,14 @@ export function ProposeSheet({
   const [start, setStart] = useState<ISODateTime>(starts[0]!);
   const [length, setLength] = useState<(typeof LENGTHS)[number]>(30);
   const [place, setPlace] = useState(defaultPlace);
-  const [placeKind, setPlaceKind] = useState<PublicPlace['kind']>(PLACE_FOR[request.proposal.kind]);
+  const [placeKind, setPlaceKind] = useState<PublicPlace['kind']>(current?.placeKind ?? PLACE_FOR[request.proposal.kind]);
 
   const kinds = [request.proposal.kind, ...MEET_KIND_ORDER.filter((k) => k !== request.proposal.kind)].slice(0, 4);
 
   return (
     <Sheet
       open
-      title="Suggest a time"
+      title={current ? 'Suggest a different time' : 'Suggest a time'}
       onClose={onClose}
       actions={
         <>
@@ -105,6 +110,9 @@ export function ProposeSheet({
         </>
       }
     >
+      {current && (
+        <p className="sheet__body">The plan stands until {current.otherName} says yes to this one.</p>
+      )}
       <div className="ask__kinds" role="group" aria-label="What">
         {kinds.map((k) => (
           <ToggleChip key={k} selected={kind === k} onClick={() => setKind(k)}>

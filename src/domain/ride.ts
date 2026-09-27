@@ -340,9 +340,13 @@ export function roomMembers(r: Ride): PersonId[] {
   const inCar = r.claims.filter(
     (c) =>
       c.status === 'confirmed' ||
+      // Ended by the host's call-off — not by a hide, which the system writes.
+      // Treating both alike let a rider someone had hidden back into the room
+      // the moment the car was called off.
       (r.status === 'cancelled' &&
         c.status === 'revoked_by_policy' &&
-        c.history.at(-1)?.from === 'confirmed'),
+        c.history.at(-1)?.from === 'confirmed' &&
+        String(c.history.at(-1)?.by) === String(r.hostPersonId)),
   );
   return [r.hostPersonId, ...new Set(inCar.map((c) => c.personId))];
 }

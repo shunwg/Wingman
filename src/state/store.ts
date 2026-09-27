@@ -57,6 +57,7 @@ import {
   rideRoute,
   riders,
   seatsAutomatically,
+  seatsLeft,
   TEXT_CAP,
 } from '@domain/index';
 import {
@@ -604,8 +605,19 @@ export const useStore = create<WingmanState>()(
             : [...s.myTrips, trip],
         })),
 
-      removeTrip: (tripId) =>
-        set((s) => ({ myTrips: s.myTrips.filter((t) => String(t.id) !== tripId) })),
+      removeTrip: (tripId) => {
+        /*
+         * A car hangs off a trip. Removing the trip used to leave its car live:
+         * gone from Trips, still taking requests on Home and in the inbox, and
+         * nobody in it told. The car is called off first, which tells them.
+         */
+        for (const r of get().rides) {
+          if (String(r.tripId) === tripId && String(r.hostPersonId) === String(get().me.id) && r.status !== 'cancelled') {
+            get().cancelRide(String(r.id));
+          }
+        }
+        set((s) => ({ myTrips: s.myTrips.filter((t) => String(t.id) !== tripId) }));
+      },
 
       setFilters: (patch) => set((s) => ({ filters: { ...s.filters, ...patch } })),
 
@@ -805,6 +817,10 @@ export const useStore = create<WingmanState>()(
       },
 
       confirmSeat: (rideId, personId) => {
+        // Only seats that exist. Confirming counted nothing, so a host could say
+        // yes to more people than the car holds.
+        const car = get().rides.find((r) => String(r.id) === rideId);
+        if (!car || seatsLeft(car) === 0) return;
         set((s) => ({ rides: mapClaim(s, rideId, personId, 'confirmed', s.me.id) }));
         // A confirmed seat means the car holds more than its host, which is
         // the condition the room exists for. Idempotent, so confirming a
@@ -860,7 +876,9 @@ export const useStore = create<WingmanState>()(
           // person standing at a rank waiting for a car nobody is driving.
           const claims = cancelled.claims.map((c) =>
             c.status === 'requested' || c.status === 'confirmed'
-              ? transitionClaim(c, { to: 'revoked_by_policy', by: 'system', at: s.now })
+              ? // By the host: `roomMembers` keeps the riders a call-off ended,
+                // and tells them from a seat a hide ended by who wrote it.
+                transitionClaim(c, { to: 'revoked_by_policy', by: s.me.id, at: s.now })
               : c,
           );
           // The car screen promises the riders are told. They are, in the one
@@ -1339,9 +1357,35 @@ export const useStore = create<WingmanState>()(
             : s.me,
         })),
 
-      blockPerson: (id) =>
+      blockPerson: (id) => {
+        /*
+         * In a car, leaving, removal and a called-off car all say a line in the
+         * room. A hide used to end the seat silently — so a silent disappearance
+         * could only mean a hide. It says the same neutral line now, before the
+         * seat goes (afterwards the room would not hold the right people).
+         */
+        for (const ride of get().rides) {
+          if (ride.status === 'cancelled') continue;
+          const theirSeatInMine =
+            String(ride.hostPersonId) === String(get().me.id) && latestClaim(ride, id)?.status === 'confirmed';
+          const mySeatInTheirs =
+            String(ride.hostPersonId) === String(id) && latestClaim(ride, get().me.id)?.status === 'confirmed';
+          if (theirSeatInMine) get().carLine(String(ride.id), `${firstNameOf(get(), id)} is no longer in the car.`);
+          if (mySeatInTheirs) get().carLine(String(ride.id), `${get().me.firstName || 'Someone'} is no longer in the car.`);
+        }
         set((s) => ({
           me: { ...s.me, blocked: [...new Set([...s.me.blocked, id])] },
+          /*
+           * A trip settled with them is not settled any more: Home said "You are
+           * meeting Jonas on this one" about someone you had just hidden, and the
+           * board stayed closed on a meet that was off.
+           */
+          myTrips: s.myTrips.map((t) => {
+            if (!t.outcome || String(t.outcome.settledWith) !== String(id)) return t;
+            const next = { ...t };
+            delete next.outcome;
+            return next;
+          }),
           /*
            * A plan with them comes off. Hiding someone used to leave the agreed
            * time and place standing — on their side a meet you no longer
@@ -1400,7 +1444,8 @@ export const useStore = create<WingmanState>()(
               }),
             };
           }),
-        })),
+        }));
+      },
 
       reset: () => set(initial()),
     }),

@@ -56,12 +56,16 @@ function riderCard(personId: string, rung: DisclosureLevel, me?: { id: string; a
   return { card, first };
 }
 
+/** What saying yes to a seat gives away — said before, as a coffee request's sheet does. */
+export const SEAT_YES_NOTE =
+  'They join the car and its room, and see where to meet it. You can still take the seat back until the car leaves.';
+
 const REFUSAL_COPY: Record<string, string> = {
   own_car: 'This is your car.',
   no_seats: 'Every seat is taken.',
   closed: 'This car has left.',
   already_claimed: '',
-  not_again: 'The host has already decided about this seat.',
+  not_again: 'This seat has closed.',
   not_visible: '',
 };
 
@@ -87,6 +91,8 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
   const [editingNote, setEditingNote] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [givingUp, setGivingUp] = useState(false);
+  const [takingBack, setTakingBack] = useState<string | null>(null);
+  const [sayingYes, setSayingYes] = useState<string | null>(null);
 
   if (!row) {
     return (
@@ -141,6 +147,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
         </p>
         <p className="ride__when mono">{when} local</p>
         <div className="panel__row">
+          {ride.status !== 'cancelled' && (
           <Chip tone={seatsLeft === 0 ? 'neutral' : 'accent'}>
             {/* Same wording as the card. "1 seat left" left a persona asking
                 "out of how many?", and two surfaces answering the same
@@ -149,7 +156,8 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
               ? 'Full'
               : `${seatsLeft} of ${ride.seatsTotal} seat${ride.seatsTotal === 1 ? '' : 's'} free`}
           </Chip>
-          <Chip tone="neutral">{fare.short}</Chip>
+          )}
+          {ride.status !== 'cancelled' && <Chip tone="neutral">{fare.short}</Chip>}
           {ride.status === 'cancelled' && <Chip tone="warn">Called off</Chip>}
         </div>
       </header>
@@ -181,7 +189,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
                       {r && 'stamps' in r.card && r.card.stamps.length > 0 && (
                         <span className="ride__askstamps">
                           {r.card.stamps.slice(0, 3).map((st, i) => (
-                            <StampBadge key={`${st.kind}-${i}`} stamp={st} compact />
+                            <StampBadge key={`${st.kind}-${i}`} stamp={st} />
                           ))}
                         </span>
                       )}
@@ -189,7 +197,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
                   </div>
                   {c.note && <p className="ride__asknote">&ldquo;{c.note}&rdquo;</p>}
                   <div className="ride__askactions">
-                    <Button size="sm" onClick={() => confirmSeat(rideId, c.personId)}>
+                    <Button size="sm" onClick={() => setSayingYes(String(c.personId))}>
                       Yes
                     </Button>
                     <Button size="sm" variant="secondary" onClick={() => declineSeat(rideId, c.personId)}>
@@ -229,7 +237,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
                 <span>{isYou ? 'You' : (r?.first ?? 'Someone')}</span>
                 {String(pid) === String(ride.hostPersonId) && <Chip tone="neutral">Host</Chip>}
                 {isHost && !isYou && (
-                  <Button size="sm" variant="quiet" onClick={() => removeSeat(rideId, pid)}>
+                  <Button size="sm" variant="quiet" onClick={() => setTakingBack(String(pid))}>
                     Take the seat back
                   </Button>
                 )}
@@ -308,22 +316,29 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
         </section>
       )}
 
+      {!isHost && !mine && refusal === null && (
+        // Pinned above the tab bar. A direct child of the screen, not of the
+        // actions column: a sticky element cannot rise above the top of its
+        // own container, and as that column's first child it never moved.
+        <div className="ride__cta">
+          <Button full onClick={() => claimSeat(rideId)}>
+            {row.seatsAutomatically ? 'Take the seat' : 'Ask for a seat'}
+          </Button>
+        </div>
+      )}
+
+      {/* The host's no stands, and the passenger is told only that the seat
+          closed — never which of them ended it. */}
+      {!isHost && (mine?.status === 'removed_by_host' || mine?.status === 'declined') && (
+        <p className="panel__note">This seat has closed.</p>
+      )}
+
       <div className="ride__actions">
         {channels.some((c) => String(c.id) === roomId) &&
           (row.mine?.status === 'confirmed' || isHost) && (
           <Button variant="quiet" onClick={() => onOpenRoom(roomId)}>
             Open the car&rsquo;s room
           </Button>
-        )}
-
-        {!isHost && !mine && refusal === null && (
-          // Pinned above the tab bar: the two new panels pushed this below
-          // the fold on the one screen where it is the whole point.
-          <div className="ride__cta">
-            <Button full onClick={() => claimSeat(rideId)}>
-              {row.seatsAutomatically ? 'Take the seat' : 'Ask for a seat'}
-            </Button>
-          </div>
         )}
 
         {!isHost && !mine && refusal !== null && REFUSAL_COPY[refusal] && (
@@ -353,7 +368,9 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
             <p className="panel__note">
               {row.riders.length > 1
                 ? 'Everyone in the car is told it is off. Their seats end; nothing is deleted.'
-                : 'Nobody has a seat yet, so nobody is affected.'}
+                : pending.length > 0
+                  ? 'Nobody has a seat yet. Anyone asking sees the request close.'
+                  : 'Nobody has a seat yet, so nobody is affected.'}
             </p>
           </>
         )}
@@ -378,12 +395,69 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
       {editingNote && (
         <PickupSheet
           current={ride.pickupNote ?? ''}
+          placeholder={
+            ride.direction === 'from_airport'
+              ? 'Rank door 12. White estate, plate ends 4R.'
+              : 'Outside the bakery on the square. Grey Skoda.'
+          }
           onClose={() => setEditingNote(false)}
           onSave={(note) => {
             setPickupNote(rideId, note);
             setEditingNote(false);
           }}
         />
+      )}
+      {takingBack && (
+        <Sheet
+          open
+          title="Take the seat back?"
+          onClose={() => setTakingBack(null)}
+          actions={
+            <>
+              <Button variant="secondary" onClick={() => setTakingBack(null)}>
+                Keep them in
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  removeSeat(rideId, takingBack as never);
+                  setTakingBack(null);
+                }}
+              >
+                Take it back
+              </Button>
+            </>
+          }
+        >
+          <p className="sheet__body">
+            They leave the car and its room, and cannot take the seat again. The car is told they are no longer in
+            it — not who decided.
+          </p>
+        </Sheet>
+      )}
+      {sayingYes && (
+        <Sheet
+          open
+          title="Give them the seat?"
+          onClose={() => setSayingYes(null)}
+          actions={
+            <>
+              <Button variant="secondary" onClick={() => setSayingYes(null)}>
+                Not yet
+              </Button>
+              <Button
+                onClick={() => {
+                  confirmSeat(rideId, sayingYes as never);
+                  setSayingYes(null);
+                }}
+              >
+                Yes, they are in
+              </Button>
+            </>
+          }
+        >
+          <p className="sheet__body">{SEAT_YES_NOTE}</p>
+        </Sheet>
       )}
       {givingUp && (
         <Sheet
@@ -527,10 +601,12 @@ function FareSheet({
 /** The exact spot and the car, for the people in it. */
 function PickupSheet({
   current,
+  placeholder,
   onClose,
   onSave,
 }: {
   current: string;
+  placeholder: string;
   onClose: () => void;
   onSave: (note: string) => void;
 }) {
@@ -561,7 +637,7 @@ function PickupSheet({
           rows={3}
           value={note}
           maxLength={PICKUP_NOTE_CAP}
-          placeholder="Rank door 12. White estate, plate ends 4R."
+          placeholder={placeholder}
           onChange={(e) => setNote(e.target.value)}
         />
       </Field>

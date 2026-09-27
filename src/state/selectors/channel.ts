@@ -74,6 +74,24 @@ export function terminalFor(
   };
 }
 
+/** Stages that say how it is going, not where you are. */
+const WARN_STAGES: JourneyStage[] = ['running_late', 'cannot_make_it'];
+
+/**
+ * The last place someone said they had got to — skipping "running late" and
+ * "can't make it", which are not places. The next buttons follow from here;
+ * following from a warning offered "Landed" to someone still at the gate.
+ */
+export function latestProgress(messages: Message[], personId: string): JourneyStage | undefined {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i]!;
+    if (String(m.from) !== personId || m.body.kind !== 'stage') continue;
+    if (WARN_STAGES.includes(m.body.stage)) continue;
+    return m.body.stage;
+  }
+  return undefined;
+}
+
 export function latestStage(messages: Message[], personId: string) {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i]!;

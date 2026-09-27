@@ -35,21 +35,54 @@ const PUBLIC_KINDS: ReadonlySet<PublicPlace['kind']> = new Set([
  * honest mistake; a determined person can always misspell a street.
  */
 export function looksLikeAddress(text: string): boolean {
-  const t = text.trim();
-  // "12 Baker Street", "4b Rd" — a number, a few words, an English street word.
+  // Full-width digits and zero-width spaces are the two ways an address slips
+  // past a pattern by accident (a phone keyboard) or on purpose. Normalise first.
+  const t = text.normalize('NFKC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim();
+  // "12 Baker Street", "14 Cloudesley Square" — a number, a few words, a
+  // street word. "St" only when it is not "St Pancras": Saint, not Street.
   const numberThenStreet =
-    /\b\d{1,5}[a-z]?,?\s+(?:[\p{L}'.-]+\s+){0,3}(?:street|st|road|rd|avenue|ave|lane|ln|drive|dr|close|crescent|terrace|boulevard|blvd)\b/iu;
+    /\b\d{1,5}[a-z]?,?\s+(?:[\p{L}'.-]+\s+){0,3}(?:street|road|rd|avenue|ave|lane|ln|drive|dr|close|crescent|boulevard|blvd|square|sq|mews)\b/iu;
+  const numberThenSt = /\b\d{1,5}[a-z]?,?\s+(?:[\p{L}'.-]+\s+){0,3}st\b(?!\.?\s+\p{Lu})/iu;
   // "Storgata 12", "Kongensgade 3", "Hauptstraße 7" — a compound street name,
   // then a number. Only as a suffix of a longer word, so "Gate 12" is a gate.
   const compoundThenNumber =
     /\p{L}{2,}(?:gade|gata|gatan|gasse|vej|vei|veien|straße|strasse|weg|laan|gate)\s+\d{1,5}[a-z]?\b/iu;
   // "Rue de Rivoli 12", "Calle Mayor 5".
   const latinThenNumber = /\b(?:rue|calle|avenida)\s+(?:[\p{L}'.-]+\s+){0,3}\d{1,5}\b/iu;
-  // A flat is somebody's home by definition. (Not "room": "Hall B, Room 3" is
-  // a conference room, and public.)
+  // A flat is somebody's home by definition.
   const flat = /\b(?:flat|apt|apartment|leilighet)\s*#?\s*\d+/i;
   const ukPostcode = /\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/;
-  return [numberThenStreet, compoundThenNumber, latinThenNumber, flat, ukPostcode].some((r) => r.test(t));
+  // "Karl Johans gate 22" — a capitalised name, a Nordic street word, a number…
+  const nordic = t.match(/\b(\p{Lu}[\p{L}'.-]*)\s+(?:gate|gata|gatan|vei|veien|vej|gade|plass|torg)\s+\d{1,5}[a-z]?\b/u);
+  // …but "Departures gate 12" is an airport, not Oslo.
+  const airportWord = /^(?:departures?|arrivals?|terminal|domestic|international|pier|north|south|east|west|main|satellite)$/i;
+  const nordicNamedStreet = Boolean(nordic && !airportWord.test(nordic[1]!));
+  // "Prinsengracht 263", "Damstraat 5", "Friedrichstr. 12".
+  const dutchGermanCompound = /\p{L}{2,}(?:straat|gracht|kade|singel|plein|str\.)\s*\d{1,5}[a-z]?\b/iu;
+  // "12 rue de Rivoli", "5 via Roma".
+  const numberThenLatin = /\b\d{1,5}[a-z]?,?\s+(?:rue|via|calle|avenida|avenue|boulevard)\b/iu;
+  // "Baker Street 12" — the English word after a capitalised name.
+  const namedEnglishThenNumber = /\b\p{Lu}[\p{L}'.-]+\s+(?:Street|Road|Avenue|Lane|Drive|Square)\.?\s+\d{1,5}\b/u;
+  // A hotel room: three or four digits. "Hall B, Room 3" stays a conference room.
+  const hotelRoom = /\broom\s*#?\s*\d{3,4}\b/i;
+  // Singapore: "#05-12" is a unit, "Blk 123" a block.
+  const singapore = /#\s?\d{1,3}-\d{1,5}\b|\bblk\s*\d{1,4}\b/i;
+  return (
+    nordicNamedStreet ||
+    [
+      numberThenStreet,
+      numberThenSt,
+      compoundThenNumber,
+      latinThenNumber,
+      flat,
+      ukPostcode,
+      dutchGermanCompound,
+      numberThenLatin,
+      namedEnglishThenNumber,
+      hotelRoom,
+      singapore,
+    ].some((r) => r.test(t))
+  );
 }
 
 /**
@@ -59,21 +92,30 @@ export function looksLikeAddress(text: string): boolean {
  * as the only thing this constructor will produce. Somebody's flat cannot be
  * expressed as a `PublicPlace`, so it cannot reach a `Meet`.
  */
-export function makePublicPlace(input: {
-  kind: PublicPlace['kind'];
-  label: string;
-  airportIata?: IataCode;
-  cityKey?: CityKey;
-  lat?: number;
-  lon?: number;
-}): PublicPlace {
+export function makePublicPlace(
+  input: {
+    kind: PublicPlace['kind'];
+    label: string;
+    airportIata?: IataCode;
+    cityKey?: CityKey;
+    lat?: number;
+    lon?: number;
+  },
+  /**
+   * `vetLabel: false` for *reading* a place that was already written. The
+   * address check is a write-time guard; running it on read meant a label saved
+   * before the check existed — or synced from someone else — threw inside a
+   * render and blanked the Trips tab. The kind and the anchor are still checked.
+   */
+  opts: { vetLabel?: boolean } = {},
+): PublicPlace {
   if (!PUBLIC_KINDS.has(input.kind)) {
     throw new Error(`Meets happen on public ground. Refused place kind: ${String(input.kind)}`);
   }
   if (!input.label.trim()) {
     throw new Error('A meeting point needs a label someone can actually navigate to.');
   }
-  if (looksLikeAddress(input.label)) {
+  if (opts.vetLabel !== false && looksLikeAddress(input.label)) {
     throw new Error('A meeting point is a public place, never an address.');
   }
   if (!input.airportIata && !input.cityKey) {

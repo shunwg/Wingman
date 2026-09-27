@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react';
-import type { RideAudience, RideDirection, Trip } from '@domain/index';
+import type { IataCode, ISODateTime, RideAudience, RideDirection, Trip } from '@domain/index';
 import { addMinutes, anyAudience, asCircleId, localDate, localTime, looksLikeAddress, utcFromLocal } from '@domain/index';
 import { airportIndex } from '@data/airports/index';
 import { Button } from '@design/primitives/Button';
@@ -37,13 +37,22 @@ export interface RideSheetProps {
 
 type Door = 'open' | 'circles' | 'invite';
 
+type Leg = 'from_airport' | 'back_to_airport' | 'to_first_flight';
+
+const LEGS: { id: Leg; label: string }[] = [
+  { id: 'from_airport', label: 'From the airport' },
+  { id: 'back_to_airport', label: 'Back to the airport' },
+  { id: 'to_first_flight', label: 'To your flight out' },
+];
+
 export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
   const id = useId();
   const hostRide = useStore((s) => s.hostRide);
   const circles = useCircles();
   const me = useStore((s) => s.me);
 
-  const [direction, setDirection] = useState<RideDirection>('from_airport');
+  const [leg, setLeg] = useState<Leg>('from_airport');
+  const direction: RideDirection = leg === 'from_airport' ? 'from_airport' : 'to_airport';
   const [door, setDoor] = useState<Door>('open');
   const [circleId, setCircleId] = useState<string>('');
   const [womenOnly, setWomenOnly] = useState(false);
@@ -60,16 +69,38 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
    * Landing at Changi means the car leaves Changi; a 06:40 out of Oslo means
    * the car arrives at Oslo.
    */
+  /**
+   * The three cars a journey needs, each with its airport, its time and — where
+   * the trip knows it — where the car's other end is.
+   *
+   * There used to be two, and "to the airport" meant the first flight out while
+   * pre-filling the *destination* stay as its start: on the Copenhagen trip,
+   * leaving the field empty offered "Indre By to OSL". And the car people most
+   * often share — back to the airport at the end of the stay — could not be
+   * offered at all, including the one the demo itself seeds.
+   */
   const ends = useMemo(() => {
     const first = trip.segments[0];
     const last = trip.segments.at(-1);
+    const stay = trip.stays.find((st) => st.destination);
+    const home = first ? airportIndex.city(first.from) : undefined;
     return {
-      from_airport: last ? { iata: last.to, at: last.arriveUtc } : undefined,
-      to_airport: first ? { iata: first.from, at: first.departUtc } : undefined,
-    };
+      from_airport: last ? { iata: last.to, at: last.arriveUtc, point: stay?.destination } : undefined,
+      back_to_airport:
+        last && stay ? { iata: last.to, at: stay.departUtc, point: stay.destination } : undefined,
+      to_first_flight: first
+        ? {
+            iata: first.from,
+            at: first.departUtc,
+            // The home city's centre: coarse on purpose, and only ever used to
+            // measure "going the same way". The label is what the person types.
+            point: home ? { lat: home.lat, lon: home.lon, label: '' } : undefined,
+          }
+        : undefined,
+    } satisfies Record<Leg, { iata: IataCode; at: ISODateTime; point?: { lat: number; lon: number; label: string } } | undefined>;
   }, [trip]);
 
-  const end = ends[direction];
+  const end = ends[leg];
   const zone = end ? airportIndex.zone(end.iata) : undefined;
   // The meter runs in the airport's country; the host can say otherwise.
   const currency = fareCurrency ?? (end ? currencyForAirport(end.iata) : 'EUR');
@@ -78,7 +109,8 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
   const dateOf = end && zone ? String(localDate(end.at, zone)) : undefined;
 
   /** The stay's own area, offered as the default so most people type nothing. */
-  const suggested = trip.stays.find((s) => s.destination)?.destination;
+  // Only a stay's own area is a suggestion; the home end has none to offer.
+  const suggested = end?.point && end.point.label ? end.point : undefined;
   const mine = circles.filter((c) => me.memberships.some((m) => String(m.circleId) === String(c.id)));
 
   const submit = () => {
@@ -119,9 +151,7 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
      * neighbourhoods with published centroids — the same shape as the
      * interest-tag vocabulary, and a dataset decision, not a form field.
      */
-    const point = suggested
-      ? { lat: suggested.lat, lon: suggested.lon, label: placeLabel }
-      : undefined;
+    const point = end.point ? { lat: end.point.lat, lon: end.point.lon, label: placeLabel } : undefined;
     if (!point) {
       setError('Add where you are staying on this trip first, so people going your way can find the car.');
       return;
@@ -174,23 +204,21 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
       }
     >
       <Field label="Which way" hint="Both halves of a journey need a car.">
-        <div className="segmented" role="group" aria-label="Which way">
-          <button
-            type="button"
-            className={`segmented__item ${direction === 'from_airport' ? 'is-on' : ''}`}
-            aria-pressed={direction === 'from_airport'}
-            onClick={() => setDirection('from_airport')}
-          >
-            Out of the airport
-          </button>
-          <button
-            type="button"
-            className={`segmented__item ${direction === 'to_airport' ? 'is-on' : ''}`}
-            aria-pressed={direction === 'to_airport'}
-            onClick={() => setDirection('to_airport')}
-          >
-            To the airport
-          </button>
+        <div className="segmented segmented--wrap" role="group" aria-label="Which way">
+          {LEGS.filter((l) => ends[l.id]).map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              className={`segmented__item ${leg === l.id ? 'is-on' : ''}`}
+              aria-pressed={leg === l.id}
+              onClick={() => {
+                setLeg(l.id);
+                setError(null);
+              }}
+            >
+              {l.label}
+            </button>
+          ))}
         </div>
       </Field>
 
@@ -211,7 +239,7 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
           id={`${id}-label`}
           className="field__input"
           value={label}
-          placeholder={suggested?.label ?? 'Marina Bay'}
+          placeholder={suggested?.label ?? (leg === 'to_first_flight' ? 'Your neighbourhood' : 'Marina Bay')}
           onChange={(e) => {
             setLabel(e.target.value);
             setError(null);
@@ -329,7 +357,7 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
 
       <Field
         label="Narrow it further"
-        hint="On top of your profile's own privacy, which already applies to this car."
+        hint="On top of your profile's own privacy, which already applies to this car. Women only goes by how each person describes themselves."
       >
         <div className="panel__row">
           <ToggleChip selected={womenOnly} onClick={() => setWomenOnly((v) => !v)}>

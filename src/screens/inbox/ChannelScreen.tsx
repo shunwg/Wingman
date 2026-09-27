@@ -5,14 +5,14 @@ import { Chip } from '@design/primitives/Chip';
 import { Menu } from '@design/primitives/Menu';
 import { Sheet } from '@design/primitives/Sheet';
 import type { IanaZone, Message, PersonId } from '@domain/index';
-import { TEXT_CAP, isRedacted, localTime, meetForRide } from '@domain/index';
+import { TEXT_CAP, isRedacted, localTime, looksLikeAddress, meetForRide } from '@domain/index';
 import { buildVCard } from '@lib/vcard';
 import { STAGE_COPY, stagesFor } from '@data/copy/stages';
 import { PLAN_COPY } from '@data/copy/plans';
 import { airportIndex } from '@data/airports/index';
 import { isLive } from '@privacy/index';
 import { bucketPhrase } from '@lib/bucket';
-import { authorName, useChannel, type Participant } from '@state/selectors/channel';
+import { authorName, latestProgress, useChannel, type Participant } from '@state/selectors/channel';
 import { usePlanForChannel, type ProposalState } from '@state/selectors/plans';
 import { useRideForChannel } from '@state/selectors/rides';
 import { useStore } from '@state/store';
@@ -60,6 +60,8 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
   const [choosingRider, setChoosingRider] = useState(false);
   const [proposing, setProposing] = useState(false);
   const [callingOff, setCallingOff] = useState(false);
+  const [cantSheet, setCantSheet] = useState(false);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const log = useRef<HTMLOListElement>(null);
   // Taken once, on the first render of a room you have just said yes to.
   const arrive = useRef(takeArriving(channelId)).current;
@@ -118,8 +120,15 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
   const clock = (iso: string): string => (zone ? localTime(iso as never, zone) : iso.slice(11, 16));
 
   const send = () => {
+    // The room is where people say which end of the bar — and where an
+    // address would be typed by habit. Stop it before it is sent, and say why.
+    if (looksLikeAddress(draft)) {
+      setDraftError('That reads like an address. Meet somewhere public, and name that instead.');
+      return;
+    }
     post(channel, { kind: 'text', text: draft });
     setDraft('');
+    setDraftError(null);
   };
 
   const calendar = (m: { id: string; meetKind: keyof typeof MEET_KIND_LABEL; from: string; to: string; place: string }) => {
@@ -225,7 +234,11 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
               headline because it is the fact people check; the kind and the
               place follow. */}
           <p className="plan__when">
-            <Chip tone="trust">{PLAN_COPY.strip.label}</Chip>
+            {iCant || theyCant ? (
+              <Chip tone="warn">{PLAN_COPY.strip.doubt}</Chip>
+            ) : (
+              <Chip tone="trust">{PLAN_COPY.strip.label}</Chip>
+            )}
             <span className="plan__time">
               {windowLabel(planBody.window.from, planBody.window.to, zone, now)}
             </span>
@@ -255,7 +268,7 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
             <Button size="sm" variant="quiet" onClick={() => setProposing(true)}>
               {PLAN_COPY.strip.change}
             </Button>
-            <Button size="sm" variant="quiet" onClick={() => setCallingOff(true)}>
+            <Button size="sm" variant={iCant || theyCant ? 'danger' : 'quiet'} onClick={() => setCallingOff(true)}>
               {PLAN_COPY.strip.off}
             </Button>
           </div>
@@ -364,21 +377,28 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
                 for the person you are meeting. */}
             <h3 className="room__label">Tell {theirs.firstName} where you are</h3>
             <div className="room__buttons">
-              {stagesFor(mine.stage).map((stage) => (
+              {stagesFor(latestProgress(messages, String(me.id))).map((stage) => (
                 <button
                   key={stage}
                   type="button"
                   className={`stagebtn ${STAGE_COPY[stage].tone === 'warn' ? 'stagebtn--warn' : ''}`}
                   onClick={() => {
+                    // With a plan standing, ask first: this used to post to
+                    // Priya *before* the sheet asked, so "Keep the plan" left
+                    // her told and the plan up.
+                    if (stage === 'cannot_make_it' && plan) {
+                      setCantSheet(true);
+                      return;
+                    }
+                    // A warning is not a place: "running late" does not need to
+                    // say which terminal you are running late in.
+                    const warn = STAGE_COPY[stage].tone === 'warn';
                     post(channel, {
                       kind: 'stage',
                       stage,
-                      ...(mine.terminal ? { terminal: mine.terminal } : {}),
-                      ...(mine.airportIata ? { airportIata: mine.airportIata as never } : {}),
+                      ...(!warn && mine.terminal ? { terminal: mine.terminal } : {}),
+                      ...(!warn && mine.airportIata ? { airportIata: mine.airportIata as never } : {}),
                     });
-                    // Can't make it, with a plan standing: offer the real way
-                    // out straight away rather than leave "Agreed" up.
-                    if (stage === 'cannot_make_it' && plan) setCallingOff(true);
                   }}
                 >
                   {STAGE_COPY[stage].button}
@@ -566,6 +586,11 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
         )}
       </section>
 
+      {ride && ride.ride.status === 'cancelled' ? (
+        <p className="room__closed">
+          The car was called off. The room stays so everyone in it can read that; nothing more can be said here.
+        </p>
+      ) : (
       <form
         className="room__compose"
         onSubmit={(e) => {
@@ -580,7 +605,10 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
           maxLength={TEXT_CAP[channel.kind]}
           placeholder={isMeet ? 'Which end of the bar?' : 'Say something'}
           aria-label="Say something"
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            if (draftError) setDraftError(null);
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
@@ -592,6 +620,12 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
           Send
         </Button>
       </form>
+      )}
+      {draftError && (
+        <p className="field__error" role="alert">
+          {draftError}
+        </p>
+      )}
 
       <p className="room__fineprint">
         {isMeet
@@ -620,7 +654,13 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
       {proposing && view.request && (
         <ProposeSheet
           request={view.request}
-          defaultPlace={mine?.terminal ? `${mine.airportIata ?? ''} ${mine.terminal}`.trim() : ''}
+          // A change starts from the plan, not from your terminal: "Change
+          // time" used to reset the place to "LHR T2" and preselect the very
+          // time already agreed, so a change changed the wrong thing.
+          defaultPlace={planBody ? planBody.placeLabel : mine?.terminal ? `${mine.airportIata ?? ''} ${mine.terminal}`.trim() : ''}
+          {...(planBody
+            ? { current: { from: planBody.window.from, placeKind: planBody.placeKind ?? 'terminal_landmark', otherName: theirs?.firstName ?? 'they' } }
+            : {})}
           clock={clock}
           onClose={() => setProposing(false)}
           onPost={(d: ProposalDraft) => {
@@ -628,6 +668,38 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
             setProposing(false);
           }}
         />
+      )}
+      {cantSheet && plan && theirs && (
+        <Sheet
+          open
+          title="Can’t make it?"
+          onClose={() => setCantSheet(false)}
+          actions={
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  post(channel, { kind: 'stage', stage: 'cannot_make_it' });
+                  setCantSheet(false);
+                }}
+              >
+                Just tell {theirs.firstName}
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  post(channel, { kind: 'stage', stage: 'cannot_make_it' });
+                  callOffPlan(channelId);
+                  setCantSheet(false);
+                }}
+              >
+                Tell {theirs.firstName} and call it off
+              </Button>
+            </>
+          }
+        >
+          <p className="sheet__body">{PLAN_COPY.cantSheet(theirs.firstName)}</p>
+        </Sheet>
       )}
       {callingOff && plan && (
         <Sheet

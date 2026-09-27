@@ -46,6 +46,8 @@ export interface RideCardProps {
   context?: string;
   /** Set when the viewer already holds a seat. */
   seatState?: 'pending' | 'confirmed';
+  /** On your own car: somebody has asked and is waiting on you. */
+  waitingOnYou?: boolean;
   /** The door, shown so nobody is surprised by who else can join. */
   door?: 'open' | 'circles' | 'invite';
   /**
@@ -84,6 +86,7 @@ export function RideCard({
   fareNote,
   context,
   seatState,
+  waitingOnYou,
   door,
   closed,
   onOpen,
@@ -145,8 +148,9 @@ export function RideCard({
         </div>
       </button>
 
-      {(seatState || door || action) && (
+      {(seatState || waitingOnYou || door || action) && (
         <div className="ridecard__tail">
+          {waitingOnYou && !closed && <Chip tone="accent">Someone is asking</Chip>}
           {seatState === 'confirmed' && <Chip tone="trust">You have a seat</Chip>}
           {seatState === 'pending' && <Chip tone="neutral">Waiting on the host</Chip>}
           {door && !closed && <Chip tone="neutral">{DOOR_LABEL[door]}</Chip>}

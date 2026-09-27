@@ -83,6 +83,18 @@ describe('looksLikeAddress — an address is not a meeting point', () => {
     'Rue de Rivoli 12',
     'Flat 4, Marchmont',
     'Near SW1A 1AA',
+    // Round 2: the bad actor's and the privacy walk's real addresses.
+    'Karl Johans gate 22',
+    'Thorvald Meyers gate 49',
+    '12 rue de Rivoli',
+    'Marina Bay Sands, room 1412',
+    '14 Cloudesley Square',
+    '#05-12, Blk 123 Toa Payoh',
+    'Prinsengracht 263',
+    'Friedrichstr. 12',
+    'Baker Street 12',
+    '12\u200B Baker Street',
+    '１２ Baker Street',
   ])('refuses %s', (text) => {
     expect(looksLikeAddress(text)).toBe(true);
   });
@@ -98,11 +110,22 @@ describe('looksLikeAddress — an address is not a meeting point', () => {
     'Marina Bay',
     'Rank door 12. White estate, plate ends 4R.',
     'Outside the bakery on Store Kongensgade',
+    'Departures gate 12',
+    'Platform 5, St Pancras',
+    'Pier 1 Terrace bar',
   ])('lets %s through', (text) => {
     expect(looksLikeAddress(text)).toBe(false);
   });
 
   it('is enforced where a place is made, not only hinted', () => {
     expect(() => makePublicPlace({ kind: 'cafe', label: '12 Baker Street', airportIata: asIata('LHR') })).toThrow();
+  });
+});
+
+describe('a stored label never takes a screen down', () => {
+  it('builds a place from an address-shaped label when reading, and refuses it when writing', () => {
+    expect(() => makePublicPlace({ kind: 'cafe', label: '12 Baker Street', airportIata: asIata('LHR') })).toThrow();
+    const read = makePublicPlace({ kind: 'cafe', label: '12 Baker Street', airportIata: asIata('LHR') }, { vetLabel: false });
+    expect(read.isPublicGround).toBe(true);
   });
 });

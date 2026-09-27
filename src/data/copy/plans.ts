@@ -39,6 +39,8 @@ export const PLAN_COPY = {
   },
   strip: {
     label: 'Agreed',
+    /** The chip once either of you has said you can't make it. */
+    doubt: 'In doubt',
     change: 'Change time',
     off: 'Call it off',
     calendar: 'Add to calendar',
@@ -67,6 +69,9 @@ export const PLAN_COPY = {
     title: 'Plans',
     car: 'Shared car',
   },
+  /** Asked before "can't make it" is sent while a plan stands. */
+  cantSheet: (name: string) =>
+    `${name} sees that you can’t make it the moment you send it. Call the plan off too, or leave it up and sort it out in the room.`,
   /** Confirming before a yes is taken back. */
   offConfirm: 'Call off the plan? The room stays open, and either of you can suggest another time.',
 } as const;

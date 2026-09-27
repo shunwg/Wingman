@@ -105,8 +105,8 @@ export function JoinRideScreen({ code, onOpen, onDone }: JoinRideScreenProps) {
   if (closedToMe) {
     return (
       <Outcome
-        title="This car is closed to you"
-        note="The host has already decided about this seat, and a link does not reopen it. Worth asking on the board whether anyone else is going your way."
+        title="This seat has closed"
+        note="A link does not reopen it. Worth asking on the board whether anyone else is going your way."
         onDone={onDone}
       />
     );

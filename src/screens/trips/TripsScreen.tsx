@@ -71,7 +71,9 @@ export function TripsScreen({ onOpen }: { onOpen: (hash: string) => void }) {
     [...hosting, ...riding].filter((r) => String(tripForRide(r.ride, trips, String(me.id))?.id) === String(trip.id));
 
   const carRoomFor = (trip: Trip) => {
-    const mine = carsFor(trip).find((r) => r.mine?.status !== 'requested');
+    // Not a called-off car: its room keeps the people whose seats ended, and
+    // "Tell the car" would have sent them where you are.
+    const mine = carsFor(trip).find((r) => r.mine?.status !== 'requested' && r.ride.status !== 'cancelled');
     if (!mine) return undefined;
     // A car with no room yet is a car with nobody in it but you. Offering to
     // tell it would be a button that does nothing, which is the failure this

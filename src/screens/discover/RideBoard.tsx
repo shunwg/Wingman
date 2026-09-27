@@ -122,6 +122,9 @@ export function cardProps(row: RideRow, meId: string, now: ISODateTime) {
     fareNote: fareCopy(ride, row.riders.length, String(ride.hostPersonId) === meId || row.mine?.status === 'confirmed', hostName).short,
     context,
     door: ride.audience.kind,
+    ...(String(ride.hostPersonId) === meId && ride.claims.some((c) => c.status === 'requested')
+      ? { waitingOnYou: true }
+      : {}),
     ...(row.mine?.status === 'confirmed'
       ? { seatState: 'confirmed' as const }
       : row.mine?.status === 'requested'

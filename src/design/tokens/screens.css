@@ -56,7 +56,10 @@
 /* ── Home ────────────────────────────────────────────────────────────────── */
 
 .homesec { display: flex; flex-direction: column; gap: var(--sp-3); }
-.homesec__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+.homesec__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 var(--sp-3); }
+/* The trip line under a section title takes its own row, rather than
+   squeezing the title and "See all" into three thin columns at 402px. */
+.homesec__trip { order: 3; flex-basis: 100%; }
 .homesec__title { font-size: var(--text-lg); font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
 .homesec__meta { font-size: var(--text-xs); color: var(--muted); }
 .homesec__more {
@@ -443,7 +446,7 @@
 .proposal--agreed { border-color: var(--trust); background: var(--trust-wash); }
 /* No opacity: at 0.62 "That time has passed" fell to 2.9:1. A stale card
    steps back with a sunk ground and a dashed edge, and keeps readable text. */
-.proposal--stale { background: var(--surface-sunk); border-style: dashed; box-shadow: none; }
+.proposal--stale { background: var(--surface-sunk); border-style: dashed; border-color: var(--faint); box-shadow: none; }
 .proposal--stale .proposal__title { color: var(--muted); }
 .proposal__more { float: right; margin: -4px -6px 0 var(--sp-2); }
 .proposal__note { font-size: var(--text-xs); color: var(--muted); align-self: center; }
@@ -473,13 +476,16 @@
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
+/* Two lines, then an ellipsis: the place is half of the plan, and one line
+   cut "The coffee bar by the departures…" off at the part that says where. */
 .plan__what {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .plan__warn { margin: var(--sp-1) 0 0; font-size: var(--text-sm); font-weight: 600; color: var(--warn); }
 .plan--doubt { border-color: var(--warn); background: var(--warn-wash); }
@@ -3092,8 +3098,11 @@ textarea.field__input {
 /* The one decision on a car you are not in, kept in reach above the tab bar. */
 .ride__cta {
   position: sticky;
-  bottom: calc(var(--tabbar-height) + var(--sp-3) + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px));
   z-index: 2;
+  /* A backing, so the panels scrolling under it do not show through. */
+  padding: var(--sp-3) 0;
+  background: var(--canvas);
 }
 .ride__askwho { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .ride__askline { font-size: var(--text-xs); color: var(--muted); }
@@ -3103,8 +3112,10 @@ textarea.field__input {
    the right edge on a phone, two rounds running. A fade at the edge is the
    platform's own way of saying "more this way". */
 .lens {
-  -webkit-mask-image: linear-gradient(to right, #000 82%, transparent);
-  mask-image: linear-gradient(to right, #000 82%, transparent);
+  /* The last 28px only: the wider fade dimmed a selected chip parked at the
+     right edge by scrollIntoView. */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
 }
 .homerow__glyph {
   display: grid; place-items: center;
@@ -3122,3 +3133,18 @@ textarea.field__input {
 .ride__askactions { display: flex; gap: var(--sp-2); }
 .ride__askactions .btn { flex: 1; }
 .plan__actions .btn { padding-inline: var(--sp-3); }
+
+.room__closed {
+  margin: 0;
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface-sunk);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.strip__link { color: var(--accent); font-weight: 600; text-decoration: none; }
+
+/* Three legs of a journey do not fit one row at 402px. */
+.segmented--wrap { flex-wrap: wrap; }
+.segmented--wrap .segmented__item { flex: 1 1 auto; }

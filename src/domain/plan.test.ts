@@ -152,6 +152,25 @@ describe('what the bad-actor round found', () => {
   });
 });
 
+describe('what the second bad-actor round found', () => {
+  it('ignores a yes dated before the suggestion it answers', () => {
+    const p1 = { ...proposal('priya', '2026-09-02T17:00:00Z', 'p1'), at: t('2026-09-02T12:00:00Z') };
+    expect(agreedPlan([p1, agree('you', 'p1', '2026-09-02T11:00:00Z')])).toBeNull();
+  });
+
+  it('only a call-off that ended the plan makes a suggestion dead', () => {
+    // A plan_off naming a suggestion that was never the plan does nothing —
+    // otherwise anyone could pre-emptively kill the other side's offer.
+    const log = [proposal('priya', '2026-09-02T17:00:00Z', 'p1'), callOff('you', 'p1')];
+    expect(canAgree(log, 'p1', you, t('2026-09-02T12:20:00Z'))).toBeNull();
+  });
+
+  it('a call-off from outside the room does not make a suggestion dead', () => {
+    const log = [proposal('priya', '2026-09-02T17:00:00Z', 'p1'), agree('you', 'p1'), callOff('mallory', 'p1')];
+    expect(canAgree(log, 'p1', you, t('2026-09-02T12:20:00Z'), [you, priya])).toBe('already');
+  });
+});
+
 describe('canCallOff', () => {
   it('needs a standing plan, and the right one', () => {
     const log = [proposal('priya', '2026-09-02T17:00:00Z', 'p1'), agree('you', 'p1')];

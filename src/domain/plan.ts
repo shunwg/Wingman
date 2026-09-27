@@ -70,11 +70,46 @@ function refusal(
   // Instants, not strings: `addMinutes` writes milliseconds and the seed does
   // not, and '18:10:00.000Z' sorts before '18:10:00Z'.
   if (epoch(at) >= epoch(proposal.body.window.from)) return 'past';
+  // A yes cannot come before the thing it answers.
+  if (epoch(at) < epoch(proposal.at)) return 'not_a_proposal';
   if (current && String(current.proposal.id) === proposalId) return 'already';
   if (log.slice(index + 1).some(isProposal)) return 'superseded';
-  if (log.some((m) => m.body.kind === 'plan_off' && String(m.body.proposalId) === proposalId)) return 'called_off';
+  if (calledOffIn(log, members).has(proposalId)) return 'called_off';
   return null;
 }
+
+/**
+ * Suggestions that were the plan and were called off by someone in the room.
+ *
+ * Only those. A `plan_off` naming a suggestion that was never the plan — or
+ * sent by someone outside the room — used to make that suggestion dead too,
+ * which let one person kill the other's offer before it was ever answered.
+ */
+function calledOffIn(log: readonly Message[], members?: readonly PersonId[]): Set<string> {
+  const dead = new Set<string>();
+  const member = (p: PersonId) => !members || members.some((x) => String(x) === String(p));
+  let current: string | null = null;
+  for (let i = 0; i < log.length; i++) {
+    const m = log[i]!;
+    if (m.body.kind === 'agreed' && member(m.from)) {
+      const target = log.slice(0, i).find((x) => String(x.id) === String(m.body.kind === 'agreed' ? m.body.proposalId : ''));
+      if (isProposal(target) && String(target.from) !== String(m.from) && epoch(m.at) >= epoch(target.at)) {
+        if (!dead.has(String(target.id))) current = String(target.id);
+      }
+    } else if (m.body.kind === 'plan_off' && member(m.from) && current === String(m.body.proposalId)) {
+      dead.add(current);
+      current = null;
+    }
+  }
+  return dead;
+}
+
+const PLACE_KINDS: ReadonlySet<string> = new Set([
+  'gate', 'lounge', 'terminal_landmark', 'cafe', 'restaurant', 'taxi_rank', 'station', 'hotel_lobby', 'pickup_point',
+]);
+/** A stored kind the type no longer knows reads as a landmark, not a crash. */
+const PUBLIC_KIND_OR_LANDMARK = (k: string | undefined): PublicPlace['kind'] =>
+  k && PLACE_KINDS.has(k) ? (k as PublicPlace['kind']) : 'terminal_landmark';
 
 /** Can `by` say yes to this suggestion at `at`, given what has been said so far? */
 export function canAgree(
@@ -127,12 +162,16 @@ export function planPlace(
   plan: AgreedPlan,
   anchor: { airportIata?: IataCode; cityKey?: PublicPlace['cityKey'] },
 ): PublicPlace {
-  return makePublicPlace({
-    kind: plan.proposal.body.placeKind ?? 'terminal_landmark',
-    label: plan.proposal.body.placeLabel,
-    ...(anchor.airportIata ? { airportIata: anchor.airportIata } : {}),
-    ...(anchor.cityKey ? { cityKey: anchor.cityKey } : {}),
-  });
+  return makePublicPlace(
+    {
+      kind: PUBLIC_KIND_OR_LANDMARK(plan.proposal.body.placeKind),
+      label: plan.proposal.body.placeLabel,
+      ...(anchor.airportIata ? { airportIata: anchor.airportIata } : {}),
+      ...(anchor.cityKey ? { cityKey: anchor.cityKey } : {}),
+    },
+    // Reading what is already in the room: never throw on it.
+    { vetLabel: false },
+  );
 }
 
 /*
@@ -191,13 +230,16 @@ export function meetForRide(ride: Ride): Meet | null {
   const place =
     ride.direction === 'from_airport'
       ? makePublicPlace({ kind: 'taxi_rank', label: `Taxi rank · ${String(ride.airportIata)}`, airportIata: ride.airportIata })
-      : makePublicPlace({
-          kind: 'pickup_point',
-          label: ride.point.label,
-          airportIata: ride.airportIata,
-          lat: ride.point.lat,
-          lon: ride.point.lon,
-        });
+      : makePublicPlace(
+          {
+            kind: 'pickup_point',
+            label: ride.point.label,
+            airportIata: ride.airportIata,
+            lat: ride.point.lat,
+            lon: ride.point.lon,
+          },
+          { vetLabel: false },
+        );
   return makeMeet({
     id: meetIdForRide(ride.id),
     participants: people,

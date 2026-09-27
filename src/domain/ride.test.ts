@@ -212,7 +212,7 @@ describe('roomMembers — who is in the car room, derived from the car', () => {
           status: 'revoked_by_policy',
           history: [
             ...confirmed('mira').history,
-            { at: t('2026-09-17T10:00:00Z'), by: 'system', from: 'confirmed', to: 'revoked_by_policy' },
+            { at: t('2026-09-17T10:00:00Z'), by: asPersonId('you'), from: 'confirmed', to: 'revoked_by_policy' },
           ],
         },
         { ...confirmed('omar'), status: 'removed_by_host' },
@@ -232,5 +232,27 @@ describe('latestClaim', () => {
       ],
     };
     expect(latestClaim(r, asPersonId('mira'))?.status).toBe('confirmed');
+  });
+});
+
+describe('a hide survives the car being called off', () => {
+  it('keeps out a rider whose seat a hide ended before the call-off', () => {
+    const hiddenThenCancelled: Ride = {
+      ...base(),
+      status: 'cancelled',
+      claims: [
+        {
+          personId: asPersonId('tobias'),
+          status: 'revoked_by_policy',
+          askedAt: t('2026-09-16T10:00:00Z'),
+          history: [
+            { at: t('2026-09-16T10:00:00Z'), by: 'system', from: 'requested', to: 'confirmed' },
+            // The hide: by the system, not the host's call-off.
+            { at: t('2026-09-16T11:00:00Z'), by: 'system', from: 'confirmed', to: 'revoked_by_policy' },
+          ],
+        },
+      ],
+    };
+    expect(roomMembers(hiddenThenCancelled).map(String)).toEqual(['you']);
   });
 });

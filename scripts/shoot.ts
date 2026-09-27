@@ -160,9 +160,20 @@ async function setTheme(page: Page, theme: 'light' | 'dark') {
  * run against them before anyone noticed. Wait for text on the page instead.
  */
 async function painted(page: Page): Promise<void> {
-  await page.waitForFunction(() => (document.getElementById('root')?.innerText.trim().length ?? 0) > 20, undefined, {
-    timeout: 15_000,
-  });
+  // The screen's own content, not the page's: once Suspense moved inside the
+  // shell, the tab bar's labels alone passed a whole-page text check and seven
+  // captures came out as a header and a tab bar. `#main` holds only the screen.
+  // Door screens (welcome, signup) render without the shell, so fall back to
+  // the root for those.
+  await page.waitForFunction(
+    () => {
+      const main = document.getElementById('main');
+      const text = (main ?? document.getElementById('root'))?.innerText.trim() ?? '';
+      return text.length > 20;
+    },
+    undefined,
+    { timeout: 15_000 },
+  );
   await page.waitForLoadState('networkidle');
 }
 
@@ -273,11 +284,19 @@ async function main() {
       });
       await page.waitForTimeout(120);
 
+      const heights: number[] = [];
       for (const theme of THEMES) {
         await setTheme(page, theme);
+        heights.push(await page.evaluate(() => document.documentElement.scrollHeight));
         const file = join(OUT, `${route.name}-${vp.name}-${theme}.png`);
         await page.screenshot({ path: file, fullPage: true });
         console.log(`  ${file.replace(OUT, 'docs/shots')}`);
+      }
+      // Two themes of one screen are the same height. When they are not, one
+      // was captured while the screen was still loading — fail loudly rather
+      // than hand reviewers a frame that never existed.
+      if (heights.length > 1 && Math.abs(heights[0]! - heights[1]!) > 40) {
+        errors.push(`[${vp.name}] ${route.name}: light ${heights[0]}px vs dark ${heights[1]}px — captured mid-load`);
       }
     }
 

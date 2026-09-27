@@ -10,7 +10,7 @@ import { tripHueClass } from '@design/tokens/tripHue';
 import { bucketPhrase } from '@lib/bucket';
 import { airportIndex, cityByKey } from '@data/airports/index';
 import { useHome } from '@state/selectors/home';
-import { whenLabel } from '@screens/whenLabel';
+import { whenLabel, windowLabel } from '@screens/whenLabel';
 import { useEventBoards } from '@state/selectors/event';
 import { useIncomingCards, useSaidYes, expiresIn } from '@state/selectors/requests';
 import { useJoinableRides, useSeatAsks } from '@state/selectors/rides';
@@ -90,7 +90,8 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
               asked for a seat in your car
             </span>
             <span className="homerow__meta">
-              {seatAsks[0]!.route.from} → {seatAsks[0]!.route.to}
+              {seatAsks[0]!.route.from} → {seatAsks[0]!.route.to} ·{' '}
+              {windowLabel(seatAsks[0]!.ride.window.from, seatAsks[0]!.ride.window.to, airportIndex.zone(seatAsks[0]!.ride.airportIata), now)}
               {seatAsks.length > 1 ? ` · ${bucketPhrase(seatAsks.length - 1, 'more', 'more')}` : ''}
             </span>
           </span>
@@ -222,7 +223,7 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
             {/* When the board's trip is not the journey above, say which — a
                 "06:40–07:20" under "Leaves LHR 21:00 tonight" read as tonight. */}
             {journey && String(journey.id) !== String(trip.id) && (
-              <span className="homesec__meta mono">
+              <span className="homesec__meta homesec__trip mono">
                 {tripCode(trip)} · {tripDates(trip)}
               </span>
             )}

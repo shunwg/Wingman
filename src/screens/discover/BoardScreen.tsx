@@ -6,6 +6,7 @@ import { tripCode } from '@domain/trip';
 import { tripHueClass } from '@design/tokens/tripHue';
 import { useBoard, useRelaxations, type BoardCandidate } from '@state/selectors/board';
 import { useStore } from '@state/store';
+import { tripIsOver } from '@domain/index';
 import { personById } from '@data/seed/people';
 import { RideBoard } from './RideBoard';
 import { BoardFilters } from './BoardFilters';
@@ -30,6 +31,8 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
   const board = useBoard();
   const relaxations = useRelaxations();
   const myTrips = useStore((s) => s.myTrips);
+  const now = useStore((s) => s.now);
+  const liveTrips = myTrips.filter((t) => !tripIsOver(t, now));
   const filters = useStore((s) => s.filters);
   const setFilters = useStore((s) => s.setFilters);
   const reopenTrip = useStore((s) => s.reopenTrip);
@@ -111,7 +114,9 @@ export function BoardScreen({ onOpen }: { onOpen: (id: string) => void }) {
       <>
         {eventSection}
         <ContextStrip context={board.context} />
-        <BoardFilters openTrips={board.openTrips} industries={board.industries} />
+        {/* Every trip still happening: the car list keeps a settled trip's
+            cars, so its picker has to keep the trip. */}
+        <BoardFilters openTrips={liveTrips} industries={board.industries} />
         <RideBoard onOpen={(rideId) => (window.location.hash = `#/car/${rideId}`)} />
       </>
     );
