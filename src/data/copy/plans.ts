@@ -30,7 +30,6 @@ export const PLACE_KIND_CHOICES: readonly PublicPlace['kind'][] = [
   'lounge',
   'taxi_rank',
   'restaurant',
-  'hotel_lobby',
 ];
 
 export const PLAN_COPY = {

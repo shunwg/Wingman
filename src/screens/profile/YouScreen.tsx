@@ -260,8 +260,8 @@ export function YouScreen() {
         }
       >
         <p className="sheet__body">
-          Your profile, trips and conversations live only on this device. Signing out removes
-          them here, and there is no copy anywhere else.
+          Your profile, trips and conversations live only on this device. Deleting removes them
+          from it, and there is no copy anywhere else to get them back from.
         </p>
       </Sheet>
 

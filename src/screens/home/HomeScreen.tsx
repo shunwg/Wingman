@@ -13,6 +13,9 @@ import { useHome } from '@state/selectors/home';
 import { whenLabel } from '@screens/whenLabel';
 import { useEventBoards } from '@state/selectors/event';
 import { useIncomingCards, useSaidYes, expiresIn } from '@state/selectors/requests';
+import { useJoinableRides, useSeatAsks } from '@state/selectors/rides';
+import { Route } from '@design/icons/Route';
+import { personById } from '@data/seed/people';
 import { markArriving } from '@screens/inbox/arrive';
 import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { useStore } from '@state/store';
@@ -31,6 +34,9 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
   const live = useEventBoards();
   const incoming = useIncomingCards();
   const saidYes = useSaidYes();
+  const seatAsks = useSeatAsks();
+  const cars = useJoinableRides();
+  const setFilters = useStore((s) => s.setFilters);
   const now = useStore((s) => s.now);
   const myTrips = useStore((s) => s.myTrips);
 
@@ -64,6 +70,33 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
             </span>
           </span>
           <span className="homerow__chevron" aria-hidden="true">›</span>
+        </button>
+      )}
+
+      {/* A seat asked for in your car. Waiting on you, so it sits with the
+          other things that are. */}
+      {seatAsks.length > 0 && (
+        <button
+          type="button"
+          className="homerow homerow--ask"
+          onClick={() => onOpen(`#/car/${String(seatAsks[0]!.ride.id)}`)}
+        >
+          <Avatar spec={seatAsks[0]!.card.avatar} size="sm" />
+          <span className="homerow__body">
+            <span className="homerow__title">
+              {typeof seatAsks[0]!.card.displayName === 'string'
+                ? seatAsks[0]!.card.displayName.split(' ')[0]
+                : 'Someone'}{' '}
+              asked for a seat in your car
+            </span>
+            <span className="homerow__meta">
+              {seatAsks[0]!.route.from} → {seatAsks[0]!.route.to}
+              {seatAsks.length > 1 ? ` · ${bucketPhrase(seatAsks.length - 1, 'more', 'more')}` : ''}
+            </span>
+          </span>
+          <span className="homerow__chevron" aria-hidden="true">
+            ›
+          </span>
         </button>
       )}
 
@@ -112,6 +145,11 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
             </span>
             <DepartureLine trip={journey} now={now} />
             {journey.outcome ? (
+              <span className="journey__meta">
+                You are meeting {personFirstName(String(journey.outcome.settledWith))} on this one.
+              </span>
+            ) : null}
+            {journey.outcome ? (
               <Chip tone="trust">Sorted</Chip>
             ) : journey.visibility.listing === 'hidden' ? (
               <Chip tone="warn">Hidden</Chip>
@@ -119,6 +157,30 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
               <Chip tone="trust">Looking</Chip>
             )}
           </button>
+          {/* Cars going your way, one tap from the page you look at while
+              walking. The cohort persona's first complaint, two rounds
+              running: the feature did not exist on Home. */}
+          {cars.rows.length > 0 && (
+            <button
+              type="button"
+              className="homerow"
+              onClick={() => {
+                setFilters({ lens: 'shared_cars' });
+                onOpen('#/discover');
+              }}
+            >
+              <span className="homerow__glyph" aria-hidden="true">
+                <Route size={18} />
+              </span>
+              <span className="homerow__body">
+                <span className="homerow__title">{bucketPhrase(cars.rows.length, 'shared car', 'shared cars')} going your way</span>
+                <span className="homerow__meta">Take a seat, or offer your own from Trips</span>
+              </span>
+              <span className="homerow__chevron" aria-hidden="true">
+                ›
+              </span>
+            </button>
+          )}
         </section>
       )}
 
@@ -157,6 +219,13 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
             <h2 className="homesec__title">
               {match && moment ? `Your paths cross ${crossing(match, trip)}` : 'People worth meeting'}
             </h2>
+            {/* When the board's trip is not the journey above, say which — a
+                "06:40–07:20" under "Leaves LHR 21:00 tonight" read as tonight. */}
+            {journey && String(journey.id) !== String(trip.id) && (
+              <span className="homesec__meta mono">
+                {tripCode(trip)} · {tripDates(trip)}
+              </span>
+            )}
             {othersOnTrip > 0 && (
               <button type="button" className="homesec__more" onClick={() => onOpen('#/discover')}>
                 See all ›
@@ -236,6 +305,11 @@ function DepartureLine({ trip, now }: { trip: Parameters<typeof tripDestination>
       Leaves {String(next.from)} {whenLabel(next.departUtc, zone, now as never).toLowerCase().replace(/^(\w+) (.+)$/, '$2 $1')}
     </span>
   );
+}
+
+/** A first name for a sentence about your own trip. */
+function personFirstName(id: string): string {
+  return personById(id)?.firstName ?? 'someone';
 }
 
 /** "in Singapore" or "on SQ317" — the place the paths cross. */

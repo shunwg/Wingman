@@ -1,6 +1,6 @@
 import { useId, useMemo, useState } from 'react';
 import type { RideAudience, RideDirection, Trip } from '@domain/index';
-import { addMinutes, anyAudience, asCircleId, localDate, localTime, utcFromLocal } from '@domain/index';
+import { addMinutes, anyAudience, asCircleId, localDate, localTime, looksLikeAddress, utcFromLocal } from '@domain/index';
 import { airportIndex } from '@data/airports/index';
 import { Button } from '@design/primitives/Button';
 import { Field } from '@design/primitives/Field';
@@ -89,6 +89,10 @@ export function RideSheet({ open, trip, onClose, onDone }: RideSheetProps) {
     const placeLabel = label.trim() || suggested?.label || '';
     if (!placeLabel) {
       setError('Say roughly where the car goes — a neighbourhood, never an address.');
+      return;
+    }
+    if (looksLikeAddress(placeLabel)) {
+      setError('That reads like an address. Name the neighbourhood instead.');
       return;
     }
     if (!time) {

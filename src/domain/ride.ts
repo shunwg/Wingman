@@ -1,6 +1,7 @@
 import type { CircleId, IataCode, PersonId, RideId, TripId } from './ids';
 import type { ISODateTime, TimeWindow } from './time';
 import type { AudienceRule } from './privacy';
+import { looksLikeAddress } from './guards';
 
 /**
  * A shared car, to or from an airport.
@@ -237,6 +238,9 @@ export function makeRide(input: {
   if (!input.point.label.trim()) {
     throw new Error('A pickup point needs a label someone can navigate to; a lat/lon alone is not a place.');
   }
+  if (looksLikeAddress(input.point.label)) {
+    throw new Error('A pickup point is a neighbourhood, never an address.');
+  }
   if (input.audience.kind === 'circles' && input.audience.circleIds.length === 0) {
     throw new Error('A circles-only car with no circles admits nobody. Name a circle, or open the car.');
   }
@@ -244,6 +248,9 @@ export function makeRide(input: {
   const note = input.pickupNote?.trim();
   if (note && note.length > PICKUP_NOTE_CAP) {
     throw new Error(`A pickup note is a spot and a car, at most ${PICKUP_NOTE_CAP} characters.`);
+  }
+  if (note && looksLikeAddress(note)) {
+    throw new Error('A pickup note names a public spot, never an address.');
   }
   return {
     id: input.id,

@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
-import type { Ride, RideClaim, Trip } from '@domain/index';
+import type { RedactedPerson, Ride, RideClaim, Trip } from '@domain/index';
 import { riders, rideRoute, seatsLeft, tripIsListed, tripIsOver } from '@domain/index';
 import { addMinutes, intersectWindows } from '@domain/time';
 import { filterRides, type RideNeed } from '@matching/index';
 import { bucketPhrase } from '@lib/bucket';
 import { tripFor } from '@data/seed/trips';
+import { personById } from '@data/seed/people';
+import { redact } from '@privacy/index';
 import { useStore } from '@state/store';
 import { claimRefusal, myClaim, rideVisibility, type ClaimRefusal, type RideViewer } from '@state/rides/eligibility';
 
@@ -276,4 +278,41 @@ export function useRideForChannel(channelId: string): RideRow | undefined {
     const ride = rides.find((r) => String(r.id) === rideId);
     return ride ? rowFor(ride, v) : undefined;
   }, [channelId, rides, v]);
+}
+
+
+/** Somebody asked for a seat in a car you host, and is waiting on you. */
+export interface SeatAsk {
+  ride: Ride;
+  claim: RideClaim;
+  route: { from: string; to: string };
+  /** Rung 0 — what the ladder allows before you have said anything. */
+  card: RedactedPerson;
+}
+
+/**
+ * Every seat request waiting on you, across your cars.
+ *
+ * A host used to learn of one only by opening the car — nothing on Home,
+ * nothing in the inbox — so an open car's "you approve each person" was a
+ * promise that depended on the host happening to look.
+ */
+export function useSeatAsks(): SeatAsk[] {
+  const me = useStore((s) => s.me);
+  const now = useStore((s) => s.now);
+  const rides = useStore((s) => s.rides);
+  return useMemo(
+    () =>
+      rides.flatMap((ride) => {
+        if (String(ride.hostPersonId) !== String(me.id)) return [];
+        if (ride.status === 'cancelled' || String(now) >= String(ride.expiresAt)) return [];
+        return ride.claims
+          .filter((c) => c.status === 'requested')
+          .flatMap((claim) => {
+            const p = personById(String(claim.personId));
+            return p ? [{ ride, claim, route: rideRoute(ride), card: redact(p, 0) }] : [];
+          });
+      }),
+    [rides, me.id, now],
+  );
 }

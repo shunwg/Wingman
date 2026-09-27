@@ -1,3 +1,4 @@
+import { policyCopy } from '../copy';
 import type { ISODateTime, Person, PersonId, RedactedPerson } from '@domain/index';
 import { redact, redactFully } from '../redact';
 import { admitsViewer, disclosureLevelFor } from '../resolve';
@@ -87,7 +88,9 @@ export function previewAs(
       persona,
       visible: false,
       view: redactFully(me),
-      reasons: res.reasons.map((r) => ({ ruleId: r.ruleId, text: r.text })),
+      // In your own voice: this is you looking at yourself through someone
+      // else's eyes, so "They only appear to verified people" meant *you*.
+      reasons: res.reasons.map((r) => ({ ruleId: r.ruleId, text: policyCopy(r.ruleId, 'yours') })),
     };
   }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { makeMeet, makePublicPlace } from './guards';
+import { looksLikeAddress, makeMeet, makePublicPlace } from './guards';
 import { asIata, asMeetId, asMeetRequestId, asPersonId, asRideId } from './ids';
 import type { ISODateTime } from './time';
 import type { MeetKind } from './intent';
@@ -70,5 +70,39 @@ describe('pickup_point', () => {
     const p = makePublicPlace({ kind: 'pickup_point', label: 'Indre By', airportIata: asIata('CPH'), lat: 55.68, lon: 12.57 });
     expect(p.isPublicGround).toBe(true);
     expect(p.kind).toBe('pickup_point');
+  });
+});
+
+describe('looksLikeAddress — an address is not a meeting point', () => {
+  it.each([
+    '12 Baker Street',
+    '221b Baker St',
+    'Storgata 12',
+    'Kongensgade 3, 2nd floor',
+    'Hauptstraße 7',
+    'Rue de Rivoli 12',
+    'Flat 4, Marchmont',
+    'Near SW1A 1AA',
+  ])('refuses %s', (text) => {
+    expect(looksLikeAddress(text)).toBe(true);
+  });
+
+  it.each([
+    'Gate 12',
+    'Meet at gate 12',
+    'Taxi queue at T3 arrivals, by door 5. Look for the INSEAD tote.',
+    'The coffee bar by the departures board, LHR',
+    'Departures board 5',
+    'Hall B, Room 3',
+    'Terminal 2E',
+    'Marina Bay',
+    'Rank door 12. White estate, plate ends 4R.',
+    'Outside the bakery on Store Kongensgade',
+  ])('lets %s through', (text) => {
+    expect(looksLikeAddress(text)).toBe(false);
+  });
+
+  it('is enforced where a place is made, not only hinted', () => {
+    expect(() => makePublicPlace({ kind: 'cafe', label: '12 Baker Street', airportIata: asIata('LHR') })).toThrow();
   });
 });

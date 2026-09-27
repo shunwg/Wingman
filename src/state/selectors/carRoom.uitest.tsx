@@ -7,6 +7,7 @@ import { demoState } from '@state/account/reducers';
 import { MY_TRIPS, SEED_NOW } from '@data/seed/trips';
 import { useChannel } from './channel';
 import { useInbox } from './inbox';
+import { useSeatAsks } from './rides';
 
 /**
  * The car's room, from the QA round of 2026-09-27: who is in it has to follow
@@ -109,5 +110,15 @@ describe('the host changing the fare is said in the room', () => {
     act(() => useStore.getState().setRideFare('ride_you_cph', { amountMinor: 40000, currency: 'DKK' }));
     act(() => useStore.getState().setRideFare('ride_you_cph', { amountMinor: 52000, currency: 'DKK' }));
     expect(lines('ride_you_cph')).toContain('The host changed the estimate to about 520 DKK for the car.');
+  });
+});
+
+describe('a host hears about a seat request without opening the car', () => {
+  it('lists Tobias waiting on your car, and stops once you answer', () => {
+    const asks = () => renderHook(() => useSeatAsks()).result.current;
+    expect(asks().map((a) => String(a.claim.personId))).toEqual(['tobias']);
+    act(() => useStore.getState().confirmSeat('ride_you_cph', asPersonId('tobias')));
+    expect(asks()).toHaveLength(0);
+    expect(lines('ride_you_cph')).toContain('Tobias is in.');
   });
 });

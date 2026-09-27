@@ -3096,3 +3096,16 @@ textarea.field__input {
 .ride__askwho { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .ride__askline { font-size: var(--text-xs); color: var(--muted); }
 .ride__askstamps { display: flex; gap: var(--sp-1); }
+
+/* The lens row scrolls sideways and nothing said so: "Shared cars" sat past
+   the right edge on a phone, two rounds running. A fade at the edge is the
+   platform's own way of saying "more this way". */
+.lens {
+  -webkit-mask-image: linear-gradient(to right, #000 82%, transparent);
+  mask-image: linear-gradient(to right, #000 82%, transparent);
+}
+.homerow__glyph {
+  display: grid; place-items: center;
+  width: 32px; height: 32px; border-radius: var(--r-md);
+  background: var(--accent-wash); color: var(--accent);
+}

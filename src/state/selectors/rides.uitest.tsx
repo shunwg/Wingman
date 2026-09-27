@@ -148,7 +148,8 @@ describe('claiming a seat', () => {
   it('refuses a seat in your own car', () => {
     useStore.getState().claimSeat('ride_you_cph');
     const ride = useStore.getState().rides.find((r) => String(r.id) === 'ride_you_cph')!;
-    expect(ride.claims).toEqual([]);
+    // Tobias's seeded request is there; none from you.
+    expect(ride.claims.some((c) => String(c.personId) === 'you')).toBe(false);
   });
 });
 

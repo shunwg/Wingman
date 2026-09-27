@@ -4,6 +4,7 @@ import { ToggleChip } from '@design/primitives/Chip';
 import { Field } from '@design/primitives/Field';
 import { Sheet } from '@design/primitives/Sheet';
 import type { MeetKind, MeetRequest, PublicPlace } from '@domain/index';
+import { looksLikeAddress } from '@domain/index';
 import { addMinutes, epoch, minutesBetween, type ISODateTime } from '@domain/time';
 import { MEET_KIND_LABEL, MEET_KIND_ORDER } from '@data/copy/meetKinds';
 import { PLACE_KIND_CHOICES, PLACE_KIND_LABEL } from '@data/copy/plans';
@@ -89,7 +90,7 @@ export function ProposeSheet({
             Cancel
           </Button>
           <Button
-            disabled={place.trim().length === 0}
+            disabled={place.trim().length === 0 || looksLikeAddress(place)}
             onClick={() =>
               onPost({
                 meetKind: kind,
@@ -134,7 +135,11 @@ export function ProposeSheet({
           </ToggleChip>
         ))}
       </div>
-      <Field label="Which one" hint="A public place, in words. Never an address.">
+      <Field
+        label="Which one"
+        hint="A public place, in words. Never an address."
+        {...(looksLikeAddress(place) ? { error: 'That reads like an address. Name a public place instead.' } : {})}
+      >
         <input className="field__input" value={place} maxLength={80} onChange={(e) => setPlace(e.target.value)} />
       </Field>
     </Sheet>

@@ -120,5 +120,22 @@ export const SEED_RIDES: Ride[] = [
     : []),
 ];
 
+/*
+ * Tobias is in Ørestad until the afternoon of the 20th — already seeded, see
+ * trips.ts — so he has asked for a seat in your car to the airport. It is the
+ * one state an open door exists for, and without it the demo could never show a
+ * host deciding.
+ */
+const yours = SEED_RIDES.find((r) => String(r.id) === 'ride_you_cph');
+if (yours) {
+  yours.claims.push({
+    personId: asPersonId('tobias'),
+    status: 'requested',
+    askedAt: asUtc('2026-09-02T14:10:00Z'),
+    history: [],
+    note: 'Flying home the same afternoon. Happy to meet you at Kongens Nytorv.',
+  });
+}
+
 export const rideById = (id: string): Ride | undefined =>
   SEED_RIDES.find((r) => String(r.id) === id);

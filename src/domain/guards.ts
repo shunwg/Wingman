@@ -24,6 +24,35 @@ const PUBLIC_KINDS: ReadonlySet<PublicPlace['kind']> = new Set([
 ]);
 
 /**
+ * Whether a piece of text reads like somebody's address.
+ *
+ * `PublicPlace` makes a private address unrepresentable as a *type*, but a
+ * label is free text, and three reviewers showed that "Storgata 12, flat 3"
+ * went straight into a suggestion, a car's pickup point and its pickup note.
+ * This is a heuristic, not a proof — it catches the shapes an address actually
+ * takes (a number beside a street word, a flat or room number, a postcode) and
+ * leaves "Gate 12", "door 5" and "Terminal 3" alone. Its job is to stop the
+ * honest mistake; a determined person can always misspell a street.
+ */
+export function looksLikeAddress(text: string): boolean {
+  const t = text.trim();
+  // "12 Baker Street", "4b Rd" — a number, a few words, an English street word.
+  const numberThenStreet =
+    /\b\d{1,5}[a-z]?,?\s+(?:[\p{L}'.-]+\s+){0,3}(?:street|st|road|rd|avenue|ave|lane|ln|drive|dr|close|crescent|terrace|boulevard|blvd)\b/iu;
+  // "Storgata 12", "Kongensgade 3", "Hauptstraße 7" — a compound street name,
+  // then a number. Only as a suffix of a longer word, so "Gate 12" is a gate.
+  const compoundThenNumber =
+    /\p{L}{2,}(?:gade|gata|gatan|gasse|vej|vei|veien|straße|strasse|weg|laan|gate)\s+\d{1,5}[a-z]?\b/iu;
+  // "Rue de Rivoli 12", "Calle Mayor 5".
+  const latinThenNumber = /\b(?:rue|calle|avenida)\s+(?:[\p{L}'.-]+\s+){0,3}\d{1,5}\b/iu;
+  // A flat is somebody's home by definition. (Not "room": "Hall B, Room 3" is
+  // a conference room, and public.)
+  const flat = /\b(?:flat|apt|apartment|leilighet)\s*#?\s*\d+/i;
+  const ukPostcode = /\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/;
+  return [numberThenStreet, compoundThenNumber, latinThenNumber, flat, ukPostcode].some((r) => r.test(t));
+}
+
+/**
  * The only sanctioned way to build a meeting point.
  *
  * Every meet happens on public ground. Not as a guideline in a help article —
@@ -43,6 +72,9 @@ export function makePublicPlace(input: {
   }
   if (!input.label.trim()) {
     throw new Error('A meeting point needs a label someone can actually navigate to.');
+  }
+  if (looksLikeAddress(input.label)) {
+    throw new Error('A meeting point is a public place, never an address.');
   }
   if (!input.airportIata && !input.cityKey) {
     throw new Error('A meeting point must be anchored to an airport or a city.');

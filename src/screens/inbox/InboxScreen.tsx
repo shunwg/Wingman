@@ -14,6 +14,7 @@ import { personById } from '@data/seed/people';
 import { generateAvatar } from '@design/avatar/generate';
 import { useInbox, type InboxFilter, type InboxRow } from '@state/selectors/inbox';
 import { expiresIn, useIncomingCards } from '@state/selectors/requests';
+import { useSeatAsks } from '@state/selectors/rides';
 import { useStore } from '@state/store';
 import { AcceptSheet } from '@screens/safety/AcceptSheet';
 import { DenySheet } from './DenySheet';
@@ -50,6 +51,9 @@ export function InboxScreen({ onOpen }: { onOpen: (hash: string) => void }) {
   const [accepting, setAccepting] = useState<MeetRequest | null>(null);
   const [denying, setDenying] = useState<MeetRequest | null>(null);
   const cards = useIncomingCards();
+  const seatAsks = useSeatAsks();
+  const confirmSeat = useStore((s) => s.confirmSeat);
+  const declineSeat = useStore((s) => s.declineSeat);
 
   return (
     <>
@@ -87,6 +91,43 @@ export function InboxScreen({ onOpen }: { onOpen: (hash: string) => void }) {
                     Yes
                   </Button>
                   <Button size="sm" variant="secondary" onClick={() => setDenying(r)}>
+                    Not this time
+                  </Button>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      )}
+
+      {seatAsks.length > 0 && (
+        <section className="strip" aria-label="Seats asked for">
+          {seatAsks.map((a) => {
+            const first = typeof a.card.displayName === 'string' ? a.card.displayName.split(' ')[0] : 'Someone';
+            return (
+              <article className="strip__row" key={`${String(a.ride.id)}:${String(a.claim.personId)}`}>
+                <Avatar spec={a.card.avatar} size="sm" />
+                <div className="strip__body">
+                  <p className="strip__who">{first} asked for a seat in your car</p>
+                  {a.card.stamps.length > 0 && (
+                    <span className="strip__stamps">
+                      {a.card.stamps.slice(0, 3).map((st, i) => (
+                        <StampBadge key={`${st.kind}-${i}`} stamp={st} compact />
+                      ))}
+                    </span>
+                  )}
+                  <p className="strip__receipt">
+                    <a href={`#/car/${String(a.ride.id)}`}>
+                      {a.route.from} → {a.route.to}
+                    </a>
+                  </p>
+                  {a.claim.note && <p className="strip__msg">&ldquo;{a.claim.note}&rdquo;</p>}
+                </div>
+                <div className="strip__actions">
+                  <Button size="sm" onClick={() => confirmSeat(String(a.ride.id), a.claim.personId)}>
+                    Yes
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => declineSeat(String(a.ride.id), a.claim.personId)}>
                     Not this time
                   </Button>
                 </div>

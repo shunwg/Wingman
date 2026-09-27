@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { AvatarSpec, DisclosureLevel } from '@domain/index';
-import { PICKUP_NOTE_CAP } from '@domain/index';
+import { PICKUP_NOTE_CAP, looksLikeAddress } from '@domain/index';
 import { redact } from '@privacy/index';
 import { Button } from '@design/primitives/Button';
 import { Chip } from '@design/primitives/Chip';
@@ -541,11 +541,14 @@ function PickupSheet({
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={() => onSave(note)}>Save</Button>
+          <Button disabled={looksLikeAddress(note)} onClick={() => onSave(note)}>
+            Save
+          </Button>
         </>
       }
     >
       <Field
+        {...(looksLikeAddress(note) ? { error: 'That reads like an address. Name a public spot instead.' } : {})}
         label="The spot and the car"
         hint={`Only the people in the car see this — including anyone who takes a seat later. ${PICKUP_NOTE_CAP - note.length} characters left.`}
       >

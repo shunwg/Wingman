@@ -45,6 +45,7 @@ import {
   asUtc,
   assertFare,
   latestClaim,
+  looksLikeAddress,
   canAgree,
   codeFromSeed,
   agreedPlan,
@@ -632,6 +633,7 @@ export const useStore = create<WingmanState>()(
       post: (channel, body) =>
         set((s) => {
           let b = body;
+          if (b.kind === 'proposal' && looksLikeAddress(b.placeLabel)) return s;
           if (b.kind === 'text') {
             const trimmed = b.text.trim().slice(0, TEXT_CAP[channel.kind]);
             if (!trimmed) return s;
@@ -922,6 +924,9 @@ export const useStore = create<WingmanState>()(
         const text = note.trim();
         if (text.length > PICKUP_NOTE_CAP) {
           throw new Error(`A pickup note is at most ${PICKUP_NOTE_CAP} characters.`);
+        }
+        if (looksLikeAddress(text)) {
+          throw new Error('A pickup note names a public spot, never an address.');
         }
         if ((ride.pickupNote ?? '') === text) return;
         const next: Ride = { ...ride };
