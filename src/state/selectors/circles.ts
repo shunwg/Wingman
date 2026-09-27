@@ -3,7 +3,9 @@ import type { Circle, Person, PublicCircleBadge, RedactedPerson } from '@domain/
 import type { ISODateTime } from '@domain/time';
 import { admitsListing, compilePolicy, redact } from '@privacy/index';
 import { selfFacets } from '@matching/index';
-import { SEED_CIRCLES } from '@data/seed/circles';
+import { tripIsOver } from '@domain/index';
+import { SEED_CIRCLES, circleIsLive } from '@data/seed/circles';
+import { seedPool } from '@data/seed/trips';
 import { SEED_PEOPLE } from '@data/seed/people';
 import { useStore } from '../store';
 
@@ -63,10 +65,28 @@ export function useCircle(id: string): Circle | undefined {
  */
 export function listedMembers(circleId: string, me: Person, now: ISODateTime, circles: Circle[]): RedactedPerson[] {
   const mine = me.memberships.filter((m) => m.display !== 'paused').map((m) => String(m.circleId));
+  // Members are listed to members. The page is open to anyone who finds the
+  // circle, and a list of who is in it is not (round 5).
+  if (!mine.includes(circleId)) return [];
+  // "When not travelling" is off by default: you appear because you are going
+  // somewhere, not as a standing listing. So a member who kept it off is
+  // listed while they have a trip still to come or underway — or while the
+  // event this circle is, is on.
+  const circle = circles.find((c) => String(c.id) === circleId);
+  const liveEvent = Boolean(
+    circle && circle.kind === 'conference' && circle.runs && circleIsLive(circle, String(now).slice(0, 10)),
+  );
+  const travelling = (p: Person) =>
+    p.privacy.discoverability.offTrip ||
+    liveEvent ||
+    seedPool().some(
+      (e) => String(e.person.id) === String(p.id) && e.trip.visibility.listing !== 'hidden' && !tripIsOver(e.trip, now),
+    );
   const viewer = selfFacets(me, mine, { proximity: 'none', channel: 'app', onTrip: false });
   return SEED_PEOPLE.filter((p) => {
     if (String(p.id) === String(me.id)) return false;
     if (!p.memberships.some((m) => String(m.circleId) === circleId && m.display === 'show_badge')) return false;
+    if (!travelling(p)) return false;
     const theirs = p.memberships.map((m) => String(m.circleId));
     const subject = selfFacets(p, theirs, { proximity: 'none', channel: 'app', onTrip: false });
     return admitsListing(compilePolicy(p.privacy, theirs), viewer, subject, now);

@@ -174,6 +174,23 @@ describe('looksLikeAddress — an address is not a meeting point', () => {
     'Terminal 1 Departure Gate',
     'Jewel Level 1 Canopy Park',
     'Level 2 Arrivals Hall Close to Costa',
+    // Round 5: what round 4's wider rules refused.
+    'Gate 12 is a good place to meet',
+    'Terminal 2 meeting place',
+    'Gate 34, back row by the window',
+    'Terminal 3, 2nd row of taxis',
+    'Come down via lift 4',
+    'Pick up via Bay 5',
+    'via Entrance 3',
+    'Terminal 2 Multi-Storey Car Park',
+    'Level 1 Pickup Loop',
+    'Terminal 2 Security Gate',
+    'Level 3 Viewing Terrace',
+    'Hall B, Room 204',
+    'Room 204, Hall B',
+    'Level 4, Room 402',
+    'Parkplatz 3',
+    'Changi T3, Piazza 2',
   ])('lets %s through', (text) => {
     expect(looksLikeAddress(text)).toBe(false);
   });

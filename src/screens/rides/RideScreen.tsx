@@ -14,6 +14,7 @@ import { airportIndex } from '@data/airports/index';
 import { personById } from '@data/seed/people';
 import { useRide, pendingSeats } from '@state/selectors/rides';
 import { useStore } from '@state/store';
+import { watchEndsWith } from '@state/guardianWatch';
 import { DOOR_COPY, RIDE_FARE_NOTE, rideGround } from '@data/copy/rides';
 import { StampBadge } from '@design/patterns/StampBadge';
 import { PersonMenu } from '@screens/safety/PersonMenu';
@@ -94,6 +95,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
   const [givingUp, setGivingUp] = useState(false);
   const [takingBack, setTakingBack] = useState<string | null>(null);
   const [sayingYes, setSayingYes] = useState<string | null>(null);
+  const endsWatch = useStore((s) => watchEndsWith(s.guardian, [`ride:${rideId}`], s.now));
 
   if (!row) {
     return (
@@ -552,6 +554,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
           <p className="sheet__body">
             The car is told you are no longer in it, and you leave its room. While a seat is free you can ask again.
           </p>
+          {endsWatch && <p className="sheet__body">The watch you started for this car ends too.</p>}
         </Sheet>
       )}
       {confirmingCancel && (

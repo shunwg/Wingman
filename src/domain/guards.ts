@@ -51,21 +51,24 @@ export function looksLikeAddress(text: string): boolean {
   // "12 Baker Street", "14 Cloudesley Square" — a number, a few words, a
   // street word. "St" only when it is not "St Pancras": Saint, not Street.
   // The words between may carry digits — "350 5th Ave" — as long as each has a
-  // letter. "Grove", "Place" and "Row" join the list; "Court", "Park", "Walk"
-  // and "Terrace" stay off it, because an airport has a food court, a car
-  // park, a five-minute walk and a Pier 1 Terrace bar.
+  // letter. "Grove" joins the list. "Place", "Row", "Court", "Park", "Walk"
+  // and "Terrace" stay off it: an airport has a meeting place, a back row, a
+  // food court, a car park, a five-minute walk and a Pier 1 Terrace bar.
   const numberThenStreet =
-    /\b\d{1,5}[a-z]?,?\s+(?:[\p{L}\d'.-]*\p{L}[\p{L}\d'.-]*\s+){0,3}(?:street|road|rd|avenue|ave|lane|ln|drive|dr|close(?!\s+to\b)|crescent|boulevard|blvd|square|sq|mews|grove|place|row)\b/iu;
+    /\b\d{1,5}[a-z]?,?\s+(?:[\p{L}\d'.-]*\p{L}[\p{L}\d'.-]*\s+){0,3}(?:street|road|rd|avenue|ave|lane|ln|drive|dr|close(?!\s+to\b)|crescent|boulevard|blvd|square|sq|mews|grove)\b/iu;
   // "221B Baker St": a name between the number and "St". "Platform 5, St
   // Pancras" has none — that St is a saint.
   const numberThenSt = /\b\d{1,5}[a-z]?,?\s+(?:[\p{L}\d'.-]*\p{L}[\p{L}\d'.-]*\s+){1,3}st\b/iu;
   // "Storgata 12", "Kongensgade 3", "Hauptstraße 7" — a compound street name,
   // then a number. Only as a suffix of a longer word, so "Gate 12" is a gate.
   const compoundThenNumber =
-    /\p{L}{2,}(?:gade|gata|gatan|gasse|vej|vei|veien|vägen|väg|straße|strasse|weg|laan|gate|damm|allee|platz)\s+\d{1,5}[a-z]?\b/iu;
+    /\p{L}{2,}(?:gade|gata|gatan|gasse|vej|vei|veien|vägen|väg|straße|strasse|weg|laan|gate|damm|allee)\s+\d{1,5}[a-z]?\b/iu;
+  // "Alexanderplatz 1" — but a Parkplatz is a car park.
+  const platzThenNumber = /\p{L}{2,}platz\s+\d{1,5}[a-z]?\b/iu;
+  const platz = platzThenNumber.test(t) && !/\bparkplatz\s+\d/i.test(t);
   // "Rue de Rivoli 12", "Calle Mayor 5".
   const latinThenNumber =
-    /\b(?:rue|calle|carrer|avenida|rua|corso|viale|piazza)\s+(?:[\p{L}'.-]+\s+){0,3}\d{1,5}\b|\bC\/\s*\p{L}+(?:\s+\p{L}+){0,2}\s+\d{1,5}\b/iu;
+    /\b(?:rue|calle|carrer|avenida|rua|corso|viale)\s+(?:[\p{L}'.-]+\s+){0,3}\d{1,5}\b|\bC\/\s*\p{L}+(?:\s+\p{L}+){0,2}\s+\d{1,5}\b/iu;
   // "22 allée des Cygnes", "10 quai de Conti".
   const numberThenFrench = /\b\d{1,5}[a-z]?,?\s+(?:allée|quai|impasse|chemin|cours)\b/iu;
   // "4 Queens Gate", "3 Cheyne Walk", "14 Elm Park Gardens": English street
@@ -73,14 +76,23 @@ export function looksLikeAddress(text: string): boolean {
   // after the airport's own words ("Level 3 Food Court", "Terminal 2 Car
   // Park", "Pier 1 Terrace bar", "Terminal 1 Departure Gate").
   const namedPlace = t.match(
-    /\b\d{1,5}[a-z]?,?\s+((?:\p{Lu}[\p{L}'.-]*\s+){1,3})(?:Gate|Walk|Gardens|Terrace|Court|Park|Hill|Embankment|Loop)\b/u,
+    /\b\d{1,5}[a-z]?,?\s+((?:\p{Lu}[\p{L}'.-]*\s+){1,3})(?:Gate|Walk|Gardens|Terrace|Hill|Embankment)\b/u,
   );
   const airportLead =
     /^(?:food|car|coach|taxi|bus|staff|short|long|stay|departures?|arrivals?|boarding|main|north|south|east|west|transfer|terminal|pier|level|hall|gate|lounge|jewel|canopy|topiary|butterfly|sunflower|cactus|garden)\b/i;
-  const namedPlaceStreet = Boolean(namedPlace && !airportLead.test(namedPlace[1]!.trim()));
+  // …and never when anything else in the phrase is the airport's: "Terminal 2
+  // Security Gate", "Level 3 Viewing Terrace".
+  const airportAnywhere =
+    /\b(?:terminal|gate|gates|pier|level|hall|arrivals?|departures?|parking|car\s*park|pick-?up|drop-?off|security|lounge|taxi|bus|station|airport|concourse|viewing|jewel|lift|escalator|platform|baggage|check-?in)\b/i;
+  const namedPlaceStreet = Boolean(
+    namedPlace &&
+      !airportLead.test(namedPlace[1]!.trim()) &&
+      !airportAnywhere.test(t.replace(namedPlace[0], ' ')),
+  );
   // "Via Roma 12" — but "via" is English too ("coffee via Gate 12"), so only
   // a capitalised name that is not an airport word.
-  const viaStreet = t.match(/\bvia\s+(\p{Lu}\p{Ll}+)\s+\d{1,5}\b/iu);
+  // Case-sensitive on purpose: with the i flag \p{Lu} matches "lift".
+  const viaStreet = t.match(/\b[Vv]ia\s+(\p{Lu}\p{Ll}+)\s+\d{1,5}\b/u);
   // A flat is somebody's home by definition.
   const flat = /\b(?:flat|apt|apartment|leilighet)\s*#?\s*\d+/i;
   const ukPostcode = /\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/;
@@ -99,7 +111,13 @@ export function looksLikeAddress(text: string): boolean {
   const airportWord =
     /^(?:departures?|arrivals?|terminal|domestic|international|pier|north|south|east|west|main|satellite|schengen|concourse|zone|level|hall|area|transfer|bus)$/i;
   const nordicNamedStreet = Boolean(nordic && named && !airportWord.test(nordic[1]!));
-  const viaNamedStreet = Boolean(viaStreet && !airportWord.test(viaStreet[1]!) && !/^(?:gate|door|exit|platform|carousel|belt|pier|terminal)$/i.test(viaStreet[1]!));
+  const viaNamedStreet = Boolean(
+    viaStreet &&
+      !airportWord.test(viaStreet[1]!) &&
+      !/^(?:gate|door|exit|platform|carousel|belt|pier|terminal|lift|elevator|escalator|stairs|bay|stand|entrance|lane|level|hall|track)$/i.test(
+        viaStreet[1]!,
+      ),
+  );
   // "Prinsengracht 263", "Damstraat 5", "Friedrichstr. 12".
   const dutchGermanCompound = /\p{L}{2,}(?:straat|gracht|kade|singel|plein|str\.)\s*\d{1,5}[a-z]?\b/iu;
   // "12 rue de Rivoli", "5 via Roma".
@@ -115,9 +133,13 @@ export function looksLikeAddress(text: string): boolean {
     /\b(?:rom|værelse|zimmer|chambre|habitación|suite)\s*#?\s*\d{3,4}\b|(?:^|\s)#\d{3,4}\b/iu;
   const conferenceRoom =
     /^(?:meeting|conference|board|seminar|function|breakout|class|lecture|training|workshop|committee|press|green|prayer|quiet|waiting|interview|reading|study)$/i;
-  const englishRoom = Array.from(t.matchAll(/(?:(\p{L}+)\s+)?\b(?:room|rm)\.?\s*(?:no\.?\s*|number\s*)?#?\s*\d{3,4}\b/giu)).some(
-    (m) => !(m[1] && conferenceRoom.test(m[1])),
-  );
+  // A venue says where the room is: "Hall B, Room 204", "Level 4, Room 402".
+  const venue = /\b(?:hall|level|floor|pavilion|wing|building|conference|convention|expo|exhibition|centre|center)\b/i.test(t);
+  const englishRoom =
+    !venue &&
+    Array.from(t.matchAll(/(?:(\p{L}+)\s+)?\b(?:room|rm)\.?\s*(?:no\.?\s*|number\s*)?#?\s*\d{3,4}\b/giu)).some(
+      (m) => !(m[1] && conferenceRoom.test(m[1])),
+    );
   // "Singapore 238823" — a six-digit postcode after the city.
   const sgPostcode = /\bsingapore\s+\d{6}\b/i;
   // A position is an address by another name: coordinates, a plus code, a
@@ -130,6 +152,7 @@ export function looksLikeAddress(text: string): boolean {
     nordicNamedStreet ||
     viaNamedStreet ||
     englishRoom ||
+    platz ||
     namedPlaceStreet ||
     [
       numberThenStreet,

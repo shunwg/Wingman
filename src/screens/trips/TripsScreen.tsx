@@ -372,7 +372,7 @@ function TripBlock({
           {cars.map((row) => (
             <RideCard
               key={String(row.ride.id)}
-              {...cardProps(row, meId, now)}
+              {...cardProps(row, meId, now, me.blocked.map(String))}
               onOpen={() => onOpen(`#/car/${String(row.ride.id)}`)}
             />
           ))}

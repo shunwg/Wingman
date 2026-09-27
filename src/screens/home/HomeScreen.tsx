@@ -18,6 +18,7 @@ import { Route } from '@design/icons/Route';
 import { markArriving } from '@screens/inbox/arrive';
 import { MEET_KIND_LABEL } from '@data/copy/meetKinds';
 import { useStore } from '@state/store';
+import { isLive } from '@privacy/index';
 import { takeMoment } from './moment';
 import { LISTING_EMPTY } from '@data/copy/listings';
 
@@ -42,6 +43,9 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
   const setFilters = useStore((s) => s.setFilters);
   const now = useStore((s) => s.now);
   const myTrips = useStore((s) => s.myTrips);
+  const guardian = useStore((s) => s.guardian);
+  const checkOut = useStore((s) => s.checkOut);
+  const watching = guardian && isLive(guardian, now) ? guardian : null;
 
   // Once, for this person, in this session.
   const moment = useRef(match ? takeMoment(String(match.person.id)) : false).current;
@@ -60,6 +64,25 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
 
   return (
     <>
+      {/* A live watch, wherever its room went. Leaving a car or hiding the
+          person you were meeting used to take the only "I'm safe" with it. */}
+      {watching && (
+        <div className="homerow homerow--guard" role="status">
+          <span className="homerow__body">
+            <span className="homerow__title">
+              {watching.status === 'escalated' ? 'Your watch has raised the alarm' : 'Your watch is on'}
+            </span>
+            <span className="homerow__meta">
+              Until {new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' }).format(new Date(String(watching.endsAt)))}{' '}
+              · Stand-in, nothing is sent
+            </span>
+          </span>
+          <Button size="sm" variant="secondary" onClick={() => checkOut()}>
+            I&rsquo;m safe
+          </Button>
+        </div>
+      )}
+
       {incoming.length > 0 && (
         <button type="button" className="homerow homerow--ask" onClick={() => onOpen('#/inbox')}>
           <Avatar spec={incoming[0]!.card.avatar} size="sm" />

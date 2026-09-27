@@ -11,6 +11,7 @@ import { useSeatAsks } from './rides';
 import { seatLineText } from '@data/copy/rides';
 import { personById } from '@data/seed/people';
 import { SEED_MESSAGES } from '@data/seed/channels';
+import { seedPool } from '@data/seed/trips';
 
 /**
  * The car's room, from the QA round of 2026-09-27: who is in it has to follow
@@ -356,6 +357,16 @@ describe('round 4: a watch ends when its meet ends for you', () => {
     expect(status()).toBe('ended');
   });
 
+  it('never ends a watch that has raised the alarm — only "I’m safe" does', () => {
+    act(() => useStore.getState().claimSeat('ride_jonas_marina'));
+    arm(String(rideChannelId('ride_jonas_marina')));
+    act(() => useStore.getState().escalate());
+    act(() => useStore.getState().withdrawSeat('ride_jonas_marina'));
+    expect(status()).toBe('escalated');
+    act(() => useStore.getState().checkOut());
+    expect(status()).toBe('ended');
+  });
+
   it('leaves a watch over a different meet alone', () => {
     arm(String(rideChannelId('ride_you_cph')));
     act(() => useStore.getState().claimSeat('ride_jonas_marina'));
@@ -404,5 +415,21 @@ describe('round 4: a seat with no join line reads from when it was confirmed', (
     );
     const view = renderHook(() => useChannel(String(rideChannelId('ride_lucas_lhr')))).result.current!;
     expect(view.messages.map((m) => String(m.id))).toEqual(['m_new']);
+  });
+});
+
+describe('round 5: a circle room never answers "is this person a member?"', () => {
+  it('says someone you hid is here only if they have written here', () => {
+    const room = 'circle:insead';
+    const authors = new Set(SEED_MESSAGES.filter((m) => String(m.channelId) === room).map((m) => String(m.from)));
+    // Someone who has never written in this room — member or not, and the
+    // room must not say which.
+    const quiet = seedPool().find((e) => !authors.has(String(e.person.id)) && String(e.person.id) !== 'you');
+    expect(quiet).toBeDefined();
+    const view = () => renderHook(() => useChannel(room)).result.current!;
+    act(() => useStore.getState().blockPerson(quiet!.person.id));
+    expect(view().hiddenHere).toBe(false);
+    act(() => useStore.getState().blockPerson([...authors][0] as never));
+    expect(view().hiddenHere).toBe(true);
   });
 });

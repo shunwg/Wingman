@@ -104,6 +104,9 @@
    reads as settled good news rather than as another thing asking for you. */
 .homerow--yes { background: var(--trust-wash); border: 1px solid var(--trust); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); }
 .homerow--yes .homerow__title { color: var(--trust); }
+/* A live watch: the guardian family, and not a link — its one action is the button. */
+.homerow--guard { grid-template-columns: 1fr auto; background: var(--guard-wash); border: 0; border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); cursor: default; }
+.homerow--guard:active { background: var(--guard-wash); }
 .homerow__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .homerow__title { font-weight: 600; }
 .homerow__meta { font-size: var(--text-sm); color: var(--muted); }
@@ -3009,6 +3012,9 @@ textarea.field__input {
   gap: var(--sp-2);
   margin-top: var(--sp-3);
 }
+/* "Tell the car to <a neighbourhood>" can be long: it wraps inside the card
+   rather than pushing the rail's last step off it. */
+.jrail__actions .btn { white-space: normal; max-width: 100%; text-align: center; line-height: 1.25; }
 
 /*
  * Reduced motion keeps the meaning and drops the travel.

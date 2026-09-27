@@ -134,7 +134,11 @@ export function CircleScreen({ id, onBack }: { id: string; onBack: () => void })
       <section className="panel">
         <h3 className="panel__title">Members you may see</h3>
         {members.length === 0 ? (
-          <p className="panel__note">{LISTING_EMPTY}</p>
+          <p className="panel__note">
+            {mine && mine.display !== 'paused'
+              ? LISTING_EMPTY
+              : 'Members are listed to other members. Join, and the ones who chose to be seen appear here.'}
+          </p>
         ) : (
           <div className="panel__stack">
             {members.map((p) => (

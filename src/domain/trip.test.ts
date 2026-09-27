@@ -16,4 +16,10 @@ describe('tripIsOver', () => {
   it('is over after the stay and its grace', () => {
     expect(tripIsOver(cph, t('2026-09-25T12:00:00Z'))).toBe(true);
   });
+
+  it('ends a trip that is only a stay, once the stay is over', () => {
+    const stayOnly = { ...cph, segments: [] };
+    expect(tripIsOver(stayOnly, t('2026-09-19T12:00:00Z'))).toBe(false);
+    expect(tripIsOver(stayOnly, t('2026-09-25T12:00:00Z'))).toBe(true);
+  });
 });

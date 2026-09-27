@@ -233,12 +233,14 @@ export function useChannel(channelId: string): ChannelView | undefined {
       }
     }
     // A hide is yours: they stop showing here, and they still read the room.
-    // Say so, in any room that holds them — a circle's General by its members.
+    // Say so — but only from what the room already showed you. A group's and a
+    // car's members are on screen; a circle's are not, so in a General it is
+    // someone you hid who has written there. Asking the circle's member list
+    // instead told you whether a person you hid belonged to it, even one who
+    // had chosen never to be listed (round 5).
     const hiddenHere =
       channel.kind === 'circle'
-        ? seedPool().some(
-            (e) => blocked.has(String(e.person.id)) && (e.circleIds ?? []).map(String).includes(String(channel.circleId)),
-          )
+        ? messages.some((m) => blocked.has(String(m.from)))
         : channel.memberIds.some((id) => blocked.has(String(id)));
     return {
       channel,

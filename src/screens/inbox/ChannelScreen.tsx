@@ -435,7 +435,7 @@ export function ChannelScreen({ channelId, onBack }: { channelId: string; onBack
       {/* A car is the one meet you cannot walk out of, so it gets the same
           safety tools a coffee has — watching over its pickup window, and
           rating each person in it afterwards. */}
-      {ride && carMeet && (imInCar || watching) && (
+      {ride && (watching || (carMeet && imInCar)) && (
         <div className="room__guardian">
           {watching ? (
             <>

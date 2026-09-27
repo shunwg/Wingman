@@ -6,6 +6,7 @@ import { Sheet } from '@design/primitives/Sheet';
 import type { Message, PersonId, SafetyReport } from '@domain/index';
 import { REPORT_REASONS, latestClaim } from '@domain/index';
 import { useStore } from '@state/store';
+import { watchEndsWith } from '@state/guardianWatch';
 
 /**
  * Report someone, or one thing they said.
@@ -40,6 +41,20 @@ export function ReportSheet({
         r.status !== 'cancelled' &&
         String(r.hostPersonId) === String(personId) &&
         latestClaim(r, s.me.id)?.status === 'confirmed',
+    ),
+  );
+  const endsWatch = useStore((s) =>
+    watchEndsWith(
+      s.guardian,
+      [
+        ...s.requests
+          .filter((r) => String(r.fromPersonId) === String(personId) || String(r.toPersonId) === String(personId))
+          .map((r) => `meet:${String(r.id)}`),
+        ...s.rides
+          .filter((r) => String(r.hostPersonId) === String(personId) && latestClaim(r, s.me.id)?.status === 'confirmed')
+          .map((r) => `ride:${String(r.id)}`),
+      ],
+      s.now,
     ),
   );
   const myCar = useStore((s) =>
@@ -101,6 +116,9 @@ export function ReportSheet({
       </label>
       {alsoHide && theirCar && (
         <p className="panel__note">Hiding {firstName} also ends your seat in their car.</p>
+      )}
+      {alsoHide && endsWatch && (
+        <p className="panel__note">It also ends the watch you started for that meet.</p>
       )}
       {alsoHide && myCar && (
         <p className="panel__note">

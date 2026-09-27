@@ -70,3 +70,20 @@ describe('Sheet drags closed', () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+describe('Sheet cannot be trapped', () => {
+  it('renders at the end of <body>, outside whatever opened it (round 5)', () => {
+    // Opened from inside a stacking context — a profile's "…" menu sits at
+    // z-index 2 — a sheet rendered in place ended up under the tab bar.
+    const { container } = render(
+      <div style={{ position: 'absolute', zIndex: 2 }}>
+        <Sheet open title="Report Priya" onClose={() => {}}>
+          <p>body</p>
+        </Sheet>
+      </div>,
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Report Priya' });
+    expect(container.contains(dialog)).toBe(false);
+    expect(dialog.parentElement).toBe(document.body);
+  });
+});

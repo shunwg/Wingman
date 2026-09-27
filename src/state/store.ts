@@ -66,7 +66,6 @@ import {
 import {
   armGuardian,
   endGuardian,
-  isLive,
   escalateGuardian,
   GUARDIAN_PRESETS,
   type GuardianPresetId,
@@ -76,6 +75,7 @@ import { scriptedProposal, scriptedReply } from '@data/seed/replies';
 import { SEED_MESSAGES } from '@data/seed/channels';
 import type { ISODateTime } from '@domain/time';
 import { cleanName } from '@lib/names';
+import { watchEndsWith } from './guardianWatch';
 import { SEED_NOW } from '@data/seed/trips';
 import { layoversFor, MATCH_CONFIG_V1 } from '@matching/index';
 import { transition } from './machines/meetRequest';
@@ -552,9 +552,8 @@ function endWatchOver(
   channelIds: readonly string[],
   now: ISODateTime,
 ): GuardianSession | null {
-  if (!g || !isLive(g, now)) return g;
-  const meets = channelIds.map((c) => String(meetIdForChannel(c) ?? ''));
-  return meets.includes(String(g.meetId)) ? endGuardian(g, now) : g;
+  // Never an escalated one — see `watchEndsWith`.
+  return g && watchEndsWith(g, channelIds, now) ? endGuardian(g, now) : g;
 }
 
 export const useStore = create<WingmanState>()(

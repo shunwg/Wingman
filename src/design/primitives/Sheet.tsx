@@ -1,4 +1,5 @@
 import { useEffect, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * A bottom sheet.
@@ -85,7 +86,13 @@ export function Sheet({ open, title, label, onClose, children, actions }: SheetP
     p.style.transform = '';
   };
 
-  return (
+  /*
+   * Rendered at the end of <body>, not where it was opened. A sheet opened from
+   * inside anything with its own stacking context — a profile's "…" menu at
+   * z-index 2, a screen mid-animation — was trapped under the tab bar, which
+   * then covered Report and took the tap. A portal cannot be trapped.
+   */
+  return createPortal(
     <div className="sheet" role="dialog" aria-modal="true" aria-label={label ?? title}>
       <div className="sheet__scrim" onClick={onClose} />
       <div className="sheet__panel" ref={panel} tabIndex={-1}>
@@ -103,6 +110,7 @@ export function Sheet({ open, title, label, onClose, children, actions }: SheetP
         {children}
         {actions && <div className="sheet__actions">{actions}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

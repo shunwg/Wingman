@@ -116,14 +116,16 @@ export const TRIP_GRACE_AFTER_LANDING_MIN = 6 * 60;
 
 export function tripIsOver(t: Trip, now: ISODateTime): boolean {
   const last = t.segments.at(-1);
-  if (!last) return false;
   // The stay is part of the trip: "back to the airport" happens at its end,
   // and measuring from the landing alone closed the trip — and its "Share a
-  // car" — six hours in, days before the car it was meant for.
+  // car" — six hours in, days before the car it was meant for. A trip that is
+  // only a stay (the city picker allows one) ends with the stay; it used to
+  // never end at all.
   const ends = [
-    Date.parse(String(last.arriveUtc)),
+    ...(last ? [Date.parse(String(last.arriveUtc))] : []),
     ...t.stays.map((s) => Date.parse(String(s.departDay?.to ?? s.departUtc))),
   ];
+  if (ends.length === 0) return false;
   return Date.parse(String(now)) > Math.max(...ends) + TRIP_GRACE_AFTER_LANDING_MIN * 60_000;
 }
 

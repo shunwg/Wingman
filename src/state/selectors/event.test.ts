@@ -84,3 +84,23 @@ describe('a listing honours hides and the member’s own audience', () => {
     expect(ids(listedMembers('gridweek', unverified, now, SEED_CIRCLES))).not.toContain('mira');
   });
 });
+
+/** Round 5: a circle's member list is for its members, and not a standing listing. */
+describe('the member list', () => {
+  const inInsead: Person = { ...ME, memberships: [membership('insead', 'show_badge')] };
+
+  it('is empty to someone who is not a member', () => {
+    const outsider: Person = { ...ME, memberships: [] };
+    expect(listedMembers('insead', inInsead, at('2026-09-03T08:00:00Z'), SEED_CIRCLES).length).toBeGreaterThan(0);
+    expect(listedMembers('insead', outsider, at('2026-09-03T08:00:00Z'), SEED_CIRCLES)).toEqual([]);
+  });
+
+  it('lists someone with "When not travelling" off only while they are going somewhere', () => {
+    // Every seeded trip is long over by 2027: only people who chose to be seen
+    // off-trip are left.
+    const later = listedMembers('insead', inInsead, at('2027-03-01T08:00:00Z'), SEED_CIRCLES);
+    const people = new Map(SEED_PEOPLE.map((p) => [String(p.id), p]));
+    for (const m of later) expect(people.get(String(m.id))!.privacy.discoverability.offTrip).toBe(true);
+    expect(later.length).toBeLessThan(listedMembers('insead', inInsead, at('2026-09-03T08:00:00Z'), SEED_CIRCLES).length);
+  });
+});

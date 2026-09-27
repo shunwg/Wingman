@@ -43,7 +43,7 @@ export function RideBoard({ onOpen }: { onOpen: (rideId: string) => void }) {
     <>
       <div className="rideboard">
         {rows.map((row) => (
-          <RideCard key={String(row.ride.id)} {...cardProps(row, String(me.id), now)} onOpen={() => onOpen(String(row.ride.id))} />
+          <RideCard key={String(row.ride.id)} {...cardProps(row, String(me.id), now, me.blocked.map(String))} onOpen={() => onOpen(String(row.ride.id))} />
         ))}
       </div>
       {hiddenNote && <p className="panel__note">{hiddenNote}</p>}
@@ -58,7 +58,7 @@ export function RideBoard({ onOpen }: { onOpen: (rideId: string) => void }) {
  * two hand-written prop mappings drift — one would say "1 seat left" while the
  * other said "1 left".
  */
-export function cardProps(row: RideRow, meId: string, now: ISODateTime) {
+export function cardProps(row: RideRow, meId: string, now: ISODateTime, hidden: readonly string[] = []) {
   const { ride } = row;
   // Dated, not just clocked. The board can hold cars from trips weeks apart,
   // and a bare "17:30 – 18:30" on each of them is what sends somebody back to
@@ -96,6 +96,9 @@ export function cardProps(row: RideRow, meId: string, now: ISODateTime) {
       */
      const rung: DisclosureLevel = row.mine?.status === 'confirmed' ? 1 : 0;
   const riders = row.riders
+    // Someone you hid stays off the card too — the car screen already left
+    // them out, and the card beside it still drew their face.
+    .filter((id) => !hidden.includes(String(id)))
     .map((id) => personById(String(id)))
     .filter((p): p is NonNullable<typeof p> => Boolean(p))
     .map((p) => (String(p.id) === meId ? redact(p, 3) : redact(p, rung)));
