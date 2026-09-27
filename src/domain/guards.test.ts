@@ -138,6 +138,15 @@ describe('looksLikeAddress — an address is not a meeting point', () => {
     'Karl Johans ga\u00ADte 22',
     'Karl Johans gate 2\u20622',
     'Storgata \u0661\u0662',
+    // Round 6: whole-line exemptions let these through.
+    'Room 1203, 12th floor',
+    'Hilton, 12th floor, room 1203',
+    'Pan Pacific, level 12, room 1203',
+    'Level 4, Room 402',
+    '4 Queens Gate, taxi waits outside',
+    'via roma 12',
+    'VIA ROMA 12',
+    'Come to my room, 1203',
   ])('refuses %s', (text) => {
     expect(looksLikeAddress(text)).toBe(true);
   });
@@ -188,7 +197,6 @@ describe('looksLikeAddress — an address is not a meeting point', () => {
     'Level 3 Viewing Terrace',
     'Hall B, Room 204',
     'Room 204, Hall B',
-    'Level 4, Room 402',
     'Parkplatz 3',
     'Changi T3, Piazza 2',
   ])('lets %s through', (text) => {

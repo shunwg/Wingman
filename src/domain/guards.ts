@@ -80,19 +80,18 @@ export function looksLikeAddress(text: string): boolean {
   );
   const airportLead =
     /^(?:food|car|coach|taxi|bus|staff|short|long|stay|departures?|arrivals?|boarding|main|north|south|east|west|transfer|terminal|pier|level|hall|gate|lounge|jewel|canopy|topiary|butterfly|sunflower|cactus|garden)\b/i;
-  // …and never when anything else in the phrase is the airport's: "Terminal 2
-  // Security Gate", "Level 3 Viewing Terrace".
-  const airportAnywhere =
-    /\b(?:terminal|gate|gates|pier|level|hall|arrivals?|departures?|parking|car\s*park|pick-?up|drop-?off|security|lounge|taxi|bus|station|airport|concourse|viewing|jewel|lift|escalator|platform|baggage|check-?in)\b/i;
-  const namedPlaceStreet = Boolean(
-    namedPlace &&
-      !airportLead.test(namedPlace[1]!.trim()) &&
-      !airportAnywhere.test(t.replace(namedPlace[0], ' ')),
-  );
-  // "Via Roma 12" — but "via" is English too ("coffee via Gate 12"), so only
-  // a capitalised name that is not an airport word.
-  // Case-sensitive on purpose: with the i flag \p{Lu} matches "lift".
-  const viaStreet = t.match(/\b[Vv]ia\s+(\p{Lu}\p{Ll}+)\s+\d{1,5}\b/u);
+  // …and never when the word right before the number is the airport's:
+  // "Terminal 2 Security Gate", "Level 3 Viewing Terrace". Only that word —
+  // a whole-line check let "4 Queens Gate, taxi waits outside" through on
+  // "taxi" (round 6).
+  const before = namedPlace ? t.slice(0, namedPlace.index).trim().split(/[\s,]+/).at(-1) ?? '' : '';
+  const airportBefore =
+    /^(?:terminal|t\d|gate|pier|level|hall|arrivals?|departures?|concourse|zone|platform|lounge|jewel)$/i.test(before);
+  const namedPlaceStreet = Boolean(namedPlace && !airportLead.test(namedPlace[1]!.trim()) && !airportBefore);
+  // "Via Roma 12", "via roma 12" — but "via" is English too ("coffee via Gate
+  // 12", "via lift 4"), so any name that is not one of the ways through an
+  // airport.
+  const viaStreet = t.match(/\b[Vv][Ii][Aa]\s+(\p{L}{3,})\s+\d{1,5}\b/u);
   // A flat is somebody's home by definition.
   const flat = /\b(?:flat|apt|apartment|leilighet)\s*#?\s*\d+/i;
   const ukPostcode = /\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/;
@@ -114,7 +113,7 @@ export function looksLikeAddress(text: string): boolean {
   const viaNamedStreet = Boolean(
     viaStreet &&
       !airportWord.test(viaStreet[1]!) &&
-      !/^(?:gate|door|exit|platform|carousel|belt|pier|terminal|lift|elevator|escalator|stairs|bay|stand|entrance|lane|level|hall|track)$/i.test(
+      !/^(?:gate|gates|door|doors|exit|platform|carousel|belt|pier|terminal|lift|lifts|elevator|escalator|stairs|bay|stand|entrance|lane|level|hall|track|the|our|your|bus|train|taxi|security|arrivals|departures|immigration|customs)$/i.test(
         viaStreet[1]!,
       ),
   );
@@ -133,13 +132,17 @@ export function looksLikeAddress(text: string): boolean {
     /\b(?:rom|værelse|zimmer|chambre|habitación|suite)\s*#?\s*\d{3,4}\b|(?:^|\s)#\d{3,4}\b/iu;
   const conferenceRoom =
     /^(?:meeting|conference|board|seminar|function|breakout|class|lecture|training|workshop|committee|press|green|prayer|quiet|waiting|interview|reading|study)$/i;
-  // A venue says where the room is: "Hall B, Room 204", "Level 4, Room 402".
-  const venue = /\b(?:hall|level|floor|pavilion|wing|building|conference|convention|expo|exhibition|centre|center)\b/i.test(t);
-  const englishRoom =
-    !venue &&
-    Array.from(t.matchAll(/(?:(\p{L}+)\s+)?\b(?:room|rm)\.?\s*(?:no\.?\s*|number\s*)?#?\s*\d{3,4}\b/giu)).some(
-      (m) => !(m[1] && conferenceRoom.test(m[1])),
-    );
+  // A hall right beside the room makes it a venue's: "Hall B, Room 204",
+  // "Room 204, Hall B". Nothing else does. A floor, a level or a wing is how a
+  // hotel numbers its rooms too — "Pan Pacific, level 12, room 1203" — and a
+  // whole-line check let every one of those through (round 6). "Level 4,
+  // Room 402" at a conference is refused with them, and says why; a bedroom
+  // is the thing this exists to keep out.
+  const venueRoom =
+    /\b(?:hall|pavilion)\s+[\p{L}\d]{1,3}\s*,?\s*(?:room|rm)\.?\s*#?\s*\d{3,4}\b|\b(?:room|rm)\.?\s*#?\s*\d{3,4}\s*,?\s*(?:hall|pavilion)\s+[\p{L}\d]{1,3}\b/giu;
+  const englishRoom = Array.from(
+    t.replace(venueRoom, ' ').matchAll(/(?:(\p{L}+)\s+)?\b(?:room|rm)\.?,?\s*(?:no\.?\s*|number\s*)?#?\s*\d{3,4}\b/giu),
+  ).some((m) => !(m[1] && conferenceRoom.test(m[1])));
   // "Singapore 238823" — a six-digit postcode after the city.
   const sgPostcode = /\bsingapore\s+\d{6}\b/i;
   // A position is an address by another name: coordinates, a plus code, a
