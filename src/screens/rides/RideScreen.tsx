@@ -117,6 +117,9 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
   const when = windowLabel(ride.window.from, ride.window.to, zone, now);
   const isHost = String(ride.hostPersonId) === String(me.id);
   const inCar = isHost || mine?.status === 'confirmed';
+  // A called-off car keeps its record — who was in it, when — and drops what
+  // only a car still to come can promise: a door, a split, a place to stand.
+  const calledOff = ride.status === 'cancelled';
   /*
    * You can ask again after giving a seat up or withdrawing a request. The
    * button used to need *no* claim at all, so a withdrawn one left only Back —
@@ -173,8 +176,9 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
           </Chip>
           )}
           {ride.status !== 'cancelled' && <Chip tone="neutral">{fare.short}</Chip>}
-          {ride.status === 'cancelled' && <Chip tone="warn">Called off</Chip>}
+          {calledOff && <Chip tone="warn">Called off</Chip>}
         </div>
+        {calledOff && <p className="panel__note">Every seat in it has ended. Nobody can ask for one now.</p>}
       </header>
 
       {/* First, for a host: somebody is waiting on them, and it used to sit
@@ -231,6 +235,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
         </section>
       )}
 
+      {!calledOff && (
       <section className="panel">
         <h3 className="panel__title">Who can join</h3>
         <p className="ride__door">
@@ -244,6 +249,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
           <p className="panel__note">Narrowed to {narrowed.join(' and ')}.</p>
         )}
       </section>
+      )}
 
       <section className="panel">
         <h3 className="panel__title">Who is in it</h3>
@@ -276,6 +282,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
         <p className="panel__note">{rideGround(ride.direction)}</p>
       </section>
 
+      {!calledOff && (
       <section className="panel" aria-label="What it costs">
         <h3 className="panel__title">What it costs</h3>
         {fare.each ? (
@@ -294,7 +301,9 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
           </Button>
         )}
       </section>
+      )}
 
+      {!calledOff && (
       <section className="panel" aria-label="Where to meet the car">
         <h3 className="panel__title">Where to meet the car</h3>
         {/* The exact spot and the car are for the people in it. Gated on
@@ -319,6 +328,7 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
           </Button>
         )}
       </section>
+      )}
 
       {isHost && ride.inviteCode && (
         <section className="panel">

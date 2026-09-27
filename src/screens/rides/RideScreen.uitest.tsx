@@ -62,4 +62,15 @@ describe('RideScreen — money and the pickup note', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Call it off' }));
     expect(useStore.getState().rides.find((r) => String(r.id) === 'ride_you_cph')?.status).toBe('cancelled');
   });
+
+  it('a called-off car stops promising a door, a split and a place to stand', () => {
+    act(() => useStore.getState().cancelRide('ride_you_cph'));
+    open('ride_you_cph');
+    expect(screen.getByText(/Every seat in it has ended/)).toBeInTheDocument();
+    expect(screen.queryByText('Who can join')).toBeNull();
+    expect(screen.queryByText(/Nobody gets in without your yes/)).toBeNull();
+    expect(screen.queryByText(/Add the exact spot/)).toBeNull();
+    // The record stays: who was in it.
+    expect(screen.getByText('Who is in it')).toBeInTheDocument();
+  });
 });

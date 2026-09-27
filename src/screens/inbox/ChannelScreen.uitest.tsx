@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetStore, useStore } from '@state/store';
+import { SEED_MESSAGES } from '@data/seed/channels';
 import { ChannelScreen } from './ChannelScreen';
 
 /**
@@ -63,5 +64,17 @@ describe('ChannelScreen (circle)', () => {
     expect(screen.getByText('Landing Wednesday too.')).toBeInTheDocument();
     const mine = useStore.getState().messages.filter((m) => String(m.channelId) === 'circle:insead');
     expect(mine).toHaveLength(2); // mine + the scripted reply
+  });
+
+  it('never has someone you hid answer you', () => {
+    // The first seeded speaker is the one who would answer turn 0.
+    const first = SEED_MESSAGES.find((m) => String(m.channelId) === 'circle:insead')!.from;
+    act(() => useStore.getState().blockPerson(first));
+    render(<ChannelScreen channelId="circle:insead" onBack={() => {}} />);
+    fireEvent.change(screen.getByLabelText('Say something'), { target: { value: 'Anyone on SQ317?' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    const reply = useStore.getState().messages.filter((m) => String(m.channelId) === 'circle:insead').at(-1)!;
+    expect(String(reply.from)).not.toBe('you');
+    expect(String(reply.from)).not.toBe(String(first));
   });
 });

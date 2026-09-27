@@ -746,7 +746,7 @@ export const useStore = create<WingmanState>()(
               channel.memberIds.length > 0
                 ? channel.memberIds
                 : [...new Set(SEED_MESSAGES.filter((m) => m.channelId === channel.id).map((m) => m.from))]
-            ).filter((id) => id !== s.me.id);
+            ).filter((id) => id !== s.me.id && !s.me.blocked.includes(id));
             const turn = s.messages.filter(
               (m) => m.channelId === channel.id && m.from === s.me.id,
             ).length;
