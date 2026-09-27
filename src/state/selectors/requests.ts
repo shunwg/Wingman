@@ -79,11 +79,14 @@ export function useRequests(): RequestsView {
 export function useSaidYes(): { request: MeetRequest; channelId: string; card: RedactedPerson }[] {
   const { outgoing } = useRequests();
   const readAt = useStore((s) => s.readAt);
+  const blocked = useStore((s) => s.me.blocked);
 
   return useMemo(
     () =>
       outgoing.flatMap((request) => {
         if (request.status !== 'accepted') return [];
+        // Hidden is hidden here too.
+        if (blocked.includes(request.toPersonId)) return [];
         const yes = [...request.history].reverse().find((e) => e.to === 'accepted');
         if (!yes) return [];
         const channelId = String(meetChannelId(request.id));
@@ -93,6 +96,6 @@ export function useSaidYes(): { request: MeetRequest; channelId: string; card: R
         // Rung 2: they said yes, so the accepted card is theirs to show.
         return p ? [{ request, channelId, card: redact(p, 2) }] : [];
       }),
-    [outgoing, readAt],
+    [outgoing, readAt, blocked],
   );
 }

@@ -40,8 +40,11 @@ export interface AgreedPlan {
  * own would let one person make a plan alone. `past` — a time that has started
  * cannot be agreed to. `superseded` — somebody has suggested something newer,
  * and the conversation has moved past this offer. `already` — it is the plan.
+ * `called_off` — this one was the plan and was called off; saying yes to it
+ * again would let one person put back what the other just took down.
+ * `not_in_room` — only the people the room belongs to can agree anything in it.
  */
-export type AgreeRefusal = 'not_a_proposal' | 'own' | 'past' | 'superseded' | 'already';
+export type AgreeRefusal = 'not_a_proposal' | 'own' | 'past' | 'superseded' | 'already' | 'called_off' | 'not_in_room';
 
 const isProposal = (m: Message | undefined): m is ProposalMessage => m?.body.kind === 'proposal';
 
@@ -56,16 +59,20 @@ function refusal(
   proposalId: string,
   by: PersonId,
   at: ISODateTime,
+  members?: readonly PersonId[],
 ): AgreeRefusal | null {
+  if (members && !members.some((m) => String(m) === String(by))) return 'not_in_room';
   const index = log.findIndex((m) => String(m.id) === proposalId);
   const proposal = log[index];
   if (!isProposal(proposal)) return 'not_a_proposal';
+  if (members && !members.some((m) => String(m) === String(proposal.from))) return 'not_a_proposal';
   if (String(proposal.from) === String(by)) return 'own';
   // Instants, not strings: `addMinutes` writes milliseconds and the seed does
   // not, and '18:10:00.000Z' sorts before '18:10:00Z'.
   if (epoch(at) >= epoch(proposal.body.window.from)) return 'past';
   if (current && String(current.proposal.id) === proposalId) return 'already';
   if (log.slice(index + 1).some(isProposal)) return 'superseded';
+  if (log.some((m) => m.body.kind === 'plan_off' && String(m.body.proposalId) === proposalId)) return 'called_off';
   return null;
 }
 
@@ -75,29 +82,41 @@ export function canAgree(
   proposalId: string,
   by: PersonId,
   at: ISODateTime,
+  members?: readonly PersonId[],
 ): AgreeRefusal | null {
-  return refusal(log, agreedPlan(log), proposalId, by, at);
+  return refusal(log, agreedPlan(log, members), proposalId, by, at, members);
 }
 
 /** Calling off needs a plan, and the one you meant. */
-export function canCallOff(log: readonly Message[], proposalId: string): 'no_plan' | null {
-  const plan = agreedPlan(log);
+export function canCallOff(
+  log: readonly Message[],
+  proposalId: string,
+  members?: readonly PersonId[],
+): 'no_plan' | null {
+  const plan = agreedPlan(log, members);
   return plan && String(plan.proposal.id) === proposalId ? null : 'no_plan';
 }
 
-/** Walk the room in order; the last valid yes that has not been called off wins. */
-export function agreedPlan(log: readonly Message[]): AgreedPlan | null {
+/**
+ * Walk the room in order; the last valid yes that has not been called off wins.
+ *
+ * `members`, when given, are the only people whose yes or call-off counts —
+ * a line from anyone else in a replayed or hand-edited log is ignored, as the
+ * write path would have refused it.
+ */
+export function agreedPlan(log: readonly Message[], members?: readonly PersonId[]): AgreedPlan | null {
   let plan: AgreedPlan | null = null;
+  const member = (p: PersonId) => !members || members.some((x) => String(x) === String(p));
   for (let i = 0; i < log.length; i++) {
     const m = log[i]!;
     if (m.body.kind === 'agreed') {
       const before = log.slice(0, i);
       const id = String(m.body.proposalId);
-      if (refusal(before, plan, id, m.from, m.at) !== null) continue;
+      if (refusal(before, plan, id, m.from, m.at, members) !== null) continue;
       const proposal = before.find((x) => String(x.id) === id) as ProposalMessage;
       plan = { proposal, agreedBy: m.from, agreedAt: m.at };
     } else if (m.body.kind === 'plan_off') {
-      if (plan && String(plan.proposal.id) === String(m.body.proposalId)) plan = null;
+      if (member(m.from) && plan && String(plan.proposal.id) === String(m.body.proposalId)) plan = null;
     }
   }
   return plan;

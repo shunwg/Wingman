@@ -391,7 +391,6 @@ export interface WingmanState {
   reset: () => void;
 }
 
-let requestCounter = 0;
 
 /**
  * Minted once per install. The store is the impure edge, so a random id is
@@ -438,6 +437,12 @@ function isMyMeetRoom(s: Pick<WingmanState, 'requests' | 'me'>, channelId: strin
   if (!channelId.startsWith('meet:')) return false;
   const r = s.requests.find((x) => String(meetChannelId(x.id)) === channelId);
   return Boolean(r && r.status === 'accepted' && (r.fromPersonId === s.me.id || r.toPersonId === s.me.id));
+}
+
+/** The two people a meet room belongs to. */
+function roomPeople(s: Pick<WingmanState, 'requests'>, channelId: string): PersonId[] {
+  const r = s.requests.find((x) => String(meetChannelId(x.id)) === channelId);
+  return r ? [r.fromPersonId, r.toPersonId] : [];
 }
 
 /** A six-character key for a link-only car, in the circle-invite format. */
@@ -693,7 +698,7 @@ export const useStore = create<WingmanState>()(
       agreeTo: (channelId, proposalId) => {
         const s = get();
         if (!isMyMeetRoom(s, channelId)) throw new PlanRefusedError('not_a_meet');
-        assertCanAgree(messagesFor(channelId, s.messages), proposalId, s.me.id, s.now);
+        assertCanAgree(messagesFor(channelId, s.messages), proposalId, s.me.id, s.now, roomPeople(s, channelId));
         set({
           messages: [
             ...s.messages,
@@ -713,9 +718,10 @@ export const useStore = create<WingmanState>()(
         const s = get();
         if (!isMyMeetRoom(s, channelId)) throw new PlanRefusedError('not_a_meet');
         const log = messagesFor(channelId, s.messages);
-        const plan = agreedPlan(log);
+        const people = roomPeople(s, channelId);
+        const plan = agreedPlan(log, people);
         if (!plan) throw new PlanRefusedError('no_plan');
-        assertCanCallOff(log, String(plan.proposal.id));
+        assertCanCallOff(log, String(plan.proposal.id), people);
         set({
           messages: [
             ...s.messages,
@@ -1082,7 +1088,9 @@ export const useStore = create<WingmanState>()(
           ratings: [
             // Per person, not per meet: in a car you rate each rider, and
             // replacing every rating for the meet erased the one before.
-            ...s.ratings.filter((r) => !(r.meetId === meetId && r.rateeId === rateeId)),
+            // Yours of them, and nothing else: another person's rating of the
+            // same someone is theirs, not yours to replace.
+            ...s.ratings.filter((r) => !(r.meetId === meetId && r.rateeId === rateeId && r.raterId === s.me.id)),
             {
               id: asRatingId('rt_' + Date.parse(String(s.now)) + '_' + String(rateeId)),
               meetId,
@@ -1218,7 +1226,10 @@ export const useStore = create<WingmanState>()(
         const now = get().now;
         const request: MeetRequest = {
           ...input,
-          id: asMeetRequestId(`req_${++requestCounter}_${Date.parse(now)}`),
+          // Random, at the impure edge. A module counter reset on every page
+          // load while the simulated clock stood still, so two requests could
+          // share an id — and one demo yes accepted two different people.
+          id: asMeetRequestId(`req_${crypto.randomUUID().slice(0, 12)}_${Date.parse(now)}`),
           status: 'draft',
           history: [],
           createdAt: now,
@@ -1326,6 +1337,31 @@ export const useStore = create<WingmanState>()(
       blockPerson: (id) =>
         set((s) => ({
           me: { ...s.me, blocked: [...new Set([...s.me.blocked, id])] },
+          /*
+           * A plan with them comes off. Hiding someone used to leave the agreed
+           * time and place standing — on their side a meet you no longer
+           * intend to keep. Calling it off is what a person would do, and it
+           * says nothing about why: "called it off" is not "hid you".
+           */
+          messages: [
+            ...s.messages,
+            ...s.requests.flatMap((r, i) => {
+              if (r.status !== 'accepted') return [];
+              if (r.fromPersonId !== id && r.toPersonId !== id) return [];
+              const room = meetChannelId(r.id);
+              const plan = agreedPlan(messagesFor(room, s.messages), [r.fromPersonId, r.toPersonId]);
+              if (!plan) return [];
+              return [
+                {
+                  id: messageId(s.messages.length + i, s.now),
+                  channelId: room,
+                  from: s.me.id,
+                  at: s.now,
+                  body: { kind: 'plan_off' as const, proposalId: plan.proposal.id },
+                },
+              ];
+            }),
+          ],
           // Any live request between you dies with the block.
           requests: s.requests.map((r) =>
             (r.fromPersonId === id || r.toPersonId === id) &&

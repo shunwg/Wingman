@@ -21,12 +21,18 @@ export class PlanRefusedError extends Error {
   }
 }
 
-export function assertCanAgree(log: readonly Message[], proposalId: string, by: PersonId, at: ISODateTime): void {
-  const r = canAgree(log, proposalId, by, at);
+export function assertCanAgree(
+  log: readonly Message[],
+  proposalId: string,
+  by: PersonId,
+  at: ISODateTime,
+  members?: readonly PersonId[],
+): void {
+  const r = canAgree(log, proposalId, by, at, members);
   if (r) throw new PlanRefusedError(r);
 }
 
-export function assertCanCallOff(log: readonly Message[], proposalId: string): void {
-  const r = canCallOff(log, proposalId);
+export function assertCanCallOff(log: readonly Message[], proposalId: string, members?: readonly PersonId[]): void {
+  const r = canCallOff(log, proposalId, members);
   if (r) throw new PlanRefusedError(r);
 }

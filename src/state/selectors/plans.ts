@@ -89,7 +89,10 @@ export function roomPlan(
   now: ISODateTime,
   ctx: { request: MeetRequest; participants: PersonId[]; anchor: PlaceAnchor | null },
 ): RoomPlan {
-  const plan = agreedPlan(log);
+  const plan = agreedPlan(log, ctx.participants);
+  const calledOff = new Set(
+    log.flatMap((m) => (m.body.kind === 'plan_off' ? [String(m.body.proposalId)] : [])),
+  );
   const proposals = log.filter(isProposal);
   const newest = proposals.at(-1);
   const states = new Map<string, ProposalState>();
@@ -98,9 +101,9 @@ export function roomPlan(
     const id = String(p.id);
     if (plan && String(plan.proposal.id) === id) states.set(id, 'agreed');
     else if (epoch(now) >= epoch(p.body.window.from)) states.set(id, 'passed');
-    else if (p !== newest) states.set(id, 'replaced');
+    else if (p !== newest || calledOff.has(id)) states.set(id, 'replaced');
     else if (String(p.from) === String(meId)) states.set(id, 'waiting');
-    else states.set(id, canAgree(log, id, meId, now) === null ? 'agreeable' : 'replaced');
+    else states.set(id, canAgree(log, id, meId, now, ctx.participants) === null ? 'agreeable' : 'replaced');
   }
 
   const offer =
@@ -182,6 +185,8 @@ export function usePlansForTrip(trip: Trip): TripPlanRow[] {
 
     for (const request of accepted) {
       if (request.fromPersonId !== me.id && request.toPersonId !== me.id) continue;
+      const otherId = request.fromPersonId === me.id ? request.toPersonId : request.fromPersonId;
+      if (me.blocked.includes(otherId)) continue;
       const channelId = String(meetChannelId(request.id));
       const { meet } = roomPlan(messagesFor(channelId, stored), me.id, now, {
         request,
@@ -217,5 +222,5 @@ export function usePlansForTrip(trip: Trip): TripPlanRow[] {
     }
 
     return rows.sort((a, b) => epoch(a.meet.window.from) - epoch(b.meet.window.from));
-  }, [accepted, stored, me.id, now, myTrips, rides, trip.id]);
+  }, [accepted, stored, me.id, me.blocked, now, myTrips, rides, trip.id]);
 }

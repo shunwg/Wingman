@@ -134,6 +134,24 @@ describe('agreedPlan — the plan is the log', () => {
   });
 });
 
+describe('what the bad-actor round found', () => {
+  it('a suggestion that was called off stays off — one person cannot put back what the other took down', () => {
+    const log = [proposal('priya', '2026-09-02T17:00:00Z', 'p1'), agree('you', 'p1'), callOff('priya', 'p1')];
+    expect(canAgree(log, 'p1', you, t('2026-09-02T12:20:00Z'))).toBe('called_off');
+    expect(agreedPlan([...log, agree('you', 'p1', '2026-09-02T12:20:00Z')])).toBeNull();
+  });
+
+  it('only the people the room belongs to can agree or call off', () => {
+    const members = [you, priya];
+    const stranger = asPersonId('mallory');
+    const log = [proposal('priya', '2026-09-02T17:00:00Z', 'p1'), agree('mallory', 'p1')];
+    expect(agreedPlan(log, members)).toBeNull();
+    expect(canAgree([proposal('priya', '2026-09-02T17:00:00Z', 'p1')], 'p1', stranger, t('2026-09-02T12:05:00Z'), members)).toBe('not_in_room');
+    const agreed = [proposal('priya', '2026-09-02T17:00:00Z', 'p1'), agree('you', 'p1'), callOff('mallory', 'p1')];
+    expect(String(agreedPlan(agreed, members)?.proposal.id)).toBe('p1');
+  });
+});
+
 describe('canCallOff', () => {
   it('needs a standing plan, and the right one', () => {
     const log = [proposal('priya', '2026-09-02T17:00:00Z', 'p1'), agree('you', 'p1')];

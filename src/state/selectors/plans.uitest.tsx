@@ -190,6 +190,41 @@ describe('someone says yes to you', () => {
   });
 });
 
+describe('hiding someone ends what you had with them', () => {
+  it('calls the plan off, and takes the trip line away', () => {
+    acceptPriya();
+    const [hers] = proposalsIn(room);
+    act(() => useStore.getState().agreeTo(room, String(hers!.id)));
+    act(() => useStore.getState().blockPerson(asPersonId('priya')));
+
+    const offs = useStore.getState().messages.filter((m) => String(m.channelId) === room && m.body.kind === 'plan_off');
+    expect(offs).toHaveLength(1);
+    expect(renderHook(() => usePlansForTrip(LHR_TRIP)).result.current).toHaveLength(0);
+  });
+});
+
+describe('request ids survive a reload', () => {
+  it('two hellos sent at the same simulated instant never share an id', () => {
+    const send = () =>
+      useStore.getState().sendRequest({
+        fromPersonId: asPersonId('you'),
+        toPersonId: asPersonId('jonas'),
+        tripId: LHR_TRIP.id,
+        overlapRef: { kind: 'same_flight' },
+        proposal: { kind: 'gate_coffee', window: { from: '2026-09-02T18:00:00Z' as never, to: '2026-09-02T19:00:00Z' as never } },
+        message: 'Coffee?',
+        expiresAt: '2026-09-02T19:00:00Z' as never,
+      });
+    let a = '';
+    let b = '';
+    act(() => {
+      a = String(send().id);
+      b = String(send().id);
+    });
+    expect(a).not.toBe(b);
+  });
+});
+
 describe('the car\'s money and its pickup note', () => {
   it('only the host can state them, and the room hears that the note changed — not the note', () => {
     expect(() => useStore.getState().setRideFare('ride_jonas_marina', { amountMinor: 3000, currency: 'SGD' })).toThrow();
