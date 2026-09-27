@@ -28,7 +28,9 @@ export function fareCopy(ride: Ride, ridersNow: number, inCar: boolean, hostName
     return { short: `${hostName} ${verb} covering it`, detail: `${hostName} ${verb} covering the fare.` };
   }
   if (!ride.fare) {
-    return { short: 'Fare split evenly', detail: 'Split evenly between whoever is in the car. No estimate yet.' };
+    // The split itself is said by the fare note under this line; repeating it
+    // here printed the same sentence twice.
+    return { short: 'Fare split evenly', detail: 'No estimate yet.' };
   }
   const { currency, amountMinor } = ride.fare;
   const total = money(amountMinor, currency);

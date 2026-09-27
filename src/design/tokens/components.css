@@ -137,10 +137,14 @@ img.avatar {
   color: var(--muted);
 }
 
+/* Destructive, in the palette's own "careful" hue — the amber "Running late"
+   and "Can't make it" already wear. It used to be the accent outline, which
+   made "Call off the car" look like every other button on the screen. There
+   is no red on purpose: four hues. The label always says what it destroys. */
 .btn--danger {
   background: transparent;
-  color: var(--accent);
-  border-color: var(--hairline-strong);
+  color: var(--warn);
+  border-color: var(--warn);
 }
 
 /* Hover is gated: touch devices fire it on tap, which produces a stuck
@@ -151,7 +155,7 @@ img.avatar {
   }
   .btn--secondary:hover:not(:disabled),
   .btn--danger:hover:not(:disabled) {
-    background: var(--surface-sunk);
+    background: var(--warn-wash);
   }
   .btn--quiet:hover:not(:disabled) {
     color: var(--ink);

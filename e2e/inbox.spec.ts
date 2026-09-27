@@ -11,7 +11,9 @@ test('a meet, a circle and a group all live in one inbox', async ({ page }) => {
   await page.goto('/#/inbox');
 
   await expect(page.getByText('Priya asked to meet')).toBeVisible();
-  await page.getByRole('button', { name: 'Yes' }).click();
+  // Scoped: a seat request in your car waits in the same inbox, with its own Yes.
+  await expect(page.getByLabel('Seats asked for')).toContainText('Tobias asked for a seat in your car');
+  await page.getByLabel('Waiting for you').getByRole('button', { name: 'Yes' }).click();
   await expect(page.getByRole('dialog', { name: 'Meet Priya?' })).toBeVisible();
   await expect(page.getByText(/Your terminal/)).toBeVisible();
   await page.getByRole('button', { name: 'Yes, meet' }).click();

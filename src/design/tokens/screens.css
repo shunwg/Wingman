@@ -2568,8 +2568,10 @@ textarea.field__input {
 
 /* ── One car's own screen ───────────────────────────────────────────────── */
 
+/* The screen already carries the gutter; a second one indented the header
+   past every panel under it. */
 .ride__head {
-  padding: var(--sp-4) var(--sp-screen) var(--sp-2);
+  padding: var(--sp-4) 0 var(--sp-2);
 }
 
 .ride__route {
@@ -2639,7 +2641,7 @@ textarea.field__input {
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-screen)
+  padding: var(--sp-3) 0
     calc(var(--tabbar-height) + var(--sp-6) + env(safe-area-inset-bottom, 0px));
 }
 
@@ -3109,3 +3111,14 @@ textarea.field__input {
   width: 32px; height: 32px; border-radius: var(--r-md);
   background: var(--accent-wash); color: var(--accent);
 }
+
+/* A seat request: who, what they said, then the decision — stacked, because a
+   row could not hold a line, stamps, a note and two buttons at 402px. */
+.ride__ask { display: flex; flex-direction: column; gap: var(--sp-2); padding-bottom: var(--sp-3); border-bottom: 1px solid var(--hairline); }
+.ride__ask:last-child { border-bottom: 0; }
+.ride__askhead { display: flex; align-items: flex-start; gap: var(--sp-3); }
+.ride__askname { font-weight: 600; color: var(--ink); }
+.ride__asknote { margin: 0; font-size: var(--text-sm); color: var(--ink); }
+.ride__askactions { display: flex; gap: var(--sp-2); }
+.ride__askactions .btn { flex: 1; }
+.plan__actions .btn { padding-inline: var(--sp-3); }

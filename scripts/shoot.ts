@@ -117,12 +117,29 @@ const ROUTES: {
   },
   { name: 'room-plan', hash: '#/inbox/meet:req_seed_priya', steps: [{ press: 'That works' }] },
   { name: 'propose', hash: '#/inbox/meet:req_seed_priya', steps: [{ press: 'Change time' }] },
+  // A change agreed: the plan moves and the old card steps back.
+  {
+    name: 'room-changed',
+    hash: '#/inbox/meet:req_seed_priya',
+    steps: [{ press: 'Change time' }, { press: 'Suggest', within: '.sheet', exact: true }],
+  },
+  // "Can't make it" with a plan standing: the strip says so, the call-off is offered.
+  { name: 'room-cant', hash: '#/inbox/meet:req_seed_priya', steps: [{ press: "Can't make it" }] },
   { name: 'car-seated', hash: '#/car/ride_jonas_marina', steps: [{ press: 'Take the seat' }] },
   { name: 'trip-plans', hash: '#/trip' },
   { name: 'room-car', hash: '#/inbox/ride:ride_jonas_marina' },
   { name: 'car-fare', hash: '#/car/ride_you_cph', steps: [{ press: 'Add an estimate' }] },
+  // Last, because it ends your car for every route after it.
+  {
+    name: 'car-called-off',
+    hash: '#/car/ride_you_cph',
+    steps: [{ press: 'Call off the car' }, { press: 'Call it off', within: '.sheet', exact: true }],
+  },
   { name: 'you-account', hash: '#/you', account: true },
-  { name: 'design', hash: '#/_design' },
+  // The internal component gallery — every primitive and animation on one
+  // tall page. Not a product screen, and it crashes the renderer at full-page
+  // size; SHOOT_GALLERY=1 to include it.
+  ...(process.env.SHOOT_GALLERY ? [{ name: 'design', hash: '#/_design' }] : []),
 ];
 
 async function setTheme(page: Page, theme: 'light' | 'dark') {
@@ -199,9 +216,24 @@ async function main() {
           await page.reload({ waitUntil: 'networkidle' });
         } else {
           await page.goto(`${BASE}/#/demo`, { waitUntil: 'networkidle' });
+          // Over a real profile the demo link now asks first — which is the
+          // point of it. The script is replacing its own capture account.
+          const replace = page.getByRole('button', { name: 'Replace it with the demo' });
+          // Whichever comes first: straight through to the board, or the question.
+          await Promise.race([
+            page.waitForURL(/#\/$/, { timeout: 15_000 }),
+            replace.waitFor({ state: 'visible', timeout: 15_000 }).then(() => replace.click()),
+          ]);
           await page.waitForURL(/#\/$/);
         }
         mode = want;
+      }
+      // Same hash as the page is on: a same-document navigation remounts
+      // nothing, so a sheet left open by the previous shot stays open and
+      // swallows the next tap. Leave first, then come back.
+      if (page.url().endsWith(route.hash)) {
+        await page.goto(`${BASE}/#/`, { waitUntil: 'networkidle' });
+        await painted(page);
       }
       await page.goto(`${BASE}/${route.hash}`, { waitUntil: 'networkidle' });
       await painted(page);

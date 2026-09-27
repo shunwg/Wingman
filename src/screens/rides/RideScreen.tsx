@@ -167,31 +167,35 @@ export function RideScreen({ rideId, onBack, onOpenRoom }: RideScreenProps) {
               // read at the browsing rung — the same as they do on the board.
               const r = riderCard(String(c.personId), 0);
               return (
-                <li key={String(c.personId)} className="ride__rider">
-                  {r ? <Avatar spec={r.card.avatar} size="sm" /> : <span className="ride__blank" />}
-                  <span className="ride__askwho">
-                    <span className="ride__askname">{r?.first ?? 'Someone'}</span>
-                    {/* What the ladder already allows at this rung — a line and
-                        their stamps. A first name and a face was all a host had
-                        to decide who sits beside her. */}
-                    {r && 'headline' in r.card && typeof r.card.headline === 'string' && r.card.headline && (
-                      <span className="ride__askline">{r.card.headline}</span>
-                    )}
-                    {r && 'stamps' in r.card && r.card.stamps.length > 0 && (
-                      <span className="ride__askstamps">
-                        {r.card.stamps.slice(0, 3).map((st, i) => (
-                          <StampBadge key={`${st.kind}-${i}`} stamp={st} compact />
-                        ))}
-                      </span>
-                    )}
-                  </span>
-                  {c.note && <span className="panel__note">{c.note}</span>}
-                  <Button size="sm" onClick={() => confirmSeat(rideId, c.personId)}>
-                    Yes
-                  </Button>
-                  <Button size="sm" variant="quiet" onClick={() => declineSeat(rideId, c.personId)}>
-                    No
-                  </Button>
+                <li key={String(c.personId)} className="ride__ask">
+                  <div className="ride__askhead">
+                    {r ? <Avatar spec={r.card.avatar} size="sm" /> : <span className="ride__blank" />}
+                    <span className="ride__askwho">
+                      <span className="ride__askname">{r?.first ?? 'Someone'}</span>
+                      {/* What the ladder already allows at this rung — a line and
+                          their stamps. A first name and a face was all a host had
+                          to decide who sits beside her. */}
+                      {r && 'headline' in r.card && typeof r.card.headline === 'string' && r.card.headline && (
+                        <span className="ride__askline">{r.card.headline}</span>
+                      )}
+                      {r && 'stamps' in r.card && r.card.stamps.length > 0 && (
+                        <span className="ride__askstamps">
+                          {r.card.stamps.slice(0, 3).map((st, i) => (
+                            <StampBadge key={`${st.kind}-${i}`} stamp={st} compact />
+                          ))}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  {c.note && <p className="ride__asknote">&ldquo;{c.note}&rdquo;</p>}
+                  <div className="ride__askactions">
+                    <Button size="sm" onClick={() => confirmSeat(rideId, c.personId)}>
+                      Yes
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => declineSeat(rideId, c.personId)}>
+                      No
+                    </Button>
+                  </div>
                 </li>
               );
             })}

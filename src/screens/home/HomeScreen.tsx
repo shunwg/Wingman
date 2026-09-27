@@ -173,7 +173,7 @@ export function HomeScreen({ onOpen }: { onOpen: (hash: string) => void }) {
                 <Route size={18} />
               </span>
               <span className="homerow__body">
-                <span className="homerow__title">{bucketPhrase(cars.rows.length, 'shared car', 'shared cars')} going your way</span>
+                <span className="homerow__title">{capitalised(bucketPhrase(cars.rows.length, 'shared car', 'shared cars'))} going your way</span>
                 <span className="homerow__meta">Take a seat, or offer your own from Trips</span>
               </span>
               <span className="homerow__chevron" aria-hidden="true">
@@ -306,6 +306,9 @@ function DepartureLine({ trip, now }: { trip: Parameters<typeof tripDestination>
     </span>
   );
 }
+
+/** "a few shared cars" at the start of a line. */
+const capitalised = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** A first name for a sentence about your own trip. */
 function personFirstName(id: string): string {
